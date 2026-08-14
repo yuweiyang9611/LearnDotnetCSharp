@@ -2,6 +2,18 @@
 
 这是一个以 **.NET 10** 和 **C# 14** 为基准、包含 53 个可运行实验的高级特性实验室。项目参考《C# 8.0 核心技术指南》的目录组织知识范围，但示例使用当前运行时和语言写法，不复刻书中的旧代码。
 
+## 仓库迁移与隐私说明
+
+本公开仓库由旧的私有仓库迁移而来。由于旧仓库的提交元数据、Pull Request 等记录暴露了私人邮箱等个人隐私，迁移时删除了全部 Git 提交历史和 PR 记录，并删除了旧私有仓库；当前仓库从全新的公开根提交开始。
+
+本仓库的维护提交统一使用 GitHub 提供的 `noreply` 地址。仓库提供了提交前检查，并在 Pull Request 模板中要求检查提交元数据、描述、日志、截图和测试数据。首次克隆后，请为该克隆启用检查：
+
+```powershell
+git config --local user.email "91787866+yuweiyang9611@users.noreply.github.com"
+git config --local user.useConfigOnly true
+git config --local core.hooksPath .githooks
+```
+
 重点覆盖：
 
 - C# 14、Attribute、委托/事件/迭代器、运算符/转换、型变、泛型约束与现代 C# 高级语言特性

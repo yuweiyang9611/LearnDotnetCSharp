@@ -1,0 +1,33 @@
+#!/bin/sh
+
+set -eu
+
+extract_email() {
+    value=${1#*<}
+    value=${value%%>*}
+    printf '%s\n' "$value"
+}
+
+author_email=$(extract_email "$(git var GIT_AUTHOR_IDENT)")
+committer_email=$(extract_email "$(git var GIT_COMMITTER_IDENT)")
+
+is_github_noreply() {
+    case "$1" in
+        *@users.noreply.github.com|noreply@github.com)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+if ! is_github_noreply "$author_email"; then
+    printf '%s\n' "提交已阻止：author 邮箱必须使用 GitHub noreply 地址。" >&2
+    exit 1
+fi
+
+if ! is_github_noreply "$committer_email"; then
+    printf '%s\n' "提交已阻止：committer 邮箱必须使用 GitHub noreply 地址。" >&2
+    exit 1
+fi

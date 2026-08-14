@@ -79,7 +79,7 @@ jobs:
           --configuration Release
           --no-restore
           --no-build
-          --minimum-expected-tests 30
+          --minimum-expected-tests 31
 
       - name: Run demo self-test
         run: >-

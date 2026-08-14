@@ -27,7 +27,7 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-dotnet test --solution "$root\LearnDotnetCSharp.slnx" --configuration Release --no-build --minimum-expected-tests 30
+dotnet test --solution "$root\LearnDotnetCSharp.slnx" --configuration Release --no-build --minimum-expected-tests 31
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }

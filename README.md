@@ -46,7 +46,7 @@ git config --local core.hooksPath .githooks
 .\scripts\setup-python.cmd
 dotnet restore .\LearnDotnetCSharp.slnx --ignore-failed-sources
 dotnet build .\LearnDotnetCSharp.slnx --no-restore
-dotnet test --solution .\LearnDotnetCSharp.slnx --no-build --minimum-expected-tests 30
+dotnet test --solution .\LearnDotnetCSharp.slnx --no-build --minimum-expected-tests 31
 dotnet run --project .\src\LearnDotnetCSharp.App -- list
 dotnet run --project .\src\LearnDotnetCSharp.App -- run runtime.overview
 dotnet run --project .\src\LearnDotnetCSharp.App -- self-test
@@ -82,7 +82,7 @@ CLI 命令：
 
 `self-test` 不再把平台分支中的提前返回误记为成功。子进程退出码 `0` 表示 `Passed`，`77` 表示 `Skipped`，`124` 保留给 `Timeout`；失败或超时会保留该实验有界的标准输出和标准错误摘要，并让整体命令失败。超时后运行器会终止整个子进程树，因此死锁、忽略取消或污染进程级状态的实验不会阻塞后续项目。
 
-正式测试项目使用 .NET 10 的 Microsoft.Testing.Platform，当前包含 30 个测试，既覆盖目录/运行器基础设施，也直接验证可恢复管线、SQLite 幂等、插件路由和 Python worker 池。GitHub Actions 会在 Windows 与 Linux 上执行还原、Release 构建、格式检查、测试和完整 `self-test`；Windows 同时验证仓库自带的 C/C++ DLL，Linux 通过可用性契约测试和自检确认这些 Windows 专有实验明确报告 `Skipped`。
+正式测试项目使用 .NET 10 的 Microsoft.Testing.Platform，当前包含 31 个测试，既覆盖目录/运行器基础设施，也直接验证可恢复管线、SQLite 幂等、插件路由和 Python worker 池。GitHub Actions 会在 Windows 与 Linux 上执行还原、Release 构建、格式检查、测试和完整 `self-test`；Windows 同时验证仓库自带的 C/C++ DLL，Linux 通过可用性契约测试和自检确认这些 Windows 专有实验明确报告 `Skipped`。
 
 ## 解决方案结构
 

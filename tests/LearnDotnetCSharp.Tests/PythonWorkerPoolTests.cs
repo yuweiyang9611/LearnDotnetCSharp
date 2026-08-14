@@ -99,7 +99,33 @@ public sealed class PythonWorkerPoolTests
     }
 
     [TestMethod]
-    public async Task CancellationReplacesSessionAndDisposeRemovesActiveProcesses()
+    public async Task RequestTimeoutReplacesSession()
+    {
+        var options = CreateOptions(
+            workerCount: 1,
+            queueCapacity: 1,
+            requestTimeout: TimeSpan.FromMilliseconds(80));
+        await using var pool = await PythonWorkerPool.StartAsync(options).ConfigureAwait(false);
+
+        var exception = await Assert.ThrowsExactlyAsync<TimeoutException>(
+            () => pool.AnalyzeAsync(
+                new PythonAnalyzeRequest("timed-out", "slow", [1.0], DelayMilliseconds: 2_000)))
+            .ConfigureAwait(false);
+
+        var recovered = await pool.AnalyzeAsync(
+            new PythonAnalyzeRequest("after-timeout", "healthy", [2.0, 3.0])).ConfigureAwait(false);
+        var snapshot = pool.Snapshot;
+
+        StringAssert.Contains(exception.Message, "timed out");
+        Assert.IsTrue(recovered.Ok);
+        Assert.AreEqual(5.0, recovered.Result?.Sum);
+        Assert.AreEqual(2, recovered.Runtime.Generation);
+        Assert.AreEqual(2L, snapshot.Starts);
+        Assert.AreEqual(1L, snapshot.Restarts);
+    }
+
+    [TestMethod]
+    public async Task CancellationKeepsPoolUsableAndDisposeRemovesActiveProcesses()
     {
         var options = CreateOptions(workerCount: 1, queueCapacity: 1);
         var pool = await PythonWorkerPool.StartAsync(options).ConfigureAwait(false);
@@ -118,14 +144,19 @@ public sealed class PythonWorkerPoolTests
 
         Assert.IsTrue(recovered.Ok);
         Assert.AreEqual(5.0, recovered.Result?.Sum);
-        Assert.AreEqual(1L, recoveredSnapshot.Restarts);
+        Assert.IsTrue(
+            recoveredSnapshot.Restarts is 0L or 1L,
+            "Cancellation may win before dispatch (no restart) or during exchange (one restart).");
+        Assert.AreEqual(1L + recoveredSnapshot.Restarts, recoveredSnapshot.Starts);
+        Assert.AreEqual((int)recoveredSnapshot.Starts, recovered.Runtime.Generation);
         Assert.HasCount(0, disposedSnapshot.ActiveProcessIds);
     }
 
     private static PythonWorkerPoolOptions CreateOptions(
         int workerCount,
         int queueCapacity,
-        int standardErrorTailCharacters = 4 * 1024)
+        int standardErrorTailCharacters = 4 * 1024,
+        TimeSpan? requestTimeout = null)
     {
         var root = FindWorkspaceRoot();
         var interpreter = OperatingSystem.IsWindows()
@@ -138,7 +169,7 @@ public sealed class PythonWorkerPoolTests
         {
             WorkerCount = workerCount,
             QueueCapacity = queueCapacity,
-            RequestTimeout = TimeSpan.FromSeconds(4),
+            RequestTimeout = requestTimeout ?? TimeSpan.FromSeconds(4),
             StandardErrorTailCharacters = standardErrorTailCharacters,
         };
     }

@@ -1,0 +1,119 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>LearnDotnetCSharp</RootNamespace>
+    <AssemblyName>LearnDotnetCSharp</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NativeInteropArtifacts>$(MSBuildProjectDirectory)\..\..\artifacts\native\win-x64</NativeInteropArtifacts>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LearnDotnetCSharp.Capstones\LearnDotnetCSharp.Capstones.csproj" />
+    <ProjectReference Include="..\LearnDotnetCSharp.FSharpInterop\LearnDotnetCSharp.FSharpInterop.fsproj" />
+    <ProjectReference Include="..\LearnDotnetCSharp.PluginContract\LearnDotnetCSharp.PluginContract.csproj" />
+    <ProjectReference Include="..\LearnDotnetCSharp.SamplePlugin\LearnDotnetCSharp.SamplePlugin.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\LearnDotnetCSharp.SamplePlugin.V2\LearnDotnetCSharp.SamplePlugin.V2.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\LearnDotnetCSharp.VisualBasicInterop\LearnDotnetCSharp.VisualBasicInterop.vbproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="LearnDotnetCSharp.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
+    <!-- EF Core 10.0.9 allows a newer SQLitePCLRaw bundle; pin the audited 3.x native runtime. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Roslyn ships with the selected .NET SDK. Referencing it from MSBuildToolsPath keeps this
+      learning project offline and guarantees that its compiler API matches global.json.
+    -->
+    <Reference Include="Microsoft.CodeAnalysis">
+      <HintPath>$(RoslynTargetsPath)\bincore\Microsoft.CodeAnalysis.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp">
+      <HintPath>$(RoslynTargetsPath)\bincore\Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="ValidateSdkRoslynReferences" BeforeTargets="ResolveReferences">
+    <Error
+      Condition="!Exists('$(RoslynTargetsPath)\bincore\Microsoft.CodeAnalysis.dll')"
+      Text="The selected .NET SDK does not expose Microsoft.CodeAnalysis.dll under RoslynTargetsPath." />
+    <Error
+      Condition="!Exists('$(RoslynTargetsPath)\bincore\Microsoft.CodeAnalysis.CSharp.dll')"
+      Text="The selected .NET SDK does not expose Microsoft.CodeAnalysis.CSharp.dll under RoslynTargetsPath." />
+  </Target>
+
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <NativeInteropSource Include="$(MSBuildProjectDirectory)\..\..\native\learn_c\learn_c.c" />
+    <NativeInteropSource Include="$(MSBuildProjectDirectory)\..\..\native\learn_c\learn_c.h" />
+    <NativeInteropSource Include="$(MSBuildProjectDirectory)\..\..\native\learn_cpp\learn_cpp.cpp" />
+    <NativeInteropSource Include="$(MSBuildProjectDirectory)\..\..\native\learn_cpp\learn_cpp.h" />
+    <NativeInteropSource Include="$(MSBuildProjectDirectory)\..\..\scripts\build-native.cmd" />
+  </ItemGroup>
+
+  <Target
+    Name="BuildNativeInterop"
+    BeforeTargets="PrepareForBuild"
+    Condition="'$(OS)' == 'Windows_NT'"
+    Inputs="@(NativeInteropSource)"
+    Outputs="$(NativeInteropArtifacts)\learn_c.dll;$(NativeInteropArtifacts)\learn_cpp.dll">
+    <Exec Command="&quot;$(MSBuildProjectDirectory)\..\..\scripts\build-native.cmd&quot;" />
+  </Target>
+
+  <Target
+    Name="CopyNativeInterop"
+    AfterTargets="CopyFilesToOutputDirectory"
+    DependsOnTargets="BuildNativeInterop"
+    Condition="'$(OS)' == 'Windows_NT'">
+    <Copy
+      SourceFiles="$(NativeInteropArtifacts)\learn_c.dll;$(NativeInteropArtifacts)\learn_cpp.dll"
+      DestinationFolder="$(OutDir)"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopySamplePlugin" AfterTargets="CopyFilesToOutputDirectory">
+    <PropertyGroup>
+      <SamplePluginOutput>$(MSBuildProjectDirectory)\..\LearnDotnetCSharp.SamplePlugin\bin\$(Configuration)\$(TargetFramework)</SamplePluginOutput>
+      <SamplePluginDestination>$(OutDir)plugins\sample</SamplePluginDestination>
+    </PropertyGroup>
+    <ItemGroup>
+      <SamplePluginFile Include="$(SamplePluginOutput)\LearnDotnetCSharp.SamplePlugin.dll" />
+      <SamplePluginFile Include="$(SamplePluginOutput)\LearnDotnetCSharp.SamplePlugin.deps.json" />
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(SamplePluginFile)"
+      DestinationFolder="$(SamplePluginDestination)"
+      SkipUnchangedFiles="true" />
+    <Copy
+      Condition="Exists('$(SamplePluginOutput)\ja-JP\LearnDotnetCSharp.SamplePlugin.resources.dll')"
+      SourceFiles="$(SamplePluginOutput)\ja-JP\LearnDotnetCSharp.SamplePlugin.resources.dll"
+      DestinationFolder="$(SamplePluginDestination)\ja-JP"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopySamplePluginV2" AfterTargets="CopyFilesToOutputDirectory">
+    <PropertyGroup>
+      <SamplePluginV2Output>$(MSBuildProjectDirectory)\..\LearnDotnetCSharp.SamplePlugin.V2\bin\$(Configuration)\$(TargetFramework)</SamplePluginV2Output>
+      <SamplePluginV2Destination>$(OutDir)plugins\sample-v2</SamplePluginV2Destination>
+    </PropertyGroup>
+    <ItemGroup>
+      <SamplePluginV2File Include="$(SamplePluginV2Output)\LearnDotnetCSharp.SamplePlugin.V2.dll" />
+      <SamplePluginV2File Include="$(SamplePluginV2Output)\LearnDotnetCSharp.SamplePlugin.V2.deps.json" />
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(SamplePluginV2File)"
+      DestinationFolder="$(SamplePluginV2Destination)"
+      SkipUnchangedFiles="true" />
+  </Target>
+</Project>

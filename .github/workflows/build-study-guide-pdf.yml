@@ -1,0 +1,64 @@
+name: Build study guide PDF
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build-study-guide-pdf.yml
+      - docs/advanced-dotnet-csharp-study-guide.md
+      - requirements-docs.txt
+      - scripts/markdown_to_pdf.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: study-guide-pdf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-pdf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+
+      - name: Install Chinese fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes fonts-wqy-zenhei
+
+      - name: Install locked PDF dependencies
+        run: >-
+          python -m pip install
+          --no-deps
+          --only-binary=:all:
+          --requirement requirements-docs.txt
+
+      - name: Build and validate PDF
+        run: >-
+          python scripts/markdown_to_pdf.py
+          --input docs/advanced-dotnet-csharp-study-guide.md
+          --output output/pdf/LearnDotnetCSharp-Study-Guide.pdf
+          --repo-root .
+          --repo-url "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}"
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: LearnDotnetCSharp-Study-Guide
+          path: output/pdf/LearnDotnetCSharp-Study-Guide.pdf
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

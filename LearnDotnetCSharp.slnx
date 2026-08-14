@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LearnDotnetCSharp.App/LearnDotnetCSharp.App.csproj" />
+    <Project Path="src/LearnDotnetCSharp.Capstones/LearnDotnetCSharp.Capstones.csproj" />
+    <Project Path="src/LearnDotnetCSharp.FSharpInterop/LearnDotnetCSharp.FSharpInterop.fsproj" />
+    <Project Path="src/LearnDotnetCSharp.PluginContract/LearnDotnetCSharp.PluginContract.csproj" />
+    <Project Path="src/LearnDotnetCSharp.SamplePlugin/LearnDotnetCSharp.SamplePlugin.csproj" />
+    <Project Path="src/LearnDotnetCSharp.SamplePlugin.V2/LearnDotnetCSharp.SamplePlugin.V2.csproj" />
+    <Project Path="src/LearnDotnetCSharp.VisualBasicInterop/LearnDotnetCSharp.VisualBasicInterop.vbproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LearnDotnetCSharp.Tests/LearnDotnetCSharp.Tests.csproj" />
+  </Folder>
+</Solution>

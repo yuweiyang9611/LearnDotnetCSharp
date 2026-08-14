@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>LearnDotnetCSharp.PluginContract</RootNamespace>
+    <AssemblyName>LearnDotnetCSharp.PluginContract</AssemblyName>
+  </PropertyGroup>
+</Project>

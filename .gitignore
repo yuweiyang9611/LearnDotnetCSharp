@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+.idea/
+.vs/
+.agents/
+.venv/
+.docs-venv/
+**/__pycache__/
+*.pyc
+TestResults/
+artifacts/
+tmp/

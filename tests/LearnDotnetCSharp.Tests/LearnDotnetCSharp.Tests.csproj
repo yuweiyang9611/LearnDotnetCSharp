@@ -1,0 +1,10 @@
+<Project Sdk="MSTest.Sdk/4.0.2">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\LearnDotnetCSharp.App\LearnDotnetCSharp.App.csproj" />
+    <ProjectReference Include="..\..\src\LearnDotnetCSharp.Capstones\LearnDotnetCSharp.Capstones.csproj" />
+  </ItemGroup>
+</Project>

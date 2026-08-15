@@ -6,13 +6,13 @@
 
 本公开仓库由旧的私有仓库迁移而来。由于旧仓库的提交元数据、Pull Request 等记录暴露了私人邮箱等个人隐私，迁移时删除了全部 Git 提交历史和 PR 记录，并删除了旧私有仓库；当前仓库从全新的公开根提交开始。
 
-本仓库的维护提交统一使用 GitHub 提供的 `noreply` 地址。仓库提供了提交前检查，并在 Pull Request 模板中要求检查提交元数据、描述、日志、截图和测试数据。首次克隆后，请为该克隆启用检查：
+本仓库的维护提交统一使用 GitHub 提供的 `noreply` 地址。仓库提供了提交前检查，并在 Pull Request 模板中要求检查提交元数据、描述、日志、截图和测试数据。Git 不会在克隆后自动启用仓库内的 hooks，因此首次克隆后请运行一次初始化脚本：
 
 ```powershell
-git config --local user.email "91787866+yuweiyang9611@users.noreply.github.com"
-git config --local user.useConfigOnly true
-git config --local core.hooksPath .githooks
+.\scripts\enable-git-hooks.ps1 -NoreplyEmail "91787866+yuweiyang9611@users.noreply.github.com"
 ```
+
+Linux、macOS 或 Git Bash 使用 `./scripts/enable-git-hooks.sh "YOUR_ID+YOUR_USERNAME@users.noreply.github.com"`。详细说明见 [GIT_HOOKS.md](GIT_HOOKS.md)。
 
 重点覆盖：
 

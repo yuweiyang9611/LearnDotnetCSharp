@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="LearnDotnetCSharp 在线学习站：按路线探索 .NET 10、C# 14 与 53 个可运行实验。"
+    />
+    <meta name="theme-color" content="#0b1020" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content="LearnDotnetCSharp · 在线学习实验室" />
+    <meta
+      property="og:description"
+      content="沿着清晰路线探索 .NET 10、C# 14 与 53 个可运行实验。"
+    />
+    <meta property="og:url" content="https://yuweiyang9611.github.io/LearnDotnetCSharp/" />
+    <meta
+      property="og:image"
+      content="https://yuweiyang9611.github.io/LearnDotnetCSharp/og.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="LearnDotnetCSharp，.NET 10 × C# 14 高级特性实验室" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="LearnDotnetCSharp · 在线学习实验室" />
+    <meta
+      name="twitter:description"
+      content="沿着清晰路线探索 .NET 10、C# 14 与 53 个可运行实验。"
+    />
+    <meta
+      name="twitter:image"
+      content="https://yuweiyang9611.github.io/LearnDotnetCSharp/og.png"
+    />
+    <link rel="canonical" href="https://yuweiyang9611.github.io/LearnDotnetCSharp/" />
+    <title>LearnDotnetCSharp · 在线学习实验室</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="LearnDotnetCSharp 首页">
+        <span class="brand-mark" aria-hidden="true">{ }</span>
+        <span>LearnDotnetCSharp</span>
+      </a>
+      <nav aria-label="主要导航">
+        <a href="#path">学习路线</a>
+        <a href="#catalog">实验目录</a>
+        <a href="#resources">学习资料</a>
+        <a href="https://github.com/yuweiyang9611/LearnDotnetCSharp">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> .NET 10 · C# 14 · 可运行实验</p>
+          <h1 id="hero-title">从读懂语法，<br />到看见运行时。</h1>
+          <p class="hero-summary">
+            一座面向高级 C# 学习者的在线实验室。沿着清晰路线阅读机制、运行代码、记录进度，
+            把语言特性、并发、内存、网络与跨语言边界连成完整知识图谱。
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#path">开始学习 <span aria-hidden="true">→</span></a>
+            <a class="button button-secondary" href="./downloads/LearnDotnetCSharp-Study-Guide.pdf">阅读完整指南</a>
+          </div>
+        </div>
+
+        <aside class="terminal-card" aria-label="快速开始命令">
+          <div class="terminal-bar">
+            <span></span><span></span><span></span>
+            <small>PowerShell</small>
+          </div>
+          <pre><code><span class="prompt">PS&gt;</span> dotnet run --project `
+  .\src\LearnDotnetCSharp.App -- list
+
+<span class="output">[runtime]</span>
+  runtime.overview
+  runtime.jit-simd-pgo
+  runtime.collectible-plugin
+
+<span class="prompt">PS&gt;</span> dotnet run --project `
+  .\src\LearnDotnetCSharp.App -- `
+  run runtime.overview</code></pre>
+          <div class="terminal-footer">
+            <p><span class="status-dot" aria-hidden="true"></span> 实验需在本地运行，真实网络端点仅绑定 loopback</p>
+            <button
+              type="button"
+              data-global-copy="dotnet run --project .\src\LearnDotnetCSharp.App -- run runtime.overview"
+            >复制命令</button>
+          </div>
+        </aside>
+      </section>
+
+      <section class="stats" aria-label="项目数据">
+        <article><strong>53</strong><span>可运行实验</span></article>
+        <article><strong>27</strong><span>知识章节</span></article>
+        <article><strong>5</strong><span>综合项目</span></article>
+        <article><strong>31</strong><span>自动化测试</span></article>
+      </section>
+
+      <section class="section" id="path" aria-labelledby="path-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow"><span></span> 推荐路径</p>
+            <h2 id="path-title">先建立直觉，再跨越边界</h2>
+          </div>
+          <p>八个阶段由浅入深，每一步都对应可运行的代码与明确的观察点。</p>
+        </div>
+
+        <div class="path-grid" id="path-grid"></div>
+      </section>
+
+      <section class="section" id="catalog" aria-labelledby="catalog-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow"><span></span> 实验目录</p>
+            <h2 id="catalog-title">找到下一个要拆解的机制</h2>
+          </div>
+          <p>按主题筛选或搜索全部实验。完成状态只保存在当前浏览器，不会上传任何数据。</p>
+        </div>
+
+        <div class="progress-panel">
+          <div class="progress-copy">
+            <p>我的学习进度</p>
+            <strong id="progress-count">0 / 53</strong>
+            <span id="progress-percent">0%</span>
+          </div>
+          <div class="progress-track" role="progressbar" aria-label="总体学习进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span id="progress-bar"></span>
+          </div>
+          <div class="progress-actions">
+            <button class="button button-primary" id="continue-action" type="button">从第一个实验开始</button>
+            <button class="text-button" id="reset-progress" type="button" disabled>清空进度</button>
+          </div>
+        </div>
+
+        <div class="catalog-tools">
+          <label class="search-field" for="catalog-search">
+            <span aria-hidden="true">⌕</span>
+            <span class="sr-only">搜索实验</span>
+            <input id="catalog-search" type="search" placeholder="搜索 ID、主题或关键机制…" autocomplete="off" />
+          </label>
+          <div class="catalog-result" aria-live="polite">
+            <strong id="catalog-count">53</strong> 个实验
+            <span id="filter-summary">全部主题</span>
+          </div>
+        </div>
+
+        <div class="filter-list" id="catalog-filters" aria-label="按主题筛选"></div>
+        <div class="experiment-grid" id="experiment-grid"></div>
+        <div class="empty-state" id="empty-state" hidden>
+          <strong>没有找到匹配的实验</strong>
+          <p>换一个关键词，或切回“全部”主题试试。</p>
+        </div>
+      </section>
+
+      <section class="section" id="resources" aria-labelledby="resources-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow"><span></span> 学习资料</p>
+            <h2 id="resources-title">从实验继续向外延伸</h2>
+          </div>
+          <p>主教材、PDF、章节映射与官方资料都从这里出发，正文仍以仓库文档为唯一来源。</p>
+        </div>
+        <div class="resources-grid" id="resources-grid"></div>
+      </section>
+    </main>
+
+    <footer>
+      <div>
+        <strong>LearnDotnetCSharp</strong>
+        <p>为深入理解 .NET 而构建。示例用于本地学习，不构成生产实现建议。</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/yuweiyang9611/LearnDotnetCSharp">项目源码 ↗</a>
+        <a href="https://github.com/yuweiyang9611/LearnDotnetCSharp/issues">反馈问题 ↗</a>
+      </div>
+    </footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

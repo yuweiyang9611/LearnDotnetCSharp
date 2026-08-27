@@ -77,7 +77,7 @@ dotnet --info
 .\scripts\setup-python.cmd
 dotnet restore .\LearnDotnetCSharp.slnx --ignore-failed-sources
 dotnet build .\LearnDotnetCSharp.slnx
-dotnet test --solution .\LearnDotnetCSharp.slnx --no-build --minimum-expected-tests 30
+dotnet test --solution .\LearnDotnetCSharp.slnx --no-build --minimum-expected-tests 31
 dotnet run --project .\src\LearnDotnetCSharp.App -- self-test
 ```
 
@@ -129,7 +129,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-all
 
 ### 2.2 正式测试、故障计划与代码 CI
 
-`tests/LearnDotnetCSharp.Tests` 使用 .NET 10 的 Microsoft.Testing.Platform，当前共 30 个正式测试。基础组验证目录数量、ID 唯一性、平台可用性、结果/退出码、输出截断和 `FaultPlan`；Capstones 组直接验证连续 checkpoint、死信幂等、源指纹拒绝、SQLite replay/conflict/single-flight/reopen、插件 v1/v2 路由和回退，以及 Python 常驻进程复用、崩溃替换、重复请求 ID 与取消清理。53 个端到端实验仍由进程隔离的 `self-test` 验证。二者不能互相替代：正式测试负责快速、精确定位状态转换，实验回归负责证明真实网络、文件、运行时和互操作边界仍能共同工作。
+`tests/LearnDotnetCSharp.Tests` 使用 .NET 10 的 Microsoft.Testing.Platform，当前共 31 个正式测试。基础组验证目录数量、ID 唯一性、平台可用性、结果/退出码、输出截断和 `FaultPlan`；Capstones 组直接验证连续 checkpoint、死信幂等、源指纹拒绝、SQLite replay/conflict/single-flight/reopen、插件 v1/v2 路由和回退，以及 Python 常驻进程复用、崩溃替换、重复请求 ID 与取消清理。53 个端到端实验仍由进程隔离的 `self-test` 验证。二者不能互相替代：正式测试负责快速、精确定位状态转换，实验回归负责证明真实网络、文件、运行时和互操作边界仍能共同工作。
 
 `FaultPlan` 用“命名故障点 + 第 N 次调用”描述可重复失败，并以原子计数保证并发调用中只触发一次。数据管线在 checkpoint 前中断，本地服务在 SQLite 已提交响应之后返回 503，最终工作流则先中断管线、再让 Python worker 按协议确定性退出。测试中的 `TaskCompletionSource` gate 与协议字段负责协调并发，不依赖随机数或用 `Sleep` 猜测时序。
 
@@ -1416,7 +1416,7 @@ SQLite idempotency key + source SHA-256
 - [ ] 能为 Python/C/C++ 边界写出协议、ABI 与所有权说明。
 - [ ] 能说明密码学示例之外仍需哪些生产安全措施。
 - [ ] 五个综合项目都至少完成一次修改，并能解释管线中断、提交后 503、插件失败回退和 Python 崩溃各自的恢复状态。
-- [ ] 能画出 `App -> Capstones -> PluginContract` 依赖边界，并说明 30 个正式测试与 53 项 `self-test` 分别证明什么。
+- [ ] 能画出 `App -> Capstones -> PluginContract` 依赖边界，并说明 31 个正式测试与 53 项 `self-test` 分别证明什么。
 
 # 附录 A：实验速查表
 

@@ -2,6 +2,10 @@
 
 这是一个以 **.NET 10** 和 **C# 14** 为基准、包含 53 个可运行实验的高级特性实验室。项目参考《C# 8.0 核心技术指南》的目录组织知识范围，但示例使用当前运行时和语言写法，不复刻书中的旧代码。
 
+> **在线学习站：** [yuweiyang9611.github.io/LearnDotnetCSharp](https://yuweiyang9611.github.io/LearnDotnetCSharp/)
+>
+> 可以按八阶段路线浏览课程、搜索或筛选全部实验、复制运行命令，并在当前浏览器记录学习进度。GitHub Pages 负责静态阅读；实验仍需克隆仓库后在本地运行。
+
 ## 仓库迁移与隐私说明
 
 本公开仓库由旧的私有仓库迁移而来。由于旧仓库的提交元数据、Pull Request 等记录暴露了私人邮箱等个人隐私，迁移时删除了全部 Git 提交历史和 PR 记录，并删除了旧私有仓库；当前仓库从全新的公开根提交开始。
@@ -90,7 +94,9 @@ CLI 命令：
 LearnDotnetCSharp.slnx
 ├─ .github/workflows/
 │  ├─ build-and-test.yml                     # Windows/Linux 代码、测试与全实验回归
-│  └─ build-study-guide-pdf.yml              # 学习指导 PDF 构建与 artifact
+│  ├─ build-study-guide-pdf.yml              # 学习指导 PDF 构建与 artifact
+│  └─ deploy-pages.yml                       # 在线学习站构建与 GitHub Pages 发布
+├─ site/                                     # 学习门户、实验目录与本地进度交互
 ├─ src/
 │  ├─ LearnDotnetCSharp.App/                 # CLI、示例发现器及全部 C# 实验
 │  ├─ LearnDotnetCSharp.Capstones/           # 可独立测试的综合项目核心与持久化/进程边界
@@ -100,7 +106,7 @@ LearnDotnetCSharp.slnx
 │  ├─ LearnDotnetCSharp.SamplePlugin/        # v1 示例插件与日语资源
 │  └─ LearnDotnetCSharp.SamplePlugin.V2/     # 用于热切换、隔离和回退的 v2 插件
 ├─ tests/
-│  └─ LearnDotnetCSharp.Tests/                # 30 个 MTP 正式测试：基础设施、Core 与边界恢复
+│  └─ LearnDotnetCSharp.Tests/                # 31 个 MTP 正式测试：基础设施、Core 与边界恢复
 ├─ python/                                   # .venv 子进程加载的 Python JSON worker
 ├─ native/                                   # C API 与带 extern C 外壳的 C++ 实现
 ├─ docs/
@@ -114,6 +120,8 @@ LearnDotnetCSharp.slnx
    ├─ setup-docs-python.cmd                  # 创建固定依赖的文档专用 .docs-venv
    ├─ markdown_to_pdf.py                     # Markdown 渲染、字体嵌入与 PDF 结构校验
    ├─ build-study-guide-pdf.cmd              # 一键生成详细学习指导 PDF
+   ├─ build-study-site.mjs                   # 组装并校验 GitHub Pages 静态产物
+   ├─ serve-study-site.mjs                   # 本地预览静态学习站
    ├─ build-native.cmd                       # 定位 MSVC 并构建 C/C++ DLL
    ├─ verify.cmd                             # 格式、Release 构建、测试与进程隔离自检
    └─ verify.ps1                             # PowerShell 等价版本

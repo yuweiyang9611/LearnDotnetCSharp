@@ -11,6 +11,7 @@
 - 语言版本是编译期概念，`.NET` 版本是目标框架和运行时概念。
 - 相同 IL 在不同 JIT、CPU 和 GC 模式下可能有不同机器码与性能。
 - SIMD 能力标志和预热次数只是观察数据，不是性能提升证明；基准必须使用 Release、固定环境和专业工具。
+- 详细学习指导第 19–20 章把这条链拆成“高级 C# → Roslyn lowering → PE/元数据 + CIL → JIT/AOT → x64/Arm64 机器码”。
 
 ## 2. 现代 C# 语言
 
@@ -70,9 +71,9 @@
 - HTTP/2 使用 TCP + TLS/ALPN，HTTP/3 使用 QUIC + TLS 1.3；应检查实际响应版本，而不是假设请求版本一定成功。
 - 监听器、连接和流都必须在异常路径上释放。
 
-## 6. 生命周期、诊断、程序集、反射与编译器
+## 6. 生命周期、诊断、程序集、反射与从源码到机器码
 
-建议顺序：`memory` -> `diagnostics` -> `runtime.collectible-plugin` -> `reflection` -> `compiler`。
+建议顺序：`memory` -> `diagnostics` -> `runtime.collectible-plugin` -> `reflection` -> `compiler`。运行 `compiler.roslyn-il` 后，按学习指导第 19 章逐层核对同一份 PE，再按第 20 章用 `DOTNET_JitDisasm` 启动一个新的 Release 进程观察机器汇编。
 
 观察点：
 
@@ -81,9 +82,13 @@
 - 固定托管对象只解决短期地址稳定；原生分配必须使用匹配释放函数，并让对齐、端序、长度和所有权都进入契约。
 - `ActivitySource` 传播因果上下文，`Meter` 发布指标，`EventSource` 提供低层事件；只有监听器存在时才应承担相应采集成本。
 - 可卸载插件必须避免默认加载上下文、静态字段、线程或反射对象继续引用插件；`Unload()` 发起回收，真正卸载要等所有根消失。
-- 反射看到的是元数据和运行时类型；IL 看到的是编译器降级后的真实控制流。
+- “低层 C#”是便于解释 `using`、`foreach`、模式和状态机的手写语义等价展开，不是 Roslyn 会输出的正式 `.cs`；Roslyn 实际使用内部 bound tree/rewrite。
+- 反射看到元数据和加载后的运行时类型；CIL 展示编译器发射的托管控制流，JIT 后的最终控制流仍可能改变。
+- `compiler.roslyn-il` 会从同一 PE 的 MethodDef token 与 RVA 找到方法体，并核对 PEReader 和反射读取到相同 CIL 字节；读取指令前先看 `.maxstack`、locals 和异常区域。
+- CIL 求值栈是抽象执行模型，不要求机器码使用物理栈；load/运算/store 的值常被 JIT 放进寄存器。
 - 增量生成器增加编译输入，分析器报告诊断；两者都应保持确定性、并发安全并控制误报，目标框架工具要使用 reference assemblies。
 - async/iterator、模式和高层语法往往会生成状态机或辅助成员。
+- `DOTNET_JitDisasm` 只观察当前运行时、ISA、ABI、tier 和 PGO 状态下的一次编译；同一 CIL 不存在唯一永久的“对应汇编”。
 
 ## 7. 密码学、正则与互操作
 

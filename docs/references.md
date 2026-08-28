@@ -1,6 +1,6 @@
-# Microsoft 官方延伸资料
+# 官方与规范性延伸资料
 
-本项目的源码是机制入口；下面的官方文档用于核对正式语义、平台边界和生产建议。
+本项目的源码是机制入口；下面的标准、规范、官方文档与实现仓库用于核对正式语义、平台边界和生产建议。ECMA/C# 规范描述保证，Roslyn/CoreCLR 源码描述当前实现；阅读时不要把后者的具体代码形状升级为永久语言契约。
 
 ## .NET 10 与 C# 14
 
@@ -66,6 +66,38 @@
 - [可收集程序集的卸载与调试](https://learn.microsoft.com/dotnet/standard/assembly/unloadability)
 - [.NET 反射](https://learn.microsoft.com/dotnet/fundamentals/reflection/reflection)
 - [`System.Reflection.Emit.OpCodes`](https://learn.microsoft.com/dotnet/api/system.reflection.emit.opcodes?view=net-10.0)
+
+### C# lowering、PE/CLI 元数据与 CIL
+
+- [ECMA-334：C# 语言规范](https://ecma-international.org/publications-and-standards/standards/ecma-334/)
+- [C# 语言规范：Statements（含 `foreach` 语义展开）](https://learn.microsoft.com/dotnet/csharp/language-reference/language-specification/statements)
+- [ECMA-335：Common Language Infrastructure](https://ecma-international.org/publications-and-standards/standards/ecma-335/)
+- [ECMA-335 第 6 版 PDF](https://www.ecma-international.org/wp-content/uploads/ECMA-335_6th_edition_june_2012.pdf)
+- [.NET 托管执行过程（基础/历史概览）](https://learn.microsoft.com/dotnet/standard/managed-execution-process)
+- [.NET 元数据与自描述组件](https://learn.microsoft.com/dotnet/standard/metadata-and-self-describing-components)
+- [`System.Reflection.Metadata` 命名空间](https://learn.microsoft.com/dotnet/api/system.reflection.metadata?view=net-10.0)
+- [`PEReader` API](https://learn.microsoft.com/dotnet/api/system.reflection.portableexecutable.pereader?view=net-10.0)
+- [`MethodBodyBlock` API](https://learn.microsoft.com/dotnet/api/system.reflection.metadata.methodbodyblock?view=net-10.0)
+- [Roslyn 编译器管线概览](https://github.com/dotnet/roslyn/blob/main/docs/wiki/Roslyn-Overview.md)
+- [Roslyn C# Lowering 当前实现入口](https://github.com/dotnet/roslyn/tree/main/src/Compilers/CSharp/Portable/Lowering)
+- [Roslyn `foreach` lowering 当前实现](https://github.com/dotnet/roslyn/blob/main/src/Compilers/CSharp/Portable/Lowering/LocalRewriter/LocalRewriter_ForEachStatement.cs)
+- [Roslyn async rewriter 当前实现](https://github.com/dotnet/roslyn/blob/main/src/Compilers/CSharp/Portable/Lowering/AsyncRewriter/AsyncRewriter.cs)
+
+### JIT、机器码与 AOT
+
+- [RyuJIT 架构概览](https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/jit/ryujit-overview.md)
+- [CoreCLR JIT 反汇编与 dump 指南](https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/jit/viewing-jit-dumps.md)
+- [CLR ABI](https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/botr/clr-abi.md)
+- [分层编译设计](https://github.com/dotnet/runtime/blob/main/docs/design/features/tiered-compilation.md)
+- [OSR 与 Dynamic PGO 实现说明](https://github.com/dotnet/runtime/blob/main/docs/design/features/OsrDetailsAndDebugging.md)
+- [ReadyToRun 部署](https://learn.microsoft.com/dotnet/core/deploying/ready-to-run)
+- [NativeAOT 部署](https://learn.microsoft.com/dotnet/core/deploying/native-aot/)
+- [NativeAOT ILC 架构](https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/botr/ilc-architecture.md)
+
+> “.NET 托管执行过程”用于建立 CIL、元数据与 JIT 的基础图景；现代 tiering、OSR、ReadyToRun 与 NativeAOT 以本节后续资料为准。
+
+### 编译器扩展与运行时优化
+
 - [Roslyn SDK 概览](https://learn.microsoft.com/dotnet/csharp/roslyn-sdk/)
 - [`IIncrementalGenerator` API](https://learn.microsoft.com/dotnet/api/microsoft.codeanalysis.iincrementalgenerator)
 - [编写 Roslyn 分析器与代码修复](https://learn.microsoft.com/dotnet/csharp/roslyn-sdk/tutorials/how-to-write-csharp-analyzer-code-fix)

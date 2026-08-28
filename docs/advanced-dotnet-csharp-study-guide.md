@@ -2,7 +2,7 @@
 title: ".NET 10 与 C# 14 高级特性学习指导"
 subtitle: "以 LearnDotnetCSharp 的 53 个可运行实验为主线"
 author: "LearnDotnetCSharp"
-date: "2026-07-18"
+date: "2026-08-28"
 lang: "zh-CN"
 toc: true
 toc-depth: 3
@@ -53,7 +53,7 @@ links-as-notes: true
 - 源码才是需要逐行阅读和修改的教材；
 - `self-test` 是课程整体仍然成立的回归检查。
 
-章节与原 PDF 的对应关系见 [PDF 目录映射](pdf-topic-map.md)，外部权威资料见 [官方参考资料](references.md)，跨语言边界的集中说明见 [互操作边界](interop-boundaries.md)。
+章节与原 PDF 的对应关系见 [PDF 目录映射](pdf-topic-map.md)，外部权威资料见 [官方与规范性延伸资料](references.md)，跨语言边界的集中说明见 [互操作边界](interop-boundaries.md)。
 
 # 第一部分：学习环境与实验方法
 
@@ -188,20 +188,19 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-all
 dotnet run --project .\src\LearnDotnetCSharp.App -- run runtime.overview
 ```
 
-先区分四个经常混淆的概念：
+先区分从语言到 CPU 的不同产物和责任：
 
 ```text
-C# 14 源码
-   |
-   v
-编译器 -> IL + 元数据（面向 net10.0 的引用程序集）
-   |
-   v
-.NET 10 运行时 -> 加载、验证、JIT/AOT、GC、线程与系统调用
-   |
-   v
-操作系统与 CPU
+C# 14 源码 + 生成源码
+   -> Roslyn 解析、绑定与 lowering
+   -> PE/CLI（CIL + 元数据）+ portable PDB
+   -> Loader
+      |-> CoreCLR JIT / ReadyToRun -> 当前进程的目标机器码
+      `-> NativeAOT 发布链 -> 平台目标文件与本机程序
+   -> OS、ABI 与 CPU
 ```
+
+编译时使用 `net10.0` reference assemblies 完成绑定；发射结果才是 PE/CLI 产物。第 19 章拆解高级 C#、教学用低层等价写法、CIL 与元数据，第 20 章继续追踪 JIT/AOT 和 x64/Arm64 汇编。NativeAOT 是发布阶段的独立分支，不应画成普通进程加载后才发生的一步。
 
 重点观察：
 
@@ -232,10 +231,11 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run runtime.jit-simd-pgo
 分层编译和动态 PGO 也不能从一次调用直接下结论：
 
 ```text
-初始代码/ReadyToRun
-      -> Tier 0 快速 JIT + 可选插桩
-      -> 运行时收集热路径信息
-      -> Tier 1 优化代码（可能使用动态 PGO）
+没有预编译入口的方法 -> Tier 0 快速 JIT + 可选插桩
+ReadyToRun 方法 ---------> 可先执行预编译代码
+                            |
+                            `-> 按运行时策略进入优化 JIT / Tier 1
+                                  -> 可使用动态 PGO，并可能通过 OSR 切换热点循环
 ```
 
 实验打印 `DOTNET_TieredCompilation`、`DOTNET_TieredPGO` 及旧 `COMPlus_` 覆盖项。`<unset>` 表示使用运行时默认值，不表示关闭；循环预热只制造调用历史，不能证明某个方法已在某一刻完成重编译。还要注意 switch expression 与其他运算符组合时应使用括号明确意图，例如 `(value % 5) switch`。
@@ -255,7 +255,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run runtime.jit-simd-pgo
 
 本实验覆盖 extension members、`field`、null-conditional assignment、未绑定泛型 `nameof`、Span 转换、简化 lambda 参数修饰符、partial 构造函数/事件，以及用户定义复合赋值。
 
-重点不是记语法，而是解释降级后的语义：
+重点不是记语法，而是解释降级后的语义；完整的 lowering、CIL 与求值栈读法见第 19 章：
 
 - extension member 仍是静态成员；调用形式不会改变其调度本质；
 - `field` 指向编译器生成的后备字段，应注意同名成员遮蔽；
@@ -976,28 +976,32 @@ Collectible PluginLoadContext
 
 源码：[CompilerAndIlDemo.cs](../src/LearnDotnetCSharp.App/Demos/Compiler/CompilerAndIlDemo.cs) 与 [IlDisassembler.cs](../src/LearnDotnetCSharp.App/Demos/Compiler/IlDisassembler.cs)
 
-完整管线：
+实验建立的是一条可核对的同源证据链：
 
 ```text
-源码文本
+同一份源码文本
   -> SyntaxTree（语法结构）
   -> SemanticModel（符号、类型、绑定）
-  -> Compilation（引用 + 诊断）
-  -> Emit（PE/PDB）
-  -> AssemblyLoadContext（加载）
-  -> MethodBody IL（反汇编）
-  -> JIT/AOT（本机代码）
+  -> Compilation（引用 + 选项 + 诊断）
+  -> Emit（同一份 PE 字节）
+       |-> PEReader：MethodDef token -> RVA -> 方法体头 + CIL 字节
+       `-> AssemblyLoadContext：MethodInfo -> MethodBody -> CIL 反汇编
 ```
 
-实验既编译内存源码，也比较普通方法与 async 方法。async 方法通常生成状态机；入口方法不再包含你在源码中看到的完整顺序控制流。
+动态源码同时包含高级写法 `HighLevel`、教学用低层等价写法 `LowLevelEquivalent` 和一个 async 方法。实验不仅比较执行结果，还核对 `PEReader` 与反射定位到相同的 MethodDef token 和完全相同的 CIL 字节，修复了“编译一个方法、反汇编另一个方法”无法证明层次传递的问题。
 
-> **引用边界**：通用编译工具应使用目标框架 reference assemblies。只引用当前运行时 core library 的极简方式仅适用于受控实验。
+高级写法组合 `using var`、数组 `foreach`、关系模式和 `checked`。低层等价写法手工使用 `try/finally`、索引循环、比较分支和 `Dispose`，二者必须保持结果与释放次数。async 入口及其 `AsyncStateMachineAttribute` 指向的 `MoveNext` 也来自同一动态程序集；实验检查 builder、awaiter、恢复、成功和异常路径。
+
+本项目的 `IlDisassembler` 输出“方法体中的 CIL 指令”，不是完整 ILAsm 文件：`.assembly`、`.class`、`.method`、`.maxstack`、`.locals` 和异常区域等结构要结合 PE 元数据与方法体头理解。第 19 章会逐项讲解这些层次，第 20 章再从 CIL 进入 JIT 与机器汇编。
+
+> **引用边界**：实验从 `TRUSTED_PLATFORM_ASSEMBLIES` 取得当前运行环境的实现程序集，只为构造自洽的内存样例。通用编译工具必须使用目标框架的 reference assemblies，不能把当前机器的运行时实现误当成任意 TFM 的编译契约。
 
 练习：
 
 1. 给内存源码增加语义错误，打印诊断位置和 ID。
-2. 编译一个 iterator，寻找生成的状态机类型和 `MoveNext`。
-3. 比较 Debug/Release IL，解释哪些差异来自优化。
+2. 把数组换成自定义枚举器，比较 `foreach` 的 CIL 与 `Dispose` 路径。
+3. 编译一个 iterator，寻找生成的状态机类型和 `MoveNext`。
+4. 比较 Debug/Release CIL，解释哪些差异来自编译器选项，哪些只是当前 Roslyn 实现。
 
 ### 18.4 `compiler.incremental-generator-analyzer`
 
@@ -1027,11 +1031,436 @@ Collectible PluginLoadContext
 4. 为 LDCS001 增加 code fix 草案：把同步成员访问改成 await 需要哪些调用链变更？
 5. 把输入源码加入编译错误，分别记录生成器诊断、编译诊断和分析器诊断的来源。
 
+## 19. 从高级 C# 到 CIL
+
+### 19.1 先把四种“代码”分清
+
+“高级 C#”“低层 C#”“IL”和“汇编”不是同一条轴上的四种文件格式：
+
+| 名称 | 本章中的准确含义 | 是否是稳定交换格式 |
+|---|---|---|
+| 高级 C# | 开发者编写的 C#，可包含模式、`using`、`foreach`、lambda、`async` 等抽象 | `.cs` 是源码；语义由 C# 规范定义 |
+| 低层 C# | 为教学手写的语义等价展开，用较直接的循环、分支、`try/finally` 和辅助类型解释高级结构 | 否；不是 Roslyn 的正式输出语言 |
+| CIL | CLI 定义的公共中间语言指令，通常以二进制方法体存入 PE；ILAsm 是它的文本表示 | 是；指令与元数据格式由 ECMA-335 定义 |
+| 机器汇编 | 对目标 ISA 机器码的文本反汇编，如 x64 或 Arm64 指令 | 与 CPU、ABI、JIT/AOT 版本和优化状态相关 |
+
+Roslyn 内部会建立 bound tree，并进行 rewrite/lowering 与成员合成，但这些内部节点不是公共、稳定的“低层 C#”。因此教材可以说“把 `using` 理解成 `try/finally`”，却不能说 Roslyn 必然先生成下面那份 `.cs` 再编译。
+
+同样需要区分两个 lowering：
+
+- **Roslyn lowering**：在发射 CIL 前，把语言结构改写成更接近 CLI 能表达的控制流，并合成闭包或状态机等成员；
+- **RyuJIT lowering**：导入 CIL、完成中高层优化后，把 JIT IR 降到适合目标 ISA 的低层 IR；它发生在另一套组件、另一个时间点。
+
+总体层次是：
+
+```text
+.cs + 生成的 .g.cs + reference assemblies
+  |
+  |  lexer / parser
+  v
+SyntaxTree
+  |
+  |  declarations / binding / type checking / overload resolution
+  v
+symbols + SemanticModel + Roslyn 内部 bound tree
+  |
+  |  rewrite / lowering / synthesized members
+  v
+Emit
+  |-----------------------------> portable PDB（源码位置与调试映射）
+  v
+PE/CLI：程序集清单 + 元数据表/heap + CIL 方法体 + 托管资源
+```
+
+C# 规范主要规定源码的语法、约束和可观察语义，并不承诺某段源码只能生成唯一 CIL。编译器版本、优化级别和目标环境都可能改变产物形状，只要仍满足语言与 CLI 契约。
+
+### 19.2 一个贯穿四层的例子
+
+实验中的高级写法是：
+
+```csharp
+public static int HighLevel(int[] values)
+{
+    using var probe = new DisposeProbe();
+    var sum = 0;
+
+    foreach (var value in values)
+    {
+        if (value is > 0 and <= 10)
+        {
+            sum = checked(sum + value);
+        }
+    }
+
+    return sum;
+}
+```
+
+为了形成心智模型，可以手写成更直接的 C#：
+
+```csharp
+public static int LowLevelEquivalent(int[] values)
+{
+    var probe = new DisposeProbe();
+    try
+    {
+        var sum = 0;
+        var index = 0;
+        while (index < values.Length)
+        {
+            var value = values[index];
+            if (value > 0 && value <= 10)
+            {
+                sum = checked(sum + value);
+            }
+
+            index++;
+        }
+
+        return sum;
+    }
+    finally
+    {
+        if (probe is not null)
+        {
+            ((IDisposable)probe).Dispose();
+        }
+    }
+}
+```
+
+这两段代码表达同一组核心责任，但第二段只是教学性近似。数组 `foreach` 常可实现为索引循环；换成普通 `IEnumerable<T>` 时通常需要 `GetEnumerator`、`MoveNext`、`Current` 和释放逻辑。编译器还可改变局部变量数量、分支方向和公共子表达式，不能断言两段 CIL 必须逐字相同。
+
+逐项建立映射：
+
+| 高层结构 | 必须保留的语义 | 本实验可见的 CIL 证据 |
+|---|---|---|
+| `using var` | 无论正常返回还是异常，都在作用域结束时释放非空资源 | 方法体有 `finally` 区域，处理器调用 `Dispose` 并以 `endfinally` 结束 |
+| 数组 `foreach` | 按顺序读取每个元素一次 | `ldelem.i4`、索引递增、`ldlen` 与回跳分支 |
+| `is > 0 and <= 10` | 两项都必须匹配；子模式检查顺序不是语言保证 | 当前编译器可用 `ble`/`bgt` 一类条件分支实现；顺序与方向可变化 |
+| `checked(sum + value)` | 有符号溢出必须抛出 `OverflowException` | `add.ovf`，而不是普通 `add` |
+| `return` 穿过 `finally` | 先完成释放，再把结果交给调用者 | `leave` 离开保护区，处理器结束后再 `ret` |
+
+为什么不能只看反编译回来的 C#？反编译器会根据 CIL 猜测更易读的高级结构，可能重新显示为 `foreach` 或 `using`。它很有用，但那是重构后的解释，不是编译器内部真正保存的中间步骤。学习底层机制时，应同时看原源码、方法体结构和原始 CIL 指令。
+
+### 19.3 PE、CLI 元数据与方法体怎样封装
+
+托管程序集不是“一个 IL 文本文件”。常见 `.dll`/`.exe` 是 PE/COFF 容器，其中 CLI 数据互相引用：
+
+```text
+PE/COFF
+|-- PE headers / sections
+|-- CLR header
+|-- CLI metadata root
+|   |-- tables stream：TypeDef、MethodDef、Field、MemberRef、AssemblyRef ...
+|   `-- heaps：#Strings、#Blob、#US、#GUID
+|-- CIL method bodies：header + instructions + optional EH sections
+|-- managed resources
+`-- debug directory ----> portable PDB（通常独立文件）
+```
+
+元数据不是注释。运行时靠它知道类型、基类、字段、方法签名、泛型参数、Attribute、程序集引用和调用目标。CIL 中的 `call`、`newobj`、`ldfld` 等指令常携带四字节 metadata token；加载器再把 token 解析成当前模块中的元数据实体。
+
+例如 `0x06000001`：高字节 `0x06` 表示 MethodDef 表，低三字节表示该表的行号 1。token 像模块内的持久句柄，不是进程地址；重新编译后行号可变化，跨模块也没有全局唯一性。
+
+一个 fat 方法体头至少会提供代码大小、`MaxStack`、本地变量签名 token 和初始化标志，后面可附异常处理区域。实验从 `MethodDefinition.RelativeVirtualAddress` 找到方法体，并输出：
+
+- MethodDef token 与 RVA；
+- `MaxStack` 和 `InitLocals`；
+- CIL 字节数和异常区域数；
+- `PEReader` 读取的 CIL 与 `MethodBody.GetILAsByteArray()` 是否完全相同。
+
+这条核对很重要：它证明元数据行、PE 方法体、加载后的反射对象和反汇编文本都在谈同一个方法。
+
+### 19.4 ILAsm 语法与抽象求值栈
+
+下面是教学性删节，目的是说明结构，不保证偏移、局部变量编号与当前编译器输出逐字一致：
+
+```il
+.method public hidebysig static int32
+        HighLevel(int32[] values) cil managed
+{
+  .maxstack 2
+  .locals init (
+    [0] class DynamicSample.LayeredSample/DisposeProbe probe,
+    [1] int32 sum,
+    [2] int32[] array,
+    [3] int32 index)
+
+  IL_0000: newobj   instance void DisposeProbe::.ctor()
+  IL_0005: stloc.0
+  .try
+  {
+    // 索引循环、关系分支和 add.ovf
+    IL_002F: leave.s IL_003B
+  }
+  finally
+  {
+    // 非空时调用 IDisposable.Dispose
+    IL_003A: endfinally
+  }
+  IL_003B: ret
+}
+```
+
+常见声明与标记：
+
+- `.assembly`、`.module`、`.class` 描述程序集、模块和类型；
+- `.method` 声明方法标志、调用约定、返回类型和参数；
+- `cil managed` 表示方法体是托管 CIL；
+- `.maxstack` 是验证/执行所需的最大抽象求值栈深度；
+- `.locals init` 声明局部变量签名，并要求进入方法时初始化；
+- `IL_002F` 是分支目标标签，不是稳定源码行号；
+- `.try`、`catch`、`finally`、`fault`、`filter` 描述结构化异常区域。
+
+CIL 采用抽象求值栈。以 `sum = checked(sum + value)` 为例：
+
+| 指令 | 指令前的栈 | 指令后的栈 |
+|---|---|---|
+| `ldloc.1` | `[]` | `[sum]` |
+| `ldloc.s V_4` | `[sum]` | `[sum, value]` |
+| `add.ovf` | `[sum, value]` | `[newSum]`；溢出则抛异常 |
+| `stloc.1` | `[newSum]` | `[]` |
+
+从下往上读数据依赖：load 压栈，运算消费操作数并压回结果，store 弹栈。所有可到达的控制流汇合点必须有兼容的栈状态；`ret` 前的栈形状也必须与返回签名一致。这个“栈”是 CLI 的抽象机器模型，不意味着最终 x64/Arm64 代码必须反复读写物理线程栈；JIT 常把值留在寄存器里。
+
+### 19.5 常用 CIL 指令族
+
+| 指令族 | 作用与阅读提示 |
+|---|---|
+| `ldarg*` / `starg*` | 读取/写入参数；实例方法的参数 0 通常是 `this` |
+| `ldloc*` / `stloc*` / `ldloca*` | 读取、写入局部变量，或取得其托管地址 |
+| `ldc.i4*` / `ldstr` / `ldnull` | 压入常量、用户字符串或 null |
+| `add` / `mul` 与 `.ovf` 版本 | 普通算术与 checked 溢出语义；有符号/无符号版本要分清 |
+| `ceq` / `cgt` / `clt` | 比较并压入整数布尔结果 |
+| `br*` / `beq*` / `bge*` / `switch` | 无条件或条件控制流；短形式 `.s` 只改变编码长度 |
+| `call` / `callvirt` / `newobj` | 调用、带实例空检查/虚调度语义的调用、构造对象 |
+| `ldfld` / `stfld` / `ldsfld` / `stsfld` | 实例字段和静态字段访问 |
+| `box` / `unbox.any` | 值类型与对象表示之间转换，可能引入分配或复制 |
+| `castclass` / `isinst` | 引用转换或运行时类型测试 |
+| `ldelem*` / `stelem*` / `ldlen` | 数组元素与长度访问 |
+| `constrained.` | 为泛型或值类型实例调用提供前缀，尽量避免不必要装箱 |
+| `leave` / `endfinally` / `throw` | 穿越异常区域、结束 finally、抛出异常 |
+
+不要把 `callvirt` 机械翻译成“源代码一定调用了 virtual 方法”：编译器也可用它获得实例 null 检查；最终是否发生虚分派还取决于目标方法、类型形状和 JIT 去虚拟化。反过来，`call` 也不等于目标一定会保留为本机 `call` 指令，因为 JIT 可能内联。
+
+### 19.6 async、iterator 与闭包为什么会“消失”
+
+某些高级结构不只是换几条分支，而是合成新的类型或成员：
+
+```text
+async 方法
+  |-- 原入口：创建/初始化状态机和 builder，启动 MoveNext，返回 Task
+  `-- 状态机 MoveNext：state switch、awaiter 保存/恢复、结果或异常完成
+
+yield iterator
+  |-- 原方法：创建枚举器/可枚举对象
+  `-- 状态机 MoveNext：保存当前位置、当前值和被提升的局部变量
+
+捕获 lambda
+  |-- 可缓存的无捕获委托，或
+  `-- display class / closure：被捕获局部变成字段
+```
+
+因此只反汇编 async 入口会错过主要业务控制流；必须沿 `AsyncStateMachineAttribute.StateMachineType` 找到 `MoveNext`。实验不依赖编译器生成字段的具体名称，也不把状态机一定是 `struct` 或 `class` 当成语言保证，只验证接口、字段类型和关键调用路径。
+
+异常路径同样重要。`MoveNext` 通常会把用户异常交给 builder 的 `SetException`，成功则调用 `SetResult`。在本例中，`YieldAwaiter` 未完成时会保存状态和 awaiter，再经 `AwaitUnsafeOnCompleted` 注册恢复；其他 awaiter 可能依据其接口走 `AwaitOnCompleted` / `OnCompleted`。这是“顺序源码”被包装成可暂停/恢复控制流的核心。
+
+### 19.7 运行本章实验
+
+```powershell
+dotnet run --project .\src\LearnDotnetCSharp.App --configuration Release -- run compiler.roslyn-il
+```
+
+按以下顺序读输出：
+
+1. 从 SyntaxTree 和 symbol 确认编译输入与绑定目标；
+2. 从 MethodDef token、RVA、方法体头确认 PE 中的位置；
+3. 核对 PEReader 与反射取得同一串 CIL 字节；
+4. 对照高级/低层写法的结果、释放次数、异常区域和指令；
+5. 手工模拟 `add.ovf` 前后的求值栈；
+6. 沿 async Attribute 进入状态机 `MoveNext`。
+
+实验能证明当前 Roslyn/.NET 10 对这份输入生成了这些产物，不能证明所有编译器版本都必须生成相同偏移、token、局部变量或分支排列。
+
+练习：
+
+1. 把 `checked` 改为 `unchecked`，只预测并核对相关算术指令，不依赖其他偏移。
+2. 把数组参数换成 `IEnumerable<int>`，解释枚举器、`MoveNext`、`Current` 和条件释放。
+3. 增加一个捕获局部变量的 lambda，查找生成的 display class 与字段。
+4. 用 `System.Reflection.Metadata` 再定位 `LowLevelEquivalent`，核对其 token、RVA 和异常区域。
+5. 给状态机字段类型排序后打印，比较 Debug/Release，但不要断言合成字段名稳定。
+
+## 20. 从 CIL 到 JIT 与机器汇编
+
+### 20.1 Loader 与 JIT 接手后发生什么
+
+PE 中的 CIL 仍不能直接由普通 CPU 执行。以 CoreCLR/RyuJIT 为例，一次方法首次执行的大致路径是：
+
+```text
+MethodDef / MemberRef token
+  -> Loader 解析模块、类型、签名与泛型上下文
+  -> 调用入口、stub/precode 或已有本机入口
+  -> RyuJIT 导入 CIL + EH 信息
+  -> JIT IR：控制流图、类型与栈状态
+  -> 内联、常量传播、去虚拟化、范围/边界检查等优化
+  -> JIT lowering：转换成适合目标 ISA 的低层 IR
+  -> 活跃性分析 + LSRA 寄存器分配
+  -> CodeGen / emitter：完成目标相关转换并发射机器码
+  -> 机器码 + GC info + unwind/EH 信息
+  -> 发布本机入口并执行
+```
+
+“按方法 JIT”不等于入口永远不变。分层编译可以先发布生成较快的版本，再把热点方法换成更优化的版本；调用点可能经过可修补入口，OSR 还可能在长循环执行中切入新版本。因此直接把 `MethodHandle.GetFunctionPointer()` 附近字节当作“该方法唯一汇编”并不可靠，它可能指向 stub，也可能只代表当时的某个 tier。
+
+JIT 生成的代码通常进入进程内的代码堆，不会回写原始程序集。运行时还需知道哪些位置含托管引用、如何安全停顿与展开栈，所以机器码旁边的 GC、异常处理和 unwind 元数据也是执行契约的一部分。
+
+### 20.2 从抽象栈到寄存器
+
+考虑一个更小的 checked 加法：
+
+```csharp
+static int AddChecked(int left, int right) => checked(left + right);
+```
+
+对应 CIL 的核心数据流可以是：
+
+```il
+ldarg.0
+ldarg.1
+add.ovf
+ret
+```
+
+在某次 x64 编译中，它可能被组织成类似下面的形状：
+
+```asm
+; x64 风格示意，不是固定输出
+mov eax, <left argument register>
+add eax, <right argument register>
+jo  overflow_helper
+ret
+```
+
+在 Arm64 上可能更接近：
+
+```asm
+; Arm64 风格示意，不是固定输出
+adds w0, w0, w1
+b.vs overflow_helper
+ret
+```
+
+这里最值得追踪的是语义链：`add.ovf` 要求检测有符号溢出，于是目标 ISA 上必须存在等价的溢出检测和异常路径。寄存器名、指令顺序、helper 形式与栈帧都不是 C# 或 CIL 保证。Windows x64、System V AMD64 与 Arm64 ABI 对参数寄存器、保留寄存器、栈对齐和返回规则也不同。
+
+读取汇编时先找五件事：
+
+1. 参数从寄存器还是栈进入，返回值放在哪里；
+2. 是否建立栈帧，哪些寄存器被保存；
+3. 循环回边和条件跳转在哪里；
+4. 数组访问前是否仍有边界检查；
+5. 调用被保留、去虚拟化还是已经内联。
+
+不要从“没看到某个局部变量”推断逻辑丢失：它可能已常量传播、被寄存器合并，或完全消除。也不要把汇编中的 `call` 数量直接等同于源码调用数量。
+
+### 20.3 优化如何改变最后一层
+
+| 优化 | CIL 层常见形态 | 机器码层可能发生的变化 |
+|---|---|---|
+| 内联 | 仍有 `call`/`callvirt` | 被调用体并入调用点，本机 `call` 消失，并触发更多优化 |
+| 去虚拟化 | `callvirt` 指向虚方法或接口 | 根据精确类型/PGO 变成直接调用，或内联后消失 |
+| 常量传播与死代码消除 | 常量、比较和分支均存在 | 条件在编译期确定，整个不可达分支被删掉 |
+| 范围分析 | 循环中每次 `ldelem` 都有数组语义 | 部分边界检查被合并或消除，但异常语义必须保持 |
+| 标量替换/逃逸分析 | 有值类型或短命对象操作 | 字段拆成寄存器或避免部分物化；不能假设所有分配都消失 |
+| SIMD/硬件内建 | 可移植 `Vector<T>` 或显式 ISA intrinsic | JIT 按已支持 ISA 发射向量指令；显式 ISA intrinsic 的 `IsSupported` 检查，以及算法所需的标量后备和尾部循环，由调用代码负责 |
+
+“Release CIL 更优化”与“JIT 机器码更优化”是两层决策。Roslyn 会做一部分结构化简化，但跨方法内联、CPU 指令选择、寄存器分配和动态 PGO 属于 JIT/AOT 后端。Debug 构建还会保留更多调试形状并影响 `DebuggableAttribute`，不能只拿源码相同就假设两层产物相同。
+
+### 20.4 Tier 0、Tier 1、ReadyToRun 与 NativeAOT
+
+| 模式 | 本机代码主要何时产生 | 运行时是否有 JIT | 需要保留的理解 |
+|---|---|---|---|
+| 普通 JIT | 方法首次/后续分层编译时 | 是 | 同一 CIL 方法可在一次进程中出现多个本机版本 |
+| Tiered JIT + Dynamic PGO | Tier 0 收集执行信息，热点方法进入优化 Tier 1；循环还可能 OSR | 是 | 阈值、插桩和策略是运行时实现细节，不靠一次预热证明 |
+| ReadyToRun | 发布/构建阶段预生成部分本机代码 | 通常仍有 | 产物可同时携带 CIL；缺失或值得重编译的方法仍可 JIT，分层机制也可能替换预编译代码 |
+| NativeAOT | 发布时由 ILC、后端和平台链接器生成目标程序 | 否 | 目标 RID/ISA 特定；动态加载、动态代码与部分反射场景受到限制 |
+
+NativeAOT 不是“Roslyn 直接把 C# 变成汇编”，也不是“完全没有运行时”。通常仍先有 CIL/元数据语义输入，再由 AOT 工具链构建依赖图、生成目标文件并链接所需运行时组件。它省去部署后的 JIT，但保留 GC、异常、类型系统等必要运行时能力。
+
+ReadyToRun 也不应简单画成“永远先执行 Tier 0 JIT”。它的初始入口可能直接使用预编译代码；随后是否 JIT、何时替换以及采用哪个 tier 取决于运行时策略和方法情况。
+
+### 20.5 用 `DOTNET_JitDisasm` 观察真实汇编
+
+先完成 Release 构建，再启动一个新进程。环境变量在进程启动时读取，`--no-build` 可以避免把 MSBuild/Roslyn 自身的大量 JIT 输出混进来：
+
+```powershell
+dotnet build .\LearnDotnetCSharp.slnx --configuration Release
+
+$jitOutput = Join-Path $env:TEMP "LearnDotnetCSharp-HighLevel.asm"
+$env:DOTNET_JitDisasm = "DynamicSample.LayeredSample:HighLevel"
+$env:DOTNET_JitDisasmWithCodeBytes = "1"
+$env:DOTNET_JitDisasmOnlyOptimized = "1"
+$env:DOTNET_JitStdOutFile = $jitOutput
+$env:DOTNET_TieredCompilation = "0"
+
+dotnet run --project .\src\LearnDotnetCSharp.App `
+  --configuration Release --no-build -- run compiler.roslyn-il
+
+Get-Content -LiteralPath $jitOutput
+
+Remove-Item Env:DOTNET_JitDisasm,
+  Env:DOTNET_JitDisasmWithCodeBytes,
+  Env:DOTNET_JitDisasmOnlyOptimized,
+  Env:DOTNET_JitStdOutFile,
+  Env:DOTNET_TieredCompilation -ErrorAction SilentlyContinue
+```
+
+Linux/macOS shell 的等价方式：
+
+```bash
+DOTNET_JitDisasm='DynamicSample.LayeredSample:HighLevel' \
+DOTNET_JitDisasmWithCodeBytes=1 \
+DOTNET_JitDisasmOnlyOptimized=1 \
+DOTNET_JitStdOutFile=/tmp/LearnDotnetCSharp-HighLevel.asm \
+DOTNET_TieredCompilation=0 \
+dotnet run --project ./src/LearnDotnetCSharp.App \
+  --configuration Release --no-build -- run compiler.roslyn-il
+```
+
+`DOTNET_JitDisasm` 接受方法列表和通配符；过滤到单个方法并写入独立文件，可以减少并发 JIT 输出交错。`DOTNET_JitDisasmWithCodeBytes=1` 同时显示机器码字节；若改用 `DOTNET_JitDisasmDiffable=1` 做文本比较，不要与 code bytes 选项同时使用。发行版运行时可提供这些基本反汇编选项，更深入的 JIT dump、GC/debug info 等选项可能需要 Debug/Checked 运行时构建。
+
+上面关闭 tiering 是为了得到一份容易阅读的优化版本，不是在模拟默认生产配置。要研究分层行为，应另起进程、恢复默认 tiering，记录反汇编标题中的 Tier/PGO 信息，并让目标方法有足够、可控的调用历史；即使如此，也只是在观察本次运行。
+
+### 20.6 怎样比较而不误读
+
+每份汇编记录至少附带：
+
+- Git commit、SDK 与运行时版本；
+- Debug/Release、JIT/R2R/NativeAOT 模式；
+- OS、进程架构、CPU 型号与可用 ISA；
+- tiering、OSR、PGO 和相关环境覆盖项；
+- 方法过滤器、输入与是否预热；
+- 反汇编标题中的方法签名和 tier。
+
+推荐做三组实验：
+
+1. 在同一台机器上比较 `HighLevel` 与 `LowLevelEquivalent`。语义相同不保证机器码完全相同；先比较分支、边界检查和释放路径，再比较代码大小。
+2. 固定源码和构建产物，在 x64 与 Arm64 上运行。对照控制流和语义，不比较寄存器名字或指令条数排名。
+3. 固定平台，分别观察关闭 tiering 的优化版本和默认分层配置。若出现多个版本，说明调用历史与标题，不把最后看到的一份称为唯一实现。
+
+练习：
+
+1. 把过滤器改为 `DynamicSample.LayeredSample:LowLevelEquivalent`，解释两段等价源码在哪些层仍不同。
+2. 观察 `DoubleAfterYieldAsync` 入口和状态机 `MoveNext`；说明为什么不能把一次 async 调用对应成一段连续机器码。
+3. 给简单数组循环增加可证明的范围条件，检查边界检查是否变化；先用测试证明异常行为没有改变。
+4. 对 `runtime.jit-simd-pgo` 建立独立 BenchmarkDotNet 项目，再用反汇编诊断器确认向量指令，而不是用本课程 Stopwatch 输出排名。
+5. 发布 ReadyToRun 或 NativeAOT 版本，记录产物、启动方式和动态代码限制；不要把 `DOTNET_JitDisasm` 当作 AOT 编译器的观察接口。
+
 # 第八部分：正则表达式与密码学
 
-## 19. 正则表达式的复杂度边界
+## 21. 正则表达式的复杂度边界
 
-### 19.1 `regex.advanced`
+### 21.1 `regex.advanced`
 
 源码：[RegexAdvancedDemo.cs](../src/LearnDotnetCSharp.App/Demos/Regex/RegexAdvancedDemo.cs)
 
@@ -1047,9 +1476,9 @@ Collectible PluginLoadContext
 
 练习：构造逐步增长的对抗输入，记录回溯引擎耗时与非回溯结果。不要在共享机器上使用无上限输入。
 
-## 20. 现代密码学原语
+## 22. 现代密码学原语
 
-### 20.1 `crypto.modern-primitives`
+### 22.1 `crypto.modern-primitives`
 
 源码：[ModernCryptographyDemo.cs](../src/LearnDotnetCSharp.App/Demos/Crypto/ModernCryptographyDemo.cs)
 
@@ -1080,9 +1509,9 @@ Collectible PluginLoadContext
 
 # 第九部分：跨语言与原生互操作
 
-## 21. 托管语言互操作
+## 23. 托管语言互操作
 
-### 21.1 `interop.managed-languages`
+### 23.1 `interop.managed-languages`
 
 源码：[ManagedLanguagesInteropDemo.cs](../src/LearnDotnetCSharp.App/Demos/Interop/ManagedLanguagesInteropDemo.cs)
 
@@ -1095,9 +1524,9 @@ C#、F#、VB 共享 CLR、CTS 和程序集元数据，因此可以直接引用�
 
 练习：从 F# 返回 option 或 discriminated union，观察 C# 看到的实际 API 形状，再设计一个 C# 友好的 facade。
 
-## 22. 平台 P/Invoke
+## 24. 平台 P/Invoke
 
-### 22.1 `interop.native-pinvoke`
+### 24.1 `interop.native-pinvoke`
 
 源码：[NativeInteropDemo.cs](../src/LearnDotnetCSharp.App/Demos/Interop/NativeInteropDemo.cs)
 
@@ -1113,9 +1542,9 @@ C#、F#、VB 共享 CLR、CTS 和程序集元数据，因此可以直接引用�
 
 平台分支不是“让测试通过”的技巧，而是公共 API 能力的一部分。
 
-## 23. Python 进程协议
+## 25. Python 进程协议
 
-### 23.1 `interop.python-process-json`
+### 25.1 `interop.python-process-json`
 
 源码：[PythonProcessInteropDemo.cs](../src/LearnDotnetCSharp.App/Demos/Interop/PythonProcessInteropDemo.cs) 与 [interop_worker.py](../python/interop_worker.py)
 
@@ -1138,9 +1567,9 @@ C# host
 2. 让 worker 超时，确认宿主终止并回收子进程。
 3. 输出一行非法 JSON，区分协议错误与非零退出码。
 
-## 24. C ABI 与反向回调
+## 26. C ABI 与反向回调
 
-### 24.1 `interop.c-abi`
+### 26.1 `interop.c-abi`
 
 源码：[CAbiInteropDemo.cs](../src/LearnDotnetCSharp.App/Demos/Interop/CAbiInteropDemo.cs)、[learn_c.h](../native/learn_c/learn_c.h) 与 [learn_c.c](../native/learn_c/learn_c.c)
 
@@ -1154,9 +1583,9 @@ C ABI 边界使用固定宽度类型、blittable struct、指针+长度、整数
 
 练习：给结构体增加字段，分别修改一侧和两侧，观察 ABI 版本不一致的风险。
 
-## 25. C++ 不透明句柄
+## 27. C++ 不透明句柄
 
-### 25.1 `interop.cpp-opaque-handle`
+### 27.1 `interop.cpp-opaque-handle`
 
 源码：[CppAbiInteropDemo.cs](../src/LearnDotnetCSharp.App/Demos/Interop/CppAbiInteropDemo.cs)、[learn_cpp.h](../native/learn_cpp/learn_cpp.h) 与 [learn_cpp.cpp](../native/learn_cpp/learn_cpp.cpp)
 
@@ -1173,9 +1602,9 @@ C ABI 边界使用固定宽度类型、blittable struct、指针+长度、整数
 
 # 第十部分：综合训练与验收
 
-## 26. 五个可运行综合项目
+## 28. 五个可运行综合项目
 
-前 25 章大多把一个概念边界单独放大。本章反过来：每个项目级实验都让多个边界共同工作，并用不变量证明它们没有被“拼接代码”掩盖。五项仍由统一 CLI 发现，因此既可单独运行，也会进入 `self-test`：
+前 27 章大多把一个概念边界单独放大。本章反过来：每个项目级实验都让多个边界共同工作，并用不变量证明它们没有被“拼接代码”掩盖。五项仍由统一 CLI 发现，因此既可单独运行，也会进入 `self-test`：
 
 ```powershell
 dotnet run --project src/LearnDotnetCSharp.App -- run project.cancellable-data-pipeline
@@ -1195,7 +1624,7 @@ LearnDotnetCSharp.Tests -> LearnDotnetCSharp.App
 
 Core 按 `DataPipeline`、`LocalService`、`PluginHost`、`Polyglot` 组织，不引用 `App`、`IDemo`、控制台或 `DemoAssert`。它返回状态、结果或明确异常；App 再接入真实文件、Kestrel、SQLite、工作区 Python、插件 DLL、C/C++ 与可观测性，并把固定输入写成教学验收。学习时不要只看最终输出。先在每个阶段旁写下“谁创建、谁完成、谁取消、谁释放、什么状态已经持久化”，再故意破坏一个不变量，观察错误能否回到拥有者。
 
-### 26.1 带 checkpoint、死信与恢复的数据管线
+### 28.1 带 checkpoint、死信与恢复的数据管线
 
 实验：`project.cancellable-data-pipeline`
 
@@ -1229,7 +1658,7 @@ UTF-8 文件 + SHA-256 source fingerprint
 4. 修改源文件一个字节后复用旧状态，确认 `PipelineSourceMismatchException` 阻止错误续跑；再设计显式“放弃旧 checkpoint”命令。
 5. 将状态格式版本改为未知值，写出迁移策略，不要无条件忽略新旧格式差异。
 
-### 26.2 可持久化、可重启的版本化协议服务
+### 28.2 可持久化、可重启的版本化协议服务
 
 实验：`project.versioned-local-service`
 
@@ -1272,7 +1701,7 @@ factory 计算 accepted/completed NDJSON bytes
 4. 增加 nonce 过期时间和有界 replay cache，说明清理任务、时钟和多实例一致性的所有者。
 5. 在正式部署设计中换成 TLS、密钥轮换与真正的跨进程协调；当前 single-flight 是进程内保证，SQLite 唯一键才是持久化事实边界。
 
-### 26.3 多版本、可热切换的隔离插件宿主
+### 28.3 多版本、可热切换的隔离插件宿主
 
 实验：`project.collectible-plugin-host`
 
@@ -1300,7 +1729,7 @@ factory 计算 accepted/completed NDJSON bytes
 4. 故意把插件 `Type` 或原始异常放进静态列表，观察卸载断言失败，再用 GC root 工具定位引用链。
 5. 为刷新增加不可变快照交换，让并发读取继续使用旧快照；说明何时才能删除旧插件文件。
 
-### 26.4 可自愈的跨语言计算模块
+### 28.4 可自愈的跨语言计算模块
 
 实验：`project.polyglot-compute`
 
@@ -1333,7 +1762,7 @@ C 阶段仍只在同步 `unsafe` helper 内固定数组，不跨 `await` 保存�
 5. 故意让 C 结构布局或 C++ 缓冲区容量不匹配，确认错误以状态码到达，而不是让异常跨 ABI。
 6. 为每批增加 Activity，把同一协议 ID 写入 Python 请求、C# trace、原生日志和指标标签。
 
-### 26.5 可恢复的跨语言分析工作流
+### 28.5 可恢复的跨语言分析工作流
 
 实验：`project.resilient-analytics-workflow`
 
@@ -1368,10 +1797,10 @@ SQLite idempotency key + source SHA-256
 2. 第一次执行后修改源文件一个字节，继续使用旧 checkpoint 和幂等键；分别说明 source fingerprint 与 request hash 在哪一层拒绝不一致。
 3. 让 v2 对最终格式化输入抛异常，确认工作流使用 v1 fallback 仍能完成；再检查所有失败尝试的 ALC 是否回收。
 4. 把 Python `MaxCrashRetries` 设为 0，证明最终响应不会写入 SQLite；恢复配置后同键仍能执行成功。
-5. 在 SQLite 已提交后、调用方收到结果前注入异常，重新打开 Store 并 replay，比较它与 26.2“提交后 503”的共同提交歧义。
+5. 在 SQLite 已提交后、调用方收到结果前注入异常，重新打开 Store 并 replay，比较它与 28.2“提交后 503”的共同提交歧义。
 6. 为工作流外层增加 loopback HTTP 和 NDJSON 进度事件，把 correlation ID 传播到 pipeline、Python 请求、插件 Activity 与最终持久化响应。
 
-## 27. 结业问答
+## 29. 结业问答
 
 如果不能独立回答，回到相应实验：
 
@@ -1402,15 +1831,25 @@ SQLite idempotency key + source SHA-256
 25. 服务在提交后断开或返回 503 时，客户端为什么必须重用业务幂等键？
 26. 插件异常为什么要复制成默认上下文数据，而不能把原始异常对象返回宿主？
 27. Python 常驻 worker 崩溃后，哪些请求允许重试，哪些请求必须交给上层决策？
+28. 为什么“低层 C#”只能作为教学性语义展开，而不能称为 Roslyn 的正式输出？
+29. MethodDef token、RVA、方法体头、CIL 字节与反射 `MethodInfo` 是怎样串起来的？
+30. 如何逐条模拟 `ldloc`、`add.ovf`、`stloc` 的抽象求值栈？控制流汇合点对栈有什么要求？
+31. Roslyn lowering 与 RyuJIT lowering 分别发生在何时，处理的 IR 和目标有什么不同？
+32. 为什么 CIL 中存在 `callvirt` 不保证机器码仍有虚调用，也不保证最终仍有 `call`？
+33. 为什么同一份 CIL 会因 ISA、ABI、tier、PGO、运行时版本和 CPU 能力生成不同机器码？
+34. JIT、ReadyToRun 与 NativeAOT 在本机代码生成时机、运行时 JIT 和动态能力上有什么差异？
 
-## 28. 最终验收清单
+## 30. 最终验收清单
 
 - [ ] `self-test` 的 `Failed` 与 `Timeout` 均为 0；当前平台支持的实验全部 `Passed`，不支持项明确 `Skipped`。
 - [ ] 每个实验至少完成一次“预测 - 运行 - 修改 - 复盘”。
 - [ ] 能画出异步取消和并发管线的拥有者关系。
 - [ ] 能解释 TCP、UDP、WebSocket、TLS、HTTP/2、HTTP/3 的层次。
 - [ ] 能解释 GC、Dispose、SafeHandle、finalizer 的责任分工。
-- [ ] 能从 C# 源码找到对应 IL 或生成状态机。
+- [ ] 能从高级 C# 写出教学用低层等价展开，并说明它与 Roslyn 内部 bound tree/lowering 的边界。
+- [ ] 能沿 MethodDef token、RVA 和方法体头找到同一方法的 CIL，并手工模拟一小段求值栈。
+- [ ] 能从 async 入口沿 Attribute 找到生成状态机与 `MoveNext`，区分稳定语义和实现细节。
+- [ ] 能用 `DOTNET_JitDisasm` 观察一个 Release 方法，记录平台、tier/PGO 与运行时版本，并解释为什么它不是唯一永久的对应汇编。
 - [ ] 能展示一个真实 EF Core 查询的表达式树与 SQL。
 - [ ] 能设计一个可演进且限制输入的序列化契约。
 - [ ] 能为 Python/C/C++ 边界写出协议、ABI 与所有权说明。
@@ -1453,7 +1892,9 @@ SQLite idempotency key + source SHA-256
 7. 使用 BenchmarkDotNet 等专业工具；
 8. 区分吞吐、延迟、分配和尾延迟；
 9. 不从一次 Stopwatch 输出推导普遍结论；
-10. 优化后重新运行语义断言。
+10. 观察汇编时记录 ISA/ABI、JIT 版本、tier、PGO、R2R 状态和方法过滤器；
+11. 不用一次反汇编断言永久代码形状，也不把指令条数直接当性能排名；
+12. 优化后重新运行语义断言。
 
 # 附录 C：从 Markdown 生成 PDF
 
@@ -1481,14 +1922,7 @@ output\pdf\LearnDotnetCSharp-Study-Guide.pdf
 
 本地安装器优先使用清华 PyPI 镜像并以官方 PyPI 作为回退，避免继承用户级 `pip.ini` 中失效的索引地址。推送本文件、生成器或依赖清单到 `main` 时，`.github/workflows/build-study-guide-pdf.yml` 会在 Ubuntu 上安装带 TrueType 轮廓的文泉驿正黑字体，运行同一生成器，并上传保留 30 天的 `LearnDotnetCSharp-Study-Guide` artifact；也可从 Actions 页面手动运行该工作流。生成器会依次尝试候选字体并跳过 ReportLab 无法注册的 CFF/PostScript 轮廓字体。
 
-若自动字体探测不适合当前系统，可显式指定字体：
-
-```powershell
-.\scripts\build-study-guide-pdf.cmd `
-  --font-regular "C:\Windows\Fonts\msyh.ttc" `
-  --font-bold "C:\Windows\Fonts\msyhbd.ttc" `
-  --font-code "C:\Windows\Fonts\CascadiaMono.ttf"
-```
+若自动字体探测不适合当前系统，可在构建命令后追加 `--font-regular`、`--font-bold` 和 `--font-code`，并把三个参数值设为对应字体文件的绝对路径。
 
 若在 CI 中已经准备了满足 `requirements-docs.txt` 的 Python，可跳过 `.docs-venv` 的创建：
 
@@ -1509,12 +1943,13 @@ pdftoppm -png .\output\pdf\LearnDotnetCSharp-Study-Guide.pdf .\tmp\pdfs\study-gu
 
 # 附录 D：延伸资料
 
-本书不复制规范和 API 文档。继续学习时从 [Microsoft 官方延伸资料](references.md) 出发，重点阅读：
+本书不复制规范和 API 文档。继续学习时从 [官方与规范性延伸资料](references.md) 出发，重点阅读：
 
 - .NET 10、C# 14、泛型约束/型变与静态抽象接口成员；
 - LINQ 与 EF Core 10 查询翻译；
 - async 上下文、内存模型、Channels、Pipelines 与 HTTP 流/韧性；
 - GC、固定/原生内存、Dispose、诊断、JIT/SIMD/PGO 与 AssemblyLoadContext；
+- ECMA-335、PE/CLI 元数据、CIL 求值栈、Roslyn lowering、RyuJIT 与 NativeAOT；
 - Roslyn 生成器/分析器、正则、密码学和原生互操作。
 
 阅读官方资料时，把每个规则映射回一个可运行实验；阅读实验时，把每个行为映射回官方契约。两者互相校验，才能避免把偶然输出当成语言或运行时保证。

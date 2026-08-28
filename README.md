@@ -24,9 +24,9 @@ Linux、macOS 或 Git Bash 使用 `./scripts/enable-git-hooks.sh "YOUR_ID+YOUR_U
 - 框架基础、集合、LINQ、EF Core/SQLite 查询翻译、LINQ to XML 与版本化序列化契约
 - 异步 continuation/上下文、并发内存模型、线程同步、锁自由结构和并行计算
 - 异步/随机访问/内存映射 I/O，以及 HTTP 流/重试/取消、本地 TCP、UDP、WebSocket、TLS、HTTP/1.1、HTTP/2、HTTP/3
-- 反射、元数据、动态代码、可卸载插件、资源本地化、Roslyn 编译/增量生成器/分析器与 IL
+- 反射、动态代码、可卸载插件、资源本地化，以及高级 C# → Roslyn lowering → PE/元数据 → CIL 的同源证据链
 - GC、固定对象、对齐原生内存、SafeHandle、同步/异步释放、终结、内存池、`Span<T>` / `Memory<T>` 和资源生命周期
-- JIT、SIMD/硬件内建函数、分层编译与动态 PGO 的可观察边界
+- CIL 求值栈、async 状态机、JIT 本机汇编、SIMD/硬件内建函数、分层编译、ReadyToRun、NativeAOT 与动态 PGO 的可观察边界
 - Activity/Meter/EventSource/TraceSource 可观测性，以及现代密码学原语
 - 正则表达式，包括源生成与非回溯引擎
 - C# 与 F#、Visual Basic、工作区 Python venv、C ABI、C++ 不透明对象的互操作
@@ -114,7 +114,7 @@ LearnDotnetCSharp.slnx
 │  ├─ learning-path.md                       # 推荐学习顺序和观察点
 │  ├─ advanced-dotnet-csharp-study-guide.md  # 53 个实验的详细课程、练习与 PDF 内容源
 │  ├─ interop-boundaries.md                  # Python/C/C++ 的 ABI、协议与所有权说明
-│  └─ references.md                          # 对应的 Microsoft 官方资料
+│  └─ references.md                          # 官方与规范性延伸资料
 └─ scripts/
    ├─ setup-python.cmd                       # 创建或验证工作区 .venv
    ├─ setup-docs-python.cmd                  # 创建固定依赖的文档专用 .docs-venv
@@ -197,7 +197,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-category projects
 | `memory.disposal-finalization` | SafeHandle、IDisposable/IAsyncDisposable、SuppressFinalize 与受控终结观察 |
 | `memory.pinning-native-memory` | pinned object heap、`GCHandle`、端序视图、对齐 `NativeMemory` 与 `SafeHandle` 所有权 |
 | `reflection.advanced` | 特性、泛型反射、表达式树和 checked `Reflection.Emit` |
-| `compiler.roslyn-il` | C# 14 语法树、语义模型、内存发射、程序集加载和 IL 反汇编 |
+| `compiler.roslyn-il` | 高级/低层等价 C#、Roslyn lowering、同一 PE 的 MethodDef/元数据/CIL 核对和 async 状态机 |
 | `compiler.incremental-generator-analyzer` | `IIncrementalGenerator`、生成源码、语义诊断与分析器报告 |
 | `crypto.modern-primitives` | CSPRNG、哈希/HMAC、PBKDF2、AES-GCM、RSA-PSS、ECDSA 与定时安全比较 |
 | `regex.advanced` | `GeneratedRegex`、有限超时、命名组、替换和非回溯引擎 |
@@ -214,11 +214,12 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-category projects
 
 ## 如何阅读一个实验
 
-建议同时观察三层：
+建议沿四层观察：
 
-1. 源码层：语言语义、所有权、取消和异常边界。
-2. 运行时层：线程、分配、GC、动态代码或网络状态的实际输出。
-3. 编译产物层：生成的状态机、元数据和 IL 是否与源码直觉一致。
+1. 源码层：高级语义、教学用低层等价展开、所有权、取消和异常边界。
+2. 编译产物层：生成成员、PE 元数据、MethodDef token、方法体和 CIL 是否形成同源证据。
+3. 运行时层：加载、线程、分配、GC、动态代码或网络状态的实际输出。
+4. 本机层：JIT/AOT 在当前 ISA、ABI、tier 与 PGO 状态下生成的机器码；不要把一次反汇编当成永久契约。
 
 详细课程见 [docs/advanced-dotnet-csharp-study-guide.md](docs/advanced-dotnet-csharp-study-guide.md)，完整章节映射见 [docs/pdf-topic-map.md](docs/pdf-topic-map.md)，推荐顺序见 [docs/learning-path.md](docs/learning-path.md)，互操作边界见 [docs/interop-boundaries.md](docs/interop-boundaries.md)，外部资料见 [docs/references.md](docs/references.md)。
 

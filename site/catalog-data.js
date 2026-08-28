@@ -67,10 +67,10 @@ export const learningStages = [
   {
     number: "06",
     label: "实现深处",
-    title: "追踪内存、元数据与 IL",
-    description: "把生命周期、可观测性、反射和编译器产物放在一起理解。",
+    title: "追踪 C#、元数据、CIL 与机器码",
+    description: "把生命周期、反射、Roslyn lowering、PE/CLI 与 JIT 汇编放在同一条证据链理解。",
     categories: ["memory", "diagnostics", "reflection", "compiler"],
-    command: "run-category memory",
+    command: "run compiler.roslyn-il",
   },
   {
     number: "07",
@@ -367,8 +367,8 @@ export const experiments = [
   {
     id: "compiler.roslyn-il",
     category: "compiler",
-    title: "Roslyn 编译管线与可读 IL",
-    summary: "从语法树、语义模型走到内存发射、加载与 IL 反汇编。",
+    title: "从高级 C#、lowering 到元数据与 CIL",
+    summary: "对同一份 PE 核对高级/低层等价写法、MethodDef token、CIL 与 async 状态机。",
     source: "src/LearnDotnetCSharp.App/Demos/Compiler/CompilerAndIlDemo.cs",
   },
   {
@@ -502,8 +502,8 @@ export const resources = [
   },
   {
     type: "参考资料",
-    title: "Microsoft 官方延伸阅读",
-    description: "围绕每个主题整理的官方文档与深入材料。",
+    title: "官方与规范性延伸阅读",
+    description: "汇集 ECMA 规范、Microsoft 文档以及 Roslyn/CoreCLR 一手实现资料。",
     href: `${repositoryUrl}/blob/main/docs/references.md`,
     action: "继续深入",
   },

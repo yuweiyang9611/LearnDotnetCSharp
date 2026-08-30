@@ -5,7 +5,7 @@ import { extname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const port = Number.parseInt(process.argv[2] ?? process.env.STUDY_SITE_PORT ?? "4173", 10);
-const defaultRoot = fileURLToPath(new URL("../site", import.meta.url));
+const defaultRoot = fileURLToPath(new URL("../artifacts/study-site", import.meta.url));
 const root = resolve(process.argv[3] ?? defaultRoot);
 const contentTypes = new Map([
   [".css", "text/css; charset=utf-8"],

@@ -6,11 +6,11 @@ on:
       - main
     paths:
       - .github/workflows/deploy-pages.yml
-      - docs/advanced-dotnet-csharp-study-guide.md
+      - docs/*.md
       - site/**
       - scripts/build-study-site.mjs
       - scripts/markdown_to_site.mjs
-      - scripts/templates/study-guide.html
+      - scripts/templates/**
       - output/pdf/LearnDotnetCSharp-Study-Guide.pdf
       - src/LearnDotnetCSharp.App/Demos/**
   workflow_dispatch:
@@ -33,15 +33,16 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Build and validate static site
         run: node scripts/build-study-site.mjs
 
       - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: artifacts/study-site
+          include-hidden-files: true
 
   deploy:
     name: Deploy site
@@ -58,4 +59,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="{{DESCRIPTION}}" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta property="og:type" content="article" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content="{{PAGE_TITLE}} · LearnDotnetCSharp" />
+    <meta property="og:description" content="{{DESCRIPTION}}" />
+    <meta property="og:url" content="{{CANONICAL_URL}}" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="{{PAGE_TITLE}} · LearnDotnetCSharp" />
+    <meta name="twitter:description" content="{{DESCRIPTION}}" />
+    <link rel="canonical" href="{{CANONICAL_URL}}" />
+    <title>{{PAGE_TITLE}} · LearnDotnetCSharp</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="../guide/styles.css" />
+  </head>
+  <body class="guide-page content-page" data-reading-route="{{READING_ROUTE}}">
+    <div class="reading-progress" aria-hidden="true"><span id="reading-progress-bar"></span></div>
+    <a class="skip-link" href="#guide-content">跳到正文</a>
+    <header class="site-header guide-site-header">
+      <a class="brand" href="../" aria-label="LearnDotnetCSharp 首页"><span class="brand-mark" aria-hidden="true">{ }</span><span>LearnDotnetCSharp</span></a>
+      <nav aria-label="资料导航">
+        <a class="nav-priority" href="../guide/">在线教材</a><a class="nav-priority" href="../search/">全文搜索</a>
+        <a aria-current="page" href="./">{{DOCUMENT_TYPE}}</a><a href="https://github.com/yuweiyang9611/LearnDotnetCSharp">GitHub</a>
+      </nav>
+    </header>
+    <main class="guide-shell" id="main">
+      <aside class="guide-sidebar" aria-label="页面目录">
+        <div class="guide-sidebar-heading"><p>页面目录</p><span>{{HEADING_COUNT}} 节</span></div>
+        <label class="toc-search"><span class="sr-only">筛选页面目录</span><input type="search" data-toc-search placeholder="筛选目录…" autocomplete="off" /></label>
+        <p class="toc-search-status" data-toc-search-status aria-live="polite"></p>
+        <nav class="guide-toc">{{TOC_HTML}}</nav>
+        <a class="sidebar-search-link" href="../search/">搜索全部内容 <span aria-hidden="true">→</span></a>
+      </aside>
+      <article class="guide-main">
+        <header class="chapter-hero resource-page-hero">
+          <nav class="breadcrumbs" aria-label="面包屑"><a href="../">首页</a><span aria-hidden="true">/</span><span>学习资料</span></nav>
+          <p class="chapter-position">{{DOCUMENT_TYPE}}</p>
+          <h1 id="{{PAGE_HEADING_ID}}" data-guide-heading>{{PAGE_TITLE}}</h1><p>{{DESCRIPTION}}</p>
+        </header>
+        <details class="mobile-toc"><summary>打开页面目录</summary><nav class="guide-toc">{{TOC_HTML}}</nav></details>
+        <div class="guide-content" id="guide-content">{{ARTICLE_HTML}}</div>
+        <footer class="guide-footer">
+          <div><strong>继续学习</strong><p>回到教材目录，或在全部教材与资料中搜索。</p></div>
+          <div class="resource-footer-actions"><a class="button button-secondary" href="../search/">全文搜索</a><a class="button button-primary" href="../guide/">教材目录</a></div>
+        </footer>
+      </article>
+    </main>
+    <button class="back-to-top" id="back-to-top" type="button" aria-label="返回页面顶部">↑</button>
+    <div class="guide-toast" id="guide-toast" role="status" aria-live="polite"></div>
+    <script type="module" src="../guide/app.js"></script>
+  </body>
+</html>

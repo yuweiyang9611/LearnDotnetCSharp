@@ -64,10 +64,17 @@ function createSlugger() {
   };
 }
 
-function rewriteHref(href, repositoryUrl) {
+function rewriteHref(href, repositoryUrl, resolveHref) {
   const trimmed = href.trim();
   if (/^(?:https?:|mailto:|#)/i.test(trimmed)) {
     return trimmed;
+  }
+
+  if (resolveHref) {
+    const resolved = resolveHref(trimmed);
+    if (resolved) {
+      return resolved;
+    }
   }
 
   const hashIndex = trimmed.indexOf("#");
@@ -81,7 +88,7 @@ function rewriteHref(href, repositoryUrl) {
   return `${repositoryUrl}/blob/main/${repositoryPath}${fragment}`;
 }
 
-function renderInline(value, repositoryUrl) {
+function renderInline(value, repositoryUrl, resolveHref) {
   const tokens = [];
   const reserve = (html) => {
     const token = `@@LDCS_INLINE_${tokens.length}@@`;
@@ -91,8 +98,8 @@ function renderInline(value, repositoryUrl) {
 
   let rendered = String(value);
   rendered = rendered.replace(/\[([^\]]+)]\(([^)]+)\)/g, (_match, label, href) => {
-    const normalizedHref = rewriteHref(href, repositoryUrl);
-    return reserve(`<a href="${escapeHtml(normalizedHref)}">${renderInline(label, repositoryUrl)}</a>`);
+    const normalizedHref = rewriteHref(href, repositoryUrl, resolveHref);
+    return reserve(`<a href="${escapeHtml(normalizedHref)}">${renderInline(label, repositoryUrl, resolveHref)}</a>`);
   });
   rendered = rendered.replace(/`([^`]+)`/g, (_match, code) => reserve(`<code>${escapeHtml(code)}</code>`));
   rendered = escapeHtml(rendered);
@@ -197,17 +204,24 @@ function extractMarkdownLinks(lines) {
 
 function renderToc(headings) {
   return headings
-    .filter(({ level }) => level <= 3)
+    .filter(({ displayLevel, level }) => (displayLevel ?? level) <= 3)
     .map(
-      ({ id, level, text }) =>
-        `<a class="toc-link toc-level-${level}" href="#${escapeHtml(id)}" data-toc-id="${escapeHtml(id)}">${escapeHtml(text)}</a>`,
+      ({ displayLevel, id, level, text }) =>
+        `<a class="toc-link toc-level-${displayLevel ?? level}" href="#${escapeHtml(id)}" data-toc-id="${escapeHtml(id)}">${escapeHtml(text)}</a>`,
     )
     .join("\n");
 }
 
 export function renderStudyGuide(
   markdown,
-  { experimentHeadingAliases = {}, experimentIds = [], repositoryUrl },
+  {
+    experimentHeadingAliases = {},
+    experimentIds = [],
+    headingIds = [],
+    headingOffset = 1,
+    repositoryUrl,
+    resolveHref,
+  },
 ) {
   const { body, metadata } = parseFrontMatter(markdown);
   const lines = body.split("\n");
@@ -222,6 +236,7 @@ export function renderStudyGuide(
   let tableCount = 0;
   let taskListItemCount = 0;
   let unorderedListCount = 0;
+  let headingIndex = 0;
 
   for (let index = 0; index < lines.length; ) {
     const line = lines[index];
@@ -260,13 +275,16 @@ export function renderStudyGuide(
         text.startsWith(prefix),
       )?.[1];
       const experimentId = directExperimentId ?? aliasedExperimentId;
-      const id = experimentId
+      const suppliedId = headingIds[headingIndex];
+      const id = suppliedId ?? (experimentId
         ? slug(`experiment-${experimentId.replaceAll(".", "-")}`, true)
-        : slug(text);
-      const htmlLevel = Math.min(level + 1, 6);
-      headings.push({ id, level, text });
+        : slug(text));
+      const htmlLevel = Math.min(Math.max(level + headingOffset, 2), 6);
+      const displayLevel = headingOffset < 0 ? htmlLevel : level;
+      headings.push({ displayLevel, id, level, sourceLine: index + 1, text });
+      headingIndex += 1;
       html.push(
-        `<h${htmlLevel} class="guide-heading guide-heading-${level}" id="${escapeHtml(id)}" data-guide-heading><a class="heading-anchor" href="#${escapeHtml(id)}" aria-label="链接到“${escapeHtml(text)}”">#</a>${renderInline(heading[2], repositoryUrl)}</h${htmlLevel}>`,
+        `<h${htmlLevel} class="guide-heading guide-heading-${displayLevel}" id="${escapeHtml(id)}" data-guide-heading><a class="heading-anchor" href="#${escapeHtml(id)}" aria-label="链接到“${escapeHtml(text)}”">#</a>${renderInline(heading[2], repositoryUrl, resolveHref)}</h${htmlLevel}>`,
       );
       index += 1;
       continue;
@@ -285,7 +303,7 @@ export function renderStudyGuide(
       const headerHtml = headers
         .map(
           (cell, cellIndex) =>
-            `<th scope="col" style="text-align:${alignments[cellIndex] ?? "left"}">${renderInline(cell, repositoryUrl)}</th>`,
+            `<th scope="col" style="text-align:${alignments[cellIndex] ?? "left"}">${renderInline(cell, repositoryUrl, resolveHref)}</th>`,
         )
         .join("");
       const bodyHtml = rows
@@ -294,7 +312,7 @@ export function renderStudyGuide(
             `<tr>${headers
               .map(
                 (_header, cellIndex) =>
-                  `<td style="text-align:${alignments[cellIndex] ?? "left"}">${renderInline(row[cellIndex] ?? "", repositoryUrl)}</td>`,
+                  `<td style="text-align:${alignments[cellIndex] ?? "left"}">${renderInline(row[cellIndex] ?? "", repositoryUrl, resolveHref)}</td>`,
               )
               .join("")}</tr>`,
         )
@@ -312,7 +330,7 @@ export function renderStudyGuide(
         index += 1;
       }
       blockquoteCount += 1;
-      html.push(`<blockquote><p>${renderInline(quoteLines.join(" "), repositoryUrl)}</p></blockquote>`);
+      html.push(`<blockquote><p>${renderInline(quoteLines.join(" "), repositoryUrl, resolveHref)}</p></blockquote>`);
       continue;
     }
 
@@ -339,12 +357,12 @@ export function renderStudyGuide(
         .map((item) => {
           const task = ordered ? null : item.match(/^\[([ xX])]\s+(.+)$/);
           if (!task) {
-            return `<li>${renderInline(item, repositoryUrl)}</li>`;
+            return `<li>${renderInline(item, repositoryUrl, resolveHref)}</li>`;
           }
 
           const checked = task[1].toLocaleLowerCase() === "x";
           const label = plainText(task[2]);
-          return `<li class="task-list-item"><input type="checkbox" disabled${checked ? " checked" : ""} aria-label="${escapeHtml(label)}" /><span>${renderInline(task[2], repositoryUrl)}</span></li>`;
+          return `<li class="task-list-item"><input type="checkbox" disabled${checked ? " checked" : ""} aria-label="${escapeHtml(label)}" /><span>${renderInline(task[2], repositoryUrl, resolveHref)}</span></li>`;
         })
         .join("");
       html.push(`<${tag}${listClass}>${itemsHtml}</${tag}>`);
@@ -365,7 +383,7 @@ export function renderStudyGuide(
     if (paragraphLines.length === 0) {
       throw new Error(`Unsupported Markdown block near line ${index + 1}: ${line}`);
     }
-    html.push(`<p>${renderInline(paragraphLines.join(" "), repositoryUrl)}</p>`);
+    html.push(`<p>${renderInline(paragraphLines.join(" "), repositoryUrl, resolveHref)}</p>`);
   }
 
   return {
@@ -385,4 +403,17 @@ export function renderStudyGuide(
   };
 }
 
-export { escapeHtml };
+function markdownToPlainText(markdown) {
+  const { body } = parseFrontMatter(markdown);
+  return body
+    .replace(/```[^\n]*\n?/g, " ")
+    .replace(/\[([^\]]+)]\(([^)]+)\)/g, "$1 $2")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^>\s?/gm, "")
+    .replace(/^\s*(?:[-+*]|\d+[.)])\s+/gm, "")
+    .replace(/[|*~`]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export { escapeHtml, markdownToPlainText, parseFrontMatter, plainText };

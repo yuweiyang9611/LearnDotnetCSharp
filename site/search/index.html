@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="搜索 LearnDotnetCSharp 的完整教材正文、代码片段、学习资料与 53 个实验。" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content="全文搜索 · LearnDotnetCSharp" />
+    <meta property="og:description" content="搜索完整教材正文、代码片段、学习资料与 53 个实验。" />
+    <meta property="og:url" content="https://yuweiyang9611.github.io/LearnDotnetCSharp/search/" />
+    <meta property="og:image" content="https://yuweiyang9611.github.io/LearnDotnetCSharp/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="全文搜索 · LearnDotnetCSharp" />
+    <meta name="twitter:description" content="搜索完整教材正文、代码片段、学习资料与 53 个实验。" />
+    <meta name="twitter:image" content="https://yuweiyang9611.github.io/LearnDotnetCSharp/og.png" />
+    <link rel="canonical" href="https://yuweiyang9611.github.io/LearnDotnetCSharp/search/" />
+    <title>全文搜索 · LearnDotnetCSharp</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="search-page">
+    <a class="skip-link" href="#search-results">跳到搜索结果</a>
+    <header class="site-header">
+      <a class="brand" href="../" aria-label="LearnDotnetCSharp 首页"><span class="brand-mark" aria-hidden="true">{ }</span><span>LearnDotnetCSharp</span></a>
+      <nav aria-label="主要导航">
+        <a class="nav-priority" href="../guide/">在线教材</a><a class="nav-priority" aria-current="page" href="./">全文搜索</a>
+        <a href="../learning-path/">学习路线</a><a href="../#catalog">实验目录</a>
+      </nav>
+    </header>
+    <main class="search-main" id="main">
+      <section class="search-hero" aria-labelledby="search-title">
+        <p class="eyebrow"><span></span> 全站内容索引</p>
+        <h1 id="search-title">搜索正文，而不只是目录</h1>
+        <p>覆盖前言、30 章教材、4 个附录、4 份配套资料、代码片段和 53 个实验摘要。</p>
+        <form class="global-search-form" id="global-search-form" role="search">
+          <label for="global-search-input">输入一个或多个关键词</label>
+          <div class="global-search-control">
+            <span aria-hidden="true">⌕</span>
+            <input id="global-search-input" name="q" type="search" placeholder="例如：lowering 元数据、UnmanagedCallersOnly、ValueTask…" autocomplete="off" autofocus />
+            <button class="button button-primary" type="submit">搜索</button>
+          </div>
+          <p>多个关键词需要同时命中。按 <kbd>/</kbd> 可随时回到搜索框。</p>
+        </form>
+        <div class="search-suggestions" aria-label="搜索示例">
+          <span>试一试：</span>
+          <button type="button" data-search-example="DOTNET_JitDisasm">DOTNET_JitDisasm</button>
+          <button type="button" data-search-example="lowering 元数据">lowering 元数据</button>
+          <button type="button" data-search-example="UnmanagedCallersOnly">UnmanagedCallersOnly</button>
+        </div>
+      </section>
+      <section class="search-results-section" id="search-results" aria-labelledby="results-title">
+        <div class="search-result-heading">
+          <div><p class="eyebrow"><span></span> 搜索结果</p><h2 id="results-title">等待关键词</h2></div>
+          <p id="search-status" role="status" aria-live="polite">正在载入站内索引…</p>
+        </div>
+        <div class="search-results" id="search-results-list"></div>
+        <div class="search-empty" id="search-empty" hidden>
+          <strong>没有找到同时包含这些关键词的内容</strong>
+          <p>减少关键词、检查实验 ID，或尝试上面的示例。</p>
+        </div>
+        <noscript><p class="search-empty">全文搜索需要启用 JavaScript；所有教材和资料页仍可直接阅读。</p></noscript>
+      </section>
+    </main>
+    <footer>
+      <div><strong>LearnDotnetCSharp</strong><p>搜索索引在构建时生成，查询只在当前浏览器中执行。</p></div>
+      <div class="footer-links"><a href="../guide/">教材目录</a><a href="../references/">参考资料</a></div>
+    </footer>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

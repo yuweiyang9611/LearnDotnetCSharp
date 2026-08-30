@@ -4,7 +4,7 @@
 
 > **在线学习站：** [yuweiyang9611.github.io/LearnDotnetCSharp](https://yuweiyang9611.github.io/LearnDotnetCSharp/)
 >
-> 可以直接在线阅读完整教材、按八阶段路线浏览课程、搜索或筛选全部实验、复制运行命令，并在当前浏览器记录学习进度。教材网页和 PDF 都由同一份 Markdown 自动生成；实验仍需克隆仓库后在本地运行。
+> 可以按独立章节 URL 阅读完整教材，在正文、代码、配套资料和实验摘要中全文搜索，沿八阶段路线浏览课程，并在当前浏览器记录学习进度。教材网页和 PDF 都由同一份 Markdown 自动生成；实验仍需克隆仓库后在本地运行。
 
 ## 仓库迁移与隐私说明
 
@@ -64,7 +64,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- self-test
 
 如果本机允许执行 PowerShell 脚本，也可以运行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1`。完整验证会依次检查格式、执行 Release 构建和正式测试，再以独立子进程运行每个实验。
 
-在线教材会在 GitHub Pages 构建时由同一份 Markdown 自动生成，可从[站内阅读页](https://yuweiyang9611.github.io/LearnDotnetCSharp/guide/)直接按章节浏览。需要离线阅读时，再生成带目录、书签和页码的 PDF：
+在线教材会在 GitHub Pages 构建时由同一份 Markdown 自动生成，可从[教材目录](https://yuweiyang9611.github.io/LearnDotnetCSharp/guide/)进入 30 个独立章节、前言和 4 个附录，也可以使用[全文搜索](https://yuweiyang9611.github.io/LearnDotnetCSharp/search/)查找正文、代码、配套资料与实验。学习路线、主题映射、互操作专题和参考资料也会生成站内页面。需要离线阅读时，再生成带目录、书签和页码的 PDF：
 
 ```powershell
 .\scripts\build-study-guide-pdf.cmd
@@ -96,7 +96,7 @@ LearnDotnetCSharp.slnx
 │  ├─ build-and-test.yml                     # Windows/Linux 代码、测试与全实验回归
 │  ├─ build-study-guide-pdf.yml              # 学习指导 PDF 构建与 artifact
 │  └─ deploy-pages.yml                       # 在线学习站构建与 GitHub Pages 发布
-├─ site/                                     # 学习门户、HTML 教材阅读器、实验目录与本地进度交互
+├─ site/                                     # 学习门户、全文搜索、分章阅读器、实验目录与本地进度交互
 ├─ src/
 │  ├─ LearnDotnetCSharp.App/                 # CLI、示例发现器及全部 C# 实验
 │  ├─ LearnDotnetCSharp.Capstones/           # 可独立测试的综合项目核心与持久化/进程边界
@@ -119,7 +119,8 @@ LearnDotnetCSharp.slnx
    ├─ setup-python.cmd                       # 创建或验证工作区 .venv
    ├─ setup-docs-python.cmd                  # 创建固定依赖的文档专用 .docs-venv
    ├─ markdown_to_pdf.py                     # Markdown 渲染、字体嵌入与 PDF 结构校验
-   ├─ markdown_to_site.mjs                   # Markdown 到语义化 HTML 教材的构建期转换
+   ├─ markdown_to_site.mjs                   # Markdown 到语义化 HTML 的构建期转换
+   ├─ templates/                             # 教材目录、章节与资料页 HTML 模板
    ├─ build-study-guide-pdf.cmd              # 一键生成详细学习指导 PDF
    ├─ build-study-site.mjs                   # 组装并校验 GitHub Pages 静态产物
    ├─ serve-study-site.mjs                   # 本地预览静态学习站
@@ -222,7 +223,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-category projects
 3. 运行时层：加载、线程、分配、GC、动态代码或网络状态的实际输出。
 4. 本机层：JIT/AOT 在当前 ISA、ABI、tier 与 PGO 状态下生成的机器码；不要把一次反汇编当成永久契约。
 
-详细课程见 [docs/advanced-dotnet-csharp-study-guide.md](docs/advanced-dotnet-csharp-study-guide.md)，完整章节映射见 [docs/pdf-topic-map.md](docs/pdf-topic-map.md)，推荐顺序见 [docs/learning-path.md](docs/learning-path.md)，互操作边界见 [docs/interop-boundaries.md](docs/interop-boundaries.md)，外部资料见 [docs/references.md](docs/references.md)。
+详细课程见 [docs/advanced-dotnet-csharp-study-guide.md](docs/advanced-dotnet-csharp-study-guide.md)，完整章节映射见 [docs/pdf-topic-map.md](docs/pdf-topic-map.md)，推荐顺序见 [docs/learning-path.md](docs/learning-path.md)，互操作边界见 [docs/interop-boundaries.md](docs/interop-boundaries.md)，外部资料见 [docs/references.md](docs/references.md)；它们都会在 GitHub Pages 构建时转换为站内可搜索页面。
 
 Roslyn 示例直接引用所选 SDK 的编译器程序集，因此能离线构建且版本与 `global.json` 一致；这依赖 SDK 的 `RoslynTargetsPath` 布局，项目在构建前会显式验证文件是否存在。Linux/macOS 的系统 P/Invoke 分支已按平台隔离；仓库自带的 C/C++ 动态库当前只配置并验证了 Windows x64 MSVC 构建，其他平台会明确跳过。
 

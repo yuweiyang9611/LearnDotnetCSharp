@@ -5,6 +5,7 @@ import {
   repositoryUrl,
   resources,
 } from "./catalog-data.js";
+import { experimentGuideUrls } from "./guide-routes.js";
 
 const storageKey = "learn-dotnet-csharp-progress-v1";
 const appProject = ".\\src\\LearnDotnetCSharp.App";
@@ -40,10 +41,6 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-}
-
-function guideAnchor(experimentId) {
-  return `experiment-${experimentId.replaceAll(".", "-")}`;
 }
 
 function loadProgress() {
@@ -158,7 +155,7 @@ function renderCatalog() {
           <h3>${escapeHtml(experiment.title)}</h3>
           <p>${escapeHtml(experiment.summary)}</p>
           <div class="experiment-actions">
-            <a href="./guide/#${guideAnchor(experiment.id)}">阅读讲解 <span aria-hidden="true">→</span></a>
+            <a href="${experimentGuideUrls[experiment.id]}">阅读讲解 <span aria-hidden="true">→</span></a>
             <a href="${sourceUrl}">查看源码 <span aria-hidden="true">↗</span></a>
             <button type="button" data-copy="${escapeHtml(command)}">复制运行命令</button>
           </div>
@@ -195,7 +192,7 @@ function renderResources() {
           <span>${escapeHtml(resource.type)}</span>
           <h3>${escapeHtml(resource.title)}</h3>
           <p>${escapeHtml(resource.description)}</p>
-          <strong>${escapeHtml(resource.action)} <span aria-hidden="true">${resource.download ? "↓" : "↗"}</span></strong>
+          <strong>${escapeHtml(resource.action)} <span aria-hidden="true">${resource.download ? "↓" : "→"}</span></strong>
         </a>`,
     )
     .join("");

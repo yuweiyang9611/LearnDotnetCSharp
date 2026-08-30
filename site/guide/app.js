@@ -1,25 +1,41 @@
 document.documentElement.classList.add("guide-js");
 
-const lastHeadingStorageKey = "learn-dotnet-csharp-guide-last-heading-v1";
+const lastReadingStorageKey = "learn-dotnet-csharp-guide-last-reading-v2";
 const tocLinks = [...document.querySelectorAll("[data-toc-id]")];
 const headings = [...document.querySelectorAll("[data-guide-heading]")];
 const searchInputs = [...document.querySelectorAll("[data-toc-search]")];
 const progressBar = document.querySelector("#reading-progress-bar");
-const continueReading = document.querySelector("#continue-reading");
 const backToTop = document.querySelector("#back-to-top");
 const toast = document.querySelector("#guide-toast");
 let toastTimer;
 let scrollFrame;
 
 function showToast(message) {
+  if (!toast) {
+    return;
+  }
   window.clearTimeout(toastTimer);
   toast.textContent = message;
   toast.classList.add("is-visible");
   toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2200);
 }
 
+function saveReadingPosition(id) {
+  try {
+    localStorage.setItem(
+      lastReadingStorageKey,
+      JSON.stringify({
+        title: document.getElementById(id)?.textContent.trim() ?? document.title,
+        url: `${window.location.pathname}#${encodeURIComponent(id)}`,
+      }),
+    );
+  } catch {
+    // Reading and navigation work without browser storage.
+  }
+}
+
 function setActiveHeading(id, updateAddress = false) {
-  if (!id) {
+  if (!id || !document.getElementById(id)) {
     return;
   }
 
@@ -32,12 +48,7 @@ function setActiveHeading(id, updateAddress = false) {
       link.removeAttribute("aria-current");
     }
   });
-
-  try {
-    localStorage.setItem(lastHeadingStorageKey, id);
-  } catch {
-    // Reading works without browser storage.
-  }
+  saveReadingPosition(id);
 
   let currentHash = "";
   try {
@@ -50,26 +61,13 @@ function setActiveHeading(id, updateAddress = false) {
   }
 }
 
-function restoreContinueLink() {
-  try {
-    const id = localStorage.getItem(lastHeadingStorageKey);
-    const heading = id ? document.getElementById(id) : null;
-    if (!heading || id === "前言") {
-      return;
-    }
-
-    continueReading.href = `#${id}`;
-    continueReading.firstChild.textContent = "继续上次阅读 ";
-  } catch {
-    // Keep the default start link.
-  }
-}
-
 function updateScrollState() {
   const scrollable = document.documentElement.scrollHeight - window.innerHeight;
   const percent = scrollable <= 0 ? 0 : Math.min(100, (window.scrollY / scrollable) * 100);
-  progressBar.style.width = `${percent}%`;
-  backToTop.classList.toggle("is-visible", window.scrollY > 900);
+  if (progressBar) {
+    progressBar.style.width = `${percent}%`;
+  }
+  backToTop?.classList.toggle("is-visible", window.scrollY > 900);
   scrollFrame = undefined;
 }
 
@@ -123,34 +121,39 @@ document.addEventListener("click", async (event) => {
 for (const input of searchInputs) {
   input.addEventListener("input", () => {
     const scope = input.closest(".guide-sidebar, .mobile-toc");
+    if (!scope) {
+      return;
+    }
     const scopedLinks = [...scope.querySelectorAll("[data-toc-id]")];
-    const searchTerm = input.value.trim().toLocaleLowerCase("zh-CN");
+    const searchTerm = input.value.trim().normalize("NFKC").toLocaleLowerCase("zh-CN");
     let visibleCount = 0;
     for (const link of scopedLinks) {
-      const visible = !searchTerm || link.textContent.toLocaleLowerCase("zh-CN").includes(searchTerm);
+      const visible = !searchTerm || link.textContent.normalize("NFKC").toLocaleLowerCase("zh-CN").includes(searchTerm);
       link.hidden = !visible;
       visibleCount += visible ? 1 : 0;
     }
 
     const status = scope.querySelector("[data-toc-search-status]");
-    status.textContent = searchTerm ? `找到 ${visibleCount} 个目录项` : "";
+    if (status) {
+      status.textContent = searchTerm ? `找到 ${visibleCount} 个目录项` : "";
+    }
   });
 }
 
-const observer = new IntersectionObserver(
-  (entries) => {
-    const visible = entries.filter(({ isIntersecting }) => isIntersecting);
-    if (visible.length === 0) {
-      return;
-    }
-
-    visible.sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top);
-    setActiveHeading(visible[0].target.id, true);
-  },
-  { rootMargin: "-12% 0px -76% 0px", threshold: 0 },
-);
-
-headings.forEach((heading) => observer.observe(heading));
+if ("IntersectionObserver" in window) {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const visible = entries.filter(({ isIntersecting }) => isIntersecting);
+      if (visible.length === 0) {
+        return;
+      }
+      visible.sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top);
+      setActiveHeading(visible[0].target.id, true);
+    },
+    { rootMargin: "-12% 0px -76% 0px", threshold: 0 },
+  );
+  headings.forEach((heading) => observer.observe(heading));
+}
 
 for (const details of document.querySelectorAll(".mobile-toc")) {
   details.addEventListener("keydown", (event) => {
@@ -161,14 +164,13 @@ for (const details of document.querySelectorAll(".mobile-toc")) {
   });
 }
 
-backToTop.addEventListener("click", () => {
+backToTop?.addEventListener("click", () => {
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
 });
 
 window.addEventListener("scroll", scheduleScrollUpdate, { passive: true });
 window.addEventListener("resize", scheduleScrollUpdate);
-restoreContinueLink();
 updateScrollState();
 
 if (window.location.hash) {
@@ -177,4 +179,6 @@ if (window.location.hash) {
   } catch {
     setActiveHeading(window.location.hash.slice(1));
   }
+} else if (headings[0]) {
+  saveReadingPosition(headings[0].id);
 }

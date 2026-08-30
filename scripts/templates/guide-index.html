@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="{{DESCRIPTION}}" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content="{{TITLE}} · 在线教材" />
+    <meta property="og:description" content="{{DESCRIPTION}}" />
+    <meta property="og:url" content="https://yuweiyang9611.github.io/LearnDotnetCSharp/guide/" />
+    <meta property="og:image" content="https://yuweiyang9611.github.io/LearnDotnetCSharp/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{TITLE}} · 在线教材" />
+    <meta name="twitter:description" content="{{DESCRIPTION}}" />
+    <meta name="twitter:image" content="https://yuweiyang9611.github.io/LearnDotnetCSharp/og.png" />
+    <link rel="canonical" href="https://yuweiyang9611.github.io/LearnDotnetCSharp/guide/" />
+    <title>{{TITLE}} · 在线教材</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="guide-page guide-index-page">
+    <a class="skip-link" href="#guide-units">跳到教材目录</a>
+    <header class="site-header guide-site-header">
+      <a class="brand" href="../" aria-label="LearnDotnetCSharp 首页">
+        <span class="brand-mark" aria-hidden="true">{ }</span><span>LearnDotnetCSharp</span>
+      </a>
+      <nav aria-label="教材导航">
+        <a class="nav-priority" aria-current="page" href="./">在线教材</a>
+        <a href="../search/">全文搜索</a>
+        <a href="../learning-path/">学习路线</a>
+        <a href="../downloads/LearnDotnetCSharp-Study-Guide.pdf" download>下载 PDF</a>
+      </nav>
+    </header>
+    <main class="guide-index-main" id="main">
+      <section class="guide-index-hero">
+        <p class="eyebrow"><span></span> 在线教材 · 每章独立链接</p>
+        <h1>{{TITLE}}</h1>
+        <p>{{SUBTITLE}}</p>
+        <div class="guide-meta" aria-label="教材信息">
+          <span>{{CHAPTER_COUNT}} 个编号章节</span><span>{{UNIT_COUNT}} 个阅读单元</span>
+          <span>53 个实验</span><span>更新于 {{DATE}}</span>
+        </div>
+        <form class="guide-search-form" action="../search/" role="search">
+          <label for="guide-search-query">搜索教材正文、代码、资料与实验</label>
+          <div>
+            <input id="guide-search-query" name="q" type="search" placeholder="例如：DOTNET_JitDisasm、元数据、ValueTask…" autocomplete="off" />
+            <button class="button button-primary" type="submit">全文搜索</button>
+          </div>
+        </form>
+        <div class="hero-actions">
+          <a class="button button-primary" id="continue-reading" href="{{FIRST_UNIT_HREF}}">从前言开始 <span aria-hidden="true">→</span></a>
+          <a class="button button-secondary" href="../downloads/LearnDotnetCSharp-Study-Guide.pdf" download>下载离线 PDF</a>
+        </div>
+      </section>
+      <section class="guide-unit-directory" id="guide-units" aria-labelledby="guide-units-title">
+        <div class="section-heading compact-heading">
+          <div><p class="eyebrow"><span></span> 教材目录</p><h2 id="guide-units-title">按章节阅读与分享</h2></div>
+          <p>每一章都有稳定 URL、当前页目录和前后章导航；旧的教材锚点会自动迁移。</p>
+        </div>
+        {{UNIT_DIRECTORY_HTML}}
+      </section>
+      <section class="guide-resource-strip" aria-labelledby="guide-resources-title">
+        <div><p class="eyebrow"><span></span> 配套资料</p><h2 id="guide-resources-title">从路线到规范，全部站内阅读</h2></div>
+        <div class="guide-resource-links">
+          <a href="../learning-path/"><strong>学习路线</strong><span>八阶段推进顺序</span></a>
+          <a href="../topic-map/"><strong>主题映射</strong><span>原 PDF 27 章到现代实验</span></a>
+          <a href="../interop/"><strong>互操作专题</strong><span>Python、C 与 C++ 边界</span></a>
+          <a href="../references/"><strong>参考资料</strong><span>规范、文档与实现仓库</span></a>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div><strong>LearnDotnetCSharp</strong><p>在线教材与 PDF 由同一份 Markdown 生成。</p></div>
+      <div class="footer-links"><a href="../#catalog">实验目录</a><a href="https://github.com/yuweiyang9611/LearnDotnetCSharp">项目源码 ↗</a></div>
+    </footer>
+    <script id="guide-route-map" type="application/json">{{ROUTE_MAP_JSON}}</script>
+    <script type="module" src="./index.js"></script>
+  </body>
+</html>

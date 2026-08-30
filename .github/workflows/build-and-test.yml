@@ -22,6 +22,98 @@ env:
   NUGET_XMLDOC_MODE: skip
 
 jobs:
+  site:
+    name: Validate study site
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Set up .NET from global.json
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+
+      - name: Install PDF dependencies and Chinese fonts
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes fonts-wqy-zenhei
+          python -m pip install --no-deps --only-binary=:all: --requirement requirements-docs.txt
+
+      - name: Build PDF from current Markdown
+        run: >-
+          python scripts/markdown_to_pdf.py
+          --input docs/advanced-dotnet-csharp-study-guide.md
+          --output output/pdf/LearnDotnetCSharp-Study-Guide.pdf
+          --repo-root .
+          --repo-url "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}"
+
+      - name: Restore app for the four-layer artifact
+        run: dotnet restore src/LearnDotnetCSharp.App/LearnDotnetCSharp.App.csproj
+
+      - name: Generate observed C# / CIL / JIT artifact
+        run: >-
+          dotnet run
+          --project src/LearnDotnetCSharp.App
+          --configuration Release
+          --no-restore
+          -- export-code-layers site/layers/artifacts.json
+
+      - name: Verify JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            node --check "$file"
+          done < <(find scripts site -type f \( -name '*.js' -o -name '*.mjs' \) -print | sort)
+
+      - name: Build and validate static site
+        run: node scripts/build-study-site.mjs
+
+      - name: Verify generated site contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s artifacts/study-site/index.html
+          test -s artifacts/study-site/guide/index.html
+          test -s artifacts/study-site/search/index.html
+          test -s artifacts/study-site/search-index.json
+          test -s artifacts/study-site/guide-manifest.json
+          test -s artifacts/study-site/downloads/LearnDotnetCSharp-Study-Guide.pdf
+          node --input-type=module --eval '
+            import assert from "node:assert/strict";
+            import { readFile } from "node:fs/promises";
+            const manifest = JSON.parse(await readFile("artifacts/study-site/guide-manifest.json", "utf8"));
+            const search = JSON.parse(await readFile("artifacts/study-site/search-index.json", "utf8"));
+            assert.equal(manifest.version, 1);
+            assert.ok(Array.isArray(manifest.units) && manifest.units.length > 0);
+            assert.ok(Object.keys(manifest.anchors ?? {}).length > manifest.units.length);
+            assert.ok(Object.keys(manifest.experiments ?? {}).length > 0);
+            assert.match(manifest.layers?.sourceSha256 ?? "", /^[0-9a-f]{64}$/);
+            assert.equal(manifest.layers?.url, "layers/");
+            assert.equal(search.version, 1);
+            assert.ok(Array.isArray(search.entries));
+            assert.ok(search.entries.length >= Object.keys(manifest.experiments).length);
+            assert.ok(search.entries.every(({ title, url }) => title && url));
+            assert.ok(search.entries.some(({ url }) => url === "../layers/"));
+          '
+
   verify:
     name: Verify (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

@@ -4,7 +4,7 @@
 
 > **在线学习站：** [yuweiyang9611.github.io/LearnDotnetCSharp](https://yuweiyang9611.github.io/LearnDotnetCSharp/)
 >
-> 可以按独立章节 URL 阅读完整教材，在正文、代码、配套资料和实验摘要中全文搜索，沿八阶段路线浏览课程，并在当前浏览器记录学习进度。教材网页和 PDF 都由同一份 Markdown 自动生成；实验仍需克隆仓库后在本地运行。
+> 可以按独立章节 URL 阅读完整教材，在正文、代码、配套资料和实验摘要中全文搜索，沿八阶段路线浏览课程，并在当前浏览器记录学习进度。[四层代码实验台](https://yuweiyang9611.github.io/LearnDotnetCSharp/layers/)还能用同源制品对照高级 C#、教学低层 C#、CIL/元数据与真实 JIT 汇编。教材网页和 PDF 都由同一份 Markdown 自动生成；实验仍需克隆仓库后在本地运行。
 
 ## 仓库迁移与隐私说明
 
@@ -46,6 +46,27 @@ Linux、macOS 或 Git Bash 使用 `./scripts/enable-git-hooks.sh "YOUR_ID+YOUR_U
 
 ## 快速开始
 
+### Codespaces / Dev Container
+
+[在 GitHub Codespaces 中打开](https://codespaces.new/yuweiyang9611/LearnDotnetCSharp?quickstart=1)，即可获得预配置的 .NET 10、Python 3.11 和 Node.js 24 环境。容器首次创建时会自动生成工作区 `.venv` 并还原解决方案；在本机使用 VS Code 时，也可以安装 Dev Containers 扩展后选择 **Reopen in Container**。
+
+初始化完成后，可以直接执行跨平台验证并预览学习站：
+
+```bash
+dotnet build LearnDotnetCSharp.slnx --configuration Release --no-restore
+dotnet test --solution LearnDotnetCSharp.slnx --configuration Release --no-restore --no-build --minimum-expected-tests 31
+dotnet run --project src/LearnDotnetCSharp.App --configuration Release --no-build -- self-test
+dotnet run --project src/LearnDotnetCSharp.App --configuration Release --no-build -- export-code-layers site/layers/artifacts.json
+node scripts/build-study-site.mjs
+node scripts/serve-study-site.mjs
+```
+
+最后一条命令会启动端口 `4173`，Codespaces/Dev Containers 会提示打开转发后的学习站预览。
+
+Dev Container 基于 Linux，适合跨平台托管代码、Python 互操作、测试和静态站构建；HTTP/3/QUIC 与 ISA 相关的 JIT 汇编仍以容器宿主能力为准。仓库自带的 Windows x64 C/C++ DLL、MSVC ABI 及其他 Windows 原生实验会按能力契约明确报告 `Skipped`，不会阻止容器初始化或跨平台学习；要观察这些实验，请在安装了 Visual Studio“使用 C++ 的桌面开发”工作负载的 Windows x64 主机上运行。
+
+### 本地 Windows
+
 ```powershell
 .\scripts\setup-python.cmd
 dotnet restore .\LearnDotnetCSharp.slnx --ignore-failed-sources
@@ -83,15 +104,17 @@ CLI 命令：
 | `run-category <category>` | 顺序运行一个分类 |
 | `run-all` | 顺序运行全部本地安全实验 |
 | `self-test` | 以独立子进程运行每个实验，单项硬超时为 15 秒，并汇总 `Passed / Skipped / Failed / Timeout` |
+| `export-code-layers <json>` | 从同一份 Roslyn 输入生成高级/低层 C#、CIL/元数据并捕获当前运行时与 ISA 的 JIT 汇编快照 |
 
 `self-test` 不再把平台分支中的提前返回误记为成功。子进程退出码 `0` 表示 `Passed`，`77` 表示 `Skipped`，`124` 保留给 `Timeout`；失败或超时会保留该实验有界的标准输出和标准错误摘要，并让整体命令失败。超时后运行器会终止整个子进程树，因此死锁、忽略取消或污染进程级状态的实验不会阻塞后续项目。
 
-正式测试项目使用 .NET 10 的 Microsoft.Testing.Platform，当前包含 31 个测试，既覆盖目录/运行器基础设施，也直接验证可恢复管线、SQLite 幂等、插件路由和 Python worker 池。GitHub Actions 会在 Windows 与 Linux 上执行还原、Release 构建、格式检查、测试和完整 `self-test`；Windows 同时验证仓库自带的 C/C++ DLL，Linux 通过可用性契约测试和自检确认这些 Windows 专有实验明确报告 `Skipped`。
+正式测试项目使用 .NET 10 的 Microsoft.Testing.Platform，当前包含 31 个测试，既覆盖目录/运行器基础设施，也直接验证可恢复管线、SQLite 幂等、插件路由和 Python worker 池。GitHub Actions 会在 Windows 与 Linux 上执行还原、Release 构建、格式检查、测试和完整 `self-test`，并在 Pull Request 中重新生成 PDF 与四层代码制品、检查前端 JavaScript 语法、构建静态站及验收关键产物；Windows 同时验证仓库自带的 C/C++ DLL，Linux 通过可用性契约测试和自检确认这些 Windows 专有实验明确报告 `Skipped`。Pages 发布任务也会先从当前提交的 Markdown 与 C# 源码重新生成 PDF、HTML 和 JIT 快照并核对站内副本，避免在线内容来自不同版本。
 
 ## 解决方案结构
 
 ```text
 LearnDotnetCSharp.slnx
+├─ .devcontainer/                            # Codespaces/Dev Container 的 .NET、Python 与初始化配置
 ├─ .github/workflows/
 │  ├─ build-and-test.yml                     # Windows/Linux 代码、测试与全实验回归
 │  ├─ build-study-guide-pdf.yml              # 学习指导 PDF 构建与 artifact

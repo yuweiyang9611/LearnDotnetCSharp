@@ -29,6 +29,7 @@
       <nav aria-label="教材导航">
         <a class="nav-priority" aria-current="page" href="./">在线教材</a>
         <a href="../search/">全文搜索</a>
+        <a href="../layers/">四层实验台</a>
         <a href="../learning-path/">学习路线</a>
         <a href="../downloads/LearnDotnetCSharp-Study-Guide.pdf" download>下载 PDF</a>
       </nav>
@@ -40,7 +41,7 @@
         <p>{{SUBTITLE}}</p>
         <div class="guide-meta" aria-label="教材信息">
           <span>{{CHAPTER_COUNT}} 个编号章节</span><span>{{UNIT_COUNT}} 个阅读单元</span>
-          <span>53 个实验</span><span>更新于 {{DATE}}</span>
+          <span>53 个实验</span><span id="assessment-progress">0 / 30 章验收</span><span>更新于 {{DATE}}</span>
         </div>
         <form class="guide-search-form" action="../search/" role="search">
           <label for="guide-search-query">搜索教材正文、代码、资料与实验</label>
@@ -64,6 +65,7 @@
       <section class="guide-resource-strip" aria-labelledby="guide-resources-title">
         <div><p class="eyebrow"><span></span> 配套资料</p><h2 id="guide-resources-title">从路线到规范，全部站内阅读</h2></div>
         <div class="guide-resource-links">
+          <a href="../layers/"><strong>四层代码实验台</strong><span>高级 C#、lowering、CIL 与 JIT 汇编</span></a>
           <a href="../learning-path/"><strong>学习路线</strong><span>八阶段推进顺序</span></a>
           <a href="../topic-map/"><strong>主题映射</strong><span>原 PDF 27 章到现代实验</span></a>
           <a href="../interop/"><strong>互操作专题</strong><span>Python、C 与 C++ 边界</span></a>
@@ -76,6 +78,7 @@
       <div class="footer-links"><a href="../#catalog">实验目录</a><a href="https://github.com/yuweiyang9611/LearnDotnetCSharp">项目源码 ↗</a></div>
     </footer>
     <script id="guide-route-map" type="application/json">{{ROUTE_MAP_JSON}}</script>
+    <script type="module" src="../navigation.js"></script>
     <script type="module" src="./index.js"></script>
   </body>
 </html>

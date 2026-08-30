@@ -1,5 +1,6 @@
 const lastReadingStorageKey = "learn-dotnet-csharp-guide-last-reading-v2";
 const legacyHeadingStorageKey = "learn-dotnet-csharp-guide-last-heading-v1";
+const assessmentStorageKey = "learn-dotnet-csharp-chapter-assessments-v1";
 const routeMapElement = document.querySelector("#guide-route-map");
 const continueReading = document.querySelector("#continue-reading");
 const guideRoot = new URL("./", window.location.href);
@@ -50,3 +51,25 @@ try {
 } catch {
   // The directory and old hash redirects remain usable without storage.
 }
+
+function updateAssessmentProgress() {
+  let progress = {};
+  try { progress = JSON.parse(localStorage.getItem(assessmentStorageKey) ?? "{}"); } catch { /* local-only enhancement */ }
+  const cards = [...document.querySelectorAll("[data-chapter-task-id]")];
+  let completed = 0;
+  for (const card of cards) {
+    const task = progress?.[card.dataset.chapterTaskId];
+    const isComplete = Boolean(task?.completed && task.revision === card.dataset.chapterTaskRevision);
+    card.classList.toggle("is-task-complete", isComplete);
+    const status = card.querySelector("[data-guide-task-status]");
+    if (status) status.textContent = isComplete ? "已验收" : "待验收";
+    completed += isComplete ? 1 : 0;
+  }
+  const summary = document.querySelector("#assessment-progress");
+  if (summary) summary.textContent = `${completed} / ${cards.length} 章验收`;
+}
+
+updateAssessmentProgress();
+window.addEventListener("storage", (event) => {
+  if (event.key === assessmentStorageKey) updateAssessmentProgress();
+});

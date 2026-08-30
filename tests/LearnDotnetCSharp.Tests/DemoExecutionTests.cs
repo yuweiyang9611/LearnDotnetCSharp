@@ -95,6 +95,10 @@ public sealed class DemoExecutionTests
 
         Assert.IsTrue(Program.HasValidArgumentCount("self-test", 1));
         Assert.IsFalse(Program.HasValidArgumentCount("self-test", 2));
+
+        Assert.IsTrue(Program.HasValidArgumentCount("export-code-layers", 2));
+        Assert.IsFalse(Program.HasValidArgumentCount("export-code-layers", 1));
+        Assert.IsTrue(Program.HasValidArgumentCount("export-code-layers-child", 2));
     }
 
     [TestMethod]

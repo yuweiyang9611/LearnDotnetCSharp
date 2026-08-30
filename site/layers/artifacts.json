@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "694d85bb290c0aed3d6d565f0f661be92173d3e132fb9b586967c46d7e0f2cfb",
+  "peSha256": "4616ecb589d167060f3ff5a855250b5704cb67151a667e2dc553580daa0c5f54",
+  "environment": {
+    "runtime": ".NET 10.0.11",
+    "os": "Microsoft Windows 10.0.26200",
+    "architecture": "x64",
+    "captureMode": "FullOpts · tiering disabled · observed snapshot"
+  },
+  "method": {
+    "signature": "DynamicSample.LayeredSample.HighLevel(int[])",
+    "metadataToken": "0x06000001",
+    "relativeVirtualAddress": "0x00002050",
+    "maxStack": 2,
+    "ilByteCount": 61,
+    "exceptionRegionCount": 1
+  },
+  "stages": {
+    "highLevel": "public static int HighLevel(int[] values)\n{\n    using var probe = new DisposeProbe();\n    var sum = 0;\n\n    foreach (var value in values)\n    {\n        if (value is > 0 and <= 10)\n        {\n            sum = checked(sum + value);\n        }\n    }\n\n    return sum;\n}",
+    "lowLevel": "public static int LowLevelEquivalent(int[] values)\n{\n    var probe = new DisposeProbe();\n    try\n    {\n        var sum = 0;\n        var index = 0;\n        while (index < values.Length)\n        {\n            var value = values[index];\n            if (value > 0 && value <= 10)\n            {\n                sum = checked(sum + value);\n            }\n\n            index++;\n        }\n\n        return sum;\n    }\n    finally\n    {\n        if (probe is not null)\n        {\n            ((IDisposable)probe).Dispose();\n        }\n    }\n}",
+    "cil": "IL_0000: newobj       DynamicSample.LayeredSample+DisposeProbe..ctor\nIL_0005: stloc.0      \nIL_0006: ldc.i4.0     \nIL_0007: stloc.1      \nIL_0008: ldarg.0      \nIL_0009: stloc.2      \nIL_000A: ldc.i4.0     \nIL_000B: stloc.3      \nIL_000C: br.s         IL_0027\nIL_000E: ldloc.2      \nIL_000F: ldloc.3      \nIL_0010: ldelem.i4    \nIL_0011: stloc.s      V_4\nIL_0013: ldloc.s      V_4\nIL_0015: ldc.i4.0     \nIL_0016: ble.s        IL_0023\nIL_0018: ldloc.s      V_4\nIL_001A: ldc.i4.s     10\nIL_001C: bgt.s        IL_0023\nIL_001E: ldloc.1      \nIL_001F: ldloc.s      V_4\nIL_0021: add.ovf      \nIL_0022: stloc.1      \nIL_0023: ldloc.3      \nIL_0024: ldc.i4.1     \nIL_0025: add          \nIL_0026: stloc.3      \nIL_0027: ldloc.3      \nIL_0028: ldloc.2      \nIL_0029: ldlen        \nIL_002A: conv.i4      \nIL_002B: blt.s        IL_000E\nIL_002D: ldloc.1      \nIL_002E: stloc.3      \nIL_002F: leave.s      IL_003B\nIL_0031: ldloc.0      \nIL_0032: brfalse.s    IL_003A\nIL_0034: ldloc.0      \nIL_0035: callvirt     System.IDisposable.Dispose\nIL_003A: endfinally   \nIL_003B: ldloc.3      \nIL_003C: ret          ",
+    "assembly": "; Assembly listing for method DynamicSample.LayeredSample:HighLevel(int[]):int (FullOpts)\n; Emitting BLENDED_CODE for generic X64 + VEX on Windows\n; FullOpts code\n; optimized code\n; rbp based frame\n; fully interruptible\n; No PGO data\n; 0 inlinees with PGO data; 5 single block inlinees; 0 inlinees without PGO data\n\nG_M000_IG01:\n       push     rbp\n       push     rbx\n       sub      rsp, 40\n       lea      rbp, [rsp+0x30]\n \nG_M000_IG02:\n       xor      ebx, ebx\n       mov      eax, dword ptr [rcx+0x08]\n       test     eax, eax\n       jle      SHORT G_M000_IG08\n \nG_M000_IG03:\n       add      rcx, 16\n       align    [8 bytes for IG04]\n \nG_M000_IG04:\n       mov      edx, dword ptr [rcx]\n       mov      r8d, edx\n       sub      r8d, 1\n       cmp      r8d, 9\n       ja       SHORT G_M000_IG06\n \nG_M000_IG05:\n       add      ebx, edx\n       jo       SHORT G_M000_IG07\n \nG_M000_IG06:\n       add      rcx, 4\n       dec      eax\n       jne      SHORT G_M000_IG04\n       jmp      SHORT G_M000_IG08\n \nG_M000_IG07:\n       call     CORINFO_HELP_OVERFLOW\n       int3     \n \nG_M000_IG08:\n       mov      rcx, 0xD1FFAB1E\n       call     CORINFO_HELP_GETDYNAMIC_NONGCSTATIC_BASE_NOCTOR\n       mov      edx, dword ptr [rax]\n       inc      edx\n       mov      dword ptr [rax], edx\n       mov      eax, ebx\n \nG_M000_IG09:\n       add      rsp, 40\n       pop      rbx\n       pop      rbp\n       ret      \n \nG_M000_IG10:\n       sub      rsp, 40\n \nG_M000_IG11:\n       mov      rcx, 0xD1FFAB1E\n       call     CORINFO_HELP_GETDYNAMIC_NONGCSTATIC_BASE_NOCTOR\n       mov      edx, dword ptr [rax]\n       inc      edx\n       mov      dword ptr [rax], edx\n \nG_M000_IG12:\n       add      rsp, 40\n       ret      \n \n; Total bytes of code 127"
+  },
+  "focuses": [
+    {
+      "id": "checked",
+      "label": "checked 溢出",
+      "explanation": "可观察语义是“溢出必须抛异常”：C# 的 checked 变成 CIL add.ovf，目标 ISA 用条件分支进入 overflow helper。",
+      "patterns": {
+        "highLevel": [
+          "checked"
+        ],
+        "lowLevel": [
+          "checked"
+        ],
+        "cil": [
+          "add.ovf"
+        ],
+        "assembly": [
+          "add ",
+          "jo ",
+          "overflow"
+        ]
+      }
+    },
+    {
+      "id": "loop",
+      "label": "foreach 循环",
+      "explanation": "数组 foreach 可降为索引循环；CIL 显示 ldelem/ldlen/回跳，JIT 再映射成地址与计数器操作。",
+      "patterns": {
+        "highLevel": [
+          "foreach"
+        ],
+        "lowLevel": [
+          "while",
+          "values[index]",
+          "index++"
+        ],
+        "cil": [
+          "ldelem",
+          "ldlen",
+          "blt.s"
+        ],
+        "assembly": [
+          "mov ",
+          "add ",
+          "dec ",
+          "jne "
+        ]
+      }
+    },
+    {
+      "id": "dispose",
+      "label": "using / finally",
+      "explanation": "必须保持资源释放。低层模型显式写 finally，CIL 用异常区域与 endfinally，JIT 快照包含正常和异常释放路径。",
+      "patterns": {
+        "highLevel": [
+          "using var"
+        ],
+        "lowLevel": [
+          "finally",
+          "dispose"
+        ],
+        "cil": [
+          "leave.s",
+          "callvirt",
+          "endfinally"
+        ],
+        "assembly": [
+          "getdynamic",
+          "inc ",
+          "ig10",
+          "ig11"
+        ]
+      }
+    }
+  ],
+  "stackSteps": [
+    {
+      "instruction": "ldloc.1",
+      "before": "[]",
+      "after": "[sum]",
+      "explanation": "读取局部变量 sum 并压入抽象求值栈。"
+    },
+    {
+      "instruction": "ldloc.s V_4",
+      "before": "[sum]",
+      "after": "[sum, value]",
+      "explanation": "再压入当前数组元素 value。"
+    },
+    {
+      "instruction": "add.ovf",
+      "before": "[sum, value]",
+      "after": "[newSum]",
+      "explanation": "消费两个操作数；有符号溢出时抛出 OverflowException。"
+    },
+    {
+      "instruction": "stloc.1",
+      "before": "[newSum]",
+      "after": "[]",
+      "explanation": "弹出结果并写回 sum，语句边界处栈再次为空。"
+    }
+  ],
+  "lowLevelCil": "IL_0000: newobj       DynamicSample.LayeredSample+DisposeProbe..ctor\nIL_0005: stloc.0      \nIL_0006: ldc.i4.0     \nIL_0007: stloc.1      \nIL_0008: ldc.i4.0     \nIL_0009: stloc.2      \nIL_000A: br.s         IL_0021\nIL_000C: ldarg.0      \nIL_000D: ldloc.2      \nIL_000E: ldelem.i4    \nIL_000F: stloc.3      \nIL_0010: ldloc.3      \nIL_0011: ldc.i4.0     \nIL_0012: ble.s        IL_001D\nIL_0014: ldloc.3      \nIL_0015: ldc.i4.s     10\nIL_0017: bgt.s        IL_001D\nIL_0019: ldloc.1      \nIL_001A: ldloc.3      \nIL_001B: add.ovf      \nIL_001C: stloc.1      \nIL_001D: ldloc.2      \nIL_001E: ldc.i4.1     \nIL_001F: add          \nIL_0020: stloc.2      \nIL_0021: ldloc.2      \nIL_0022: ldarg.0      \nIL_0023: ldlen        \nIL_0024: conv.i4      \nIL_0025: blt.s        IL_000C\nIL_0027: ldloc.1      \nIL_0028: stloc.s      V_4\nIL_002A: leave.s      IL_0036\nIL_002C: ldloc.0      \nIL_002D: brfalse.s    IL_0035\nIL_002F: ldloc.0      \nIL_0030: callvirt     System.IDisposable.Dispose\nIL_0035: endfinally   \nIL_0036: ldloc.s      V_4\nIL_0038: ret          "
+}

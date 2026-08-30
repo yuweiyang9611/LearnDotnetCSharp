@@ -7,8 +7,10 @@ import {
 } from "./catalog-data.js";
 import { experimentGuideUrls } from "./guide-routes.js";
 
+document.documentElement.classList.add("home-js");
+
 const storageKey = "learn-dotnet-csharp-progress-v1";
-const appProject = ".\\src\\LearnDotnetCSharp.App";
+const appProject = "src/LearnDotnetCSharp.App";
 const validExperimentIds = new Set(experiments.map(({ id }) => id));
 
 const elements = {

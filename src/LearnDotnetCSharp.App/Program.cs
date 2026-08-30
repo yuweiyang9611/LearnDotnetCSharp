@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
+using LearnDotnetCSharp.Demos.Compiler;
 using LearnDotnetCSharp.Infrastructure;
 
 namespace LearnDotnetCSharp;
@@ -90,6 +91,21 @@ internal static class Program
 
             case "self-test":
                 return await SelfTestAsync(catalog, context, cancellation.Token).ConfigureAwait(false);
+
+            case "export-code-layers":
+                await LayerArtifactExporter.ExportAsync(
+                    args[1],
+                    captureJitAssembly: true,
+                    cancellation.Token).ConfigureAwait(false);
+                context.WriteLine($"四层代码制品已写入：{Path.GetFullPath(args[1])}");
+                return 0;
+
+            case "export-code-layers-child":
+                await LayerArtifactExporter.ExportAsync(
+                    args[1],
+                    captureJitAssembly: false,
+                    cancellation.Token).ConfigureAwait(false);
+                return 0;
 
             default:
                 context.WriteLine("命令或参数无效。\n");
@@ -584,7 +600,8 @@ internal static class Program
         return command.ToLowerInvariant() switch
         {
             "list" => argumentCount is 1 or 2,
-            "list-chapter" or "describe" or "run" or "run-category" => argumentCount == 2,
+            "list-chapter" or "describe" or "run" or "run-category" or
+                "export-code-layers" or "export-code-layers-child" => argumentCount == 2,
             "run-all" or "self-test" => argumentCount == 1,
             _ => false,
         };
@@ -608,6 +625,7 @@ internal static class Program
         context.WriteLine("  run-category <category> 运行一个分类");
         context.WriteLine("  run-all                 运行全部本地、安全示例");
         context.WriteLine("  self-test               隔离运行并验证全部示例");
+        context.WriteLine("  export-code-layers <file> 生成网页使用的 C#/CIL/JIT 同源制品");
     }
 
     private sealed record IsolatedDemoResult(

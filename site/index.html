@@ -48,12 +48,19 @@
       <nav aria-label="主要导航">
         <a class="nav-priority" href="./guide/">在线教材</a>
         <a class="nav-priority" href="./search/">全文搜索</a>
+        <a href="./layers/">四层实验台</a>
         <a href="#path">学习路线</a>
         <a href="#catalog">实验目录</a>
         <a href="#resources">学习资料</a>
         <a href="https://github.com/yuweiyang9611/LearnDotnetCSharp">GitHub</a>
       </nav>
     </header>
+    <noscript>
+      <p class="no-script-notice">
+        实验筛选与学习进度需要 JavaScript；你仍可直接进入<a href="./guide/">在线教材</a>、
+        <a href="./learning-path/">学习路线</a>和<a href="./references/">参考资料</a>。
+      </p>
+    </noscript>
 
     <main id="main">
       <section class="hero" aria-labelledby="hero-title">
@@ -76,7 +83,7 @@
             <small>PowerShell</small>
           </div>
           <pre><code><span class="prompt">PS&gt;</span> dotnet run --project `
-  .\src\LearnDotnetCSharp.App -- list
+  src/LearnDotnetCSharp.App -- list
 
 <span class="output">[runtime]</span>
   runtime.overview
@@ -84,13 +91,13 @@
   runtime.collectible-plugin
 
 <span class="prompt">PS&gt;</span> dotnet run --project `
-  .\src\LearnDotnetCSharp.App -- `
+  src/LearnDotnetCSharp.App -- `
   run runtime.overview</code></pre>
           <div class="terminal-footer">
             <p><span class="status-dot" aria-hidden="true"></span> 实验需在本地运行，真实网络端点仅绑定 loopback</p>
             <button
               type="button"
-              data-global-copy="dotnet run --project .\src\LearnDotnetCSharp.App -- run runtime.overview"
+              data-global-copy="dotnet run --project src/LearnDotnetCSharp.App -- run runtime.overview"
             >复制命令</button>
           </div>
         </aside>
@@ -112,7 +119,7 @@
           <p>八个阶段由浅入深，每一步都对应可运行的代码与明确的观察点。</p>
         </div>
 
-        <div class="path-grid" id="path-grid"></div>
+        <div class="path-grid" id="path-grid">{{STATIC_LEARNING_PATH_HTML}}</div>
       </section>
 
       <section class="section" id="catalog" aria-labelledby="catalog-title">
@@ -151,8 +158,8 @@
           </div>
         </div>
 
-        <div class="filter-list" id="catalog-filters" aria-label="按主题筛选"></div>
-        <div class="experiment-grid" id="experiment-grid"></div>
+        <div class="filter-list" id="catalog-filters" aria-label="按主题筛选">{{STATIC_FILTERS_HTML}}</div>
+        <div class="experiment-grid" id="experiment-grid">{{STATIC_EXPERIMENTS_HTML}}</div>
         <div class="empty-state" id="empty-state" hidden>
           <strong>没有找到匹配的实验</strong>
           <p>换一个关键词，或切回“全部”主题试试。</p>
@@ -167,7 +174,7 @@
           </div>
           <p>教材、路线、主题映射和参考资料均可站内阅读，并能从正文、代码与实验摘要中全文搜索；PDF 仅保留为离线下载。</p>
         </div>
-        <div class="resources-grid" id="resources-grid"></div>
+        <div class="resources-grid" id="resources-grid">{{STATIC_RESOURCES_HTML}}</div>
       </section>
     </main>
 
@@ -182,6 +189,7 @@
       </div>
     </footer>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="./navigation.js"></script>
     <script type="module" src="./app.js"></script>
   </body>
 </html>

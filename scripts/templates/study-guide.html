@@ -25,7 +25,7 @@
       <a class="brand" href="{{HOME_HREF}}" aria-label="LearnDotnetCSharp 首页"><span class="brand-mark" aria-hidden="true">{ }</span><span>LearnDotnetCSharp</span></a>
       <nav aria-label="教材导航">
         <a class="nav-priority" href="{{GUIDE_HREF}}">教材目录</a><a href="{{SEARCH_HREF}}">全文搜索</a>
-        <a href="{{LEARNING_PATH_HREF}}">学习路线</a><a href="{{PDF_HREF}}" download>下载 PDF</a>
+        <a href="{{LAYERS_HREF}}">四层实验台</a><a href="{{LEARNING_PATH_HREF}}">学习路线</a><a href="{{PDF_HREF}}" download>下载 PDF</a>
       </nav>
     </header>
     <main class="guide-shell" id="main">
@@ -49,6 +49,7 @@
           <nav class="guide-toc">{{TOC_HTML}}</nav>
         </details>
         <div class="guide-content" id="guide-content">{{ARTICLE_HTML}}</div>
+        {{ASSESSMENT_HTML}}
         <nav class="chapter-pagination" aria-label="前后阅读单元">
           {{PREVIOUS_LINK_HTML}}<a class="chapter-directory-link" href="{{GUIDE_HREF}}">返回教材目录</a>{{NEXT_LINK_HTML}}
         </nav>
@@ -56,6 +57,7 @@
     </main>
     <button class="back-to-top" id="back-to-top" type="button" aria-label="返回页面顶部">↑</button>
     <div class="guide-toast" id="guide-toast" role="status" aria-live="polite"></div>
+    <script type="module" src="{{HOME_HREF}}navigation.js"></script>
     <script type="module" src="{{GUIDE_APP_HREF}}"></script>
   </body>
 </html>

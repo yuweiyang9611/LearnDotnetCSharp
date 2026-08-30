@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="用同一次编译产物，对照高级 C#、教学性低层 C#、CIL 与 JIT 汇编。" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content="四层代码实验台 · LearnDotnetCSharp" />
+    <meta property="og:description" content="沿同一个方法追踪高级 C#、lowering、CIL 与真实 JIT 汇编。" />
+    <meta property="og:url" content="https://yuweiyang9611.github.io/LearnDotnetCSharp/layers/" />
+    <link rel="canonical" href="https://yuweiyang9611.github.io/LearnDotnetCSharp/layers/" />
+    <title>四层代码实验台 · LearnDotnetCSharp</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="layers-page">
+    <a class="skip-link" href="#layer-workbench">跳到代码对照</a>
+    <header class="site-header">
+      <a class="brand" href="../" aria-label="LearnDotnetCSharp 首页"><span class="brand-mark" aria-hidden="true">{ }</span><span>LearnDotnetCSharp</span></a>
+      <nav aria-label="主要导航">
+        <a class="nav-priority" href="../guide/">在线教材</a><a class="nav-priority" aria-current="page" href="./">四层实验台</a>
+        <a href="../search/">全文搜索</a><a href="../guide/chapter-19/">原理章节</a>
+      </nav>
+    </header>
+    <main class="layers-main" id="main">
+      <section class="layers-intro" aria-labelledby="layers-title">
+        <p class="eyebrow"><span></span> 同源制品链 · 可验证快照</p>
+        <h1 id="layers-title">从一段 C# 一直追到机器指令</h1>
+        <p>四个窗格共享同一份源文件与 Roslyn 编译产物：低层 C# 是经过语义校验的教学性等价展开，CIL 与 JIT 汇编则直接追踪 <code>HighLevel</code> 方法。选择一个切片查看逐层证据。</p>
+        <div class="artifact-facts" aria-label="制品环境">
+          <span id="artifact-runtime">{{LAYER_RUNTIME}}</span><span id="artifact-platform">{{LAYER_PLATFORM}}</span><span id="artifact-hash">{{LAYER_HASH}}</span>
+        </div>
+        <dl class="method-facts" aria-label="方法体元数据">
+          <div><dt>方法</dt><dd id="method-signature">{{METHOD_SIGNATURE}}</dd></div>
+          <div><dt>MethodDef</dt><dd id="method-token">{{METHOD_TOKEN}}</dd></div>
+          <div><dt>RVA</dt><dd id="method-rva">{{METHOD_RVA}}</dd></div>
+          <div><dt>MaxStack</dt><dd id="method-max-stack">{{METHOD_MAX_STACK}}</dd></div>
+          <div><dt>IL 字节</dt><dd id="method-il-bytes">{{METHOD_IL_BYTES}}</dd></div>
+          <div><dt>异常区域</dt><dd id="method-eh-count">{{METHOD_EH_COUNT}}</dd></div>
+        </dl>
+      </section>
+
+      <section class="layer-workbench" id="layer-workbench" aria-labelledby="workbench-title">
+        <div class="workbench-heading">
+          <div><p class="eyebrow"><span></span> 语义映射</p><h2 id="workbench-title">选择要追踪的责任</h2></div>
+          <div class="focus-controls" id="focus-controls" role="group" aria-label="选择语义切片">{{LAYER_FOCUS_CONTROLS_HTML}}</div>
+        </div>
+        <p class="focus-summary" id="focus-summary" role="status" aria-live="polite">{{LAYER_FOCUS_SUMMARY}}</p>
+        <div class="layer-grid">
+          <section class="layer-panel" data-stage="highLevel" aria-labelledby="stage-high-title">
+            <header><span>01</span><div><h3 id="stage-high-title">高级 C#</h3><p>开发者表达意图</p></div></header>
+            <pre tabindex="0" aria-label="高级 C# 代码，当前高亮由上方语义说明解释" aria-describedby="focus-summary"><code id="stage-high-code">{{LAYER_HIGH_LEVEL_HTML}}</code></pre>
+          </section>
+          <section class="layer-panel" data-stage="lowLevel" aria-labelledby="stage-low-title">
+            <header><span>02</span><div><h3 id="stage-low-title">低层 C#</h3><p>教学性语义展开，不是编译器输出</p></div></header>
+            <pre tabindex="0" aria-label="教学性低层 C# 代码，当前高亮由上方语义说明解释" aria-describedby="focus-summary"><code id="stage-low-code">{{LAYER_LOW_LEVEL_HTML}}</code></pre>
+          </section>
+          <section class="layer-panel" data-stage="cil" aria-labelledby="stage-cil-title">
+            <header><span>03</span><div><h3 id="stage-cil-title">CIL</h3><p>PE 方法体中的可移植指令</p></div></header>
+            <pre tabindex="0" aria-label="CIL 指令，当前高亮由上方语义说明解释" aria-describedby="focus-summary"><code id="stage-cil-code">{{LAYER_CIL_HTML}}</code></pre>
+          </section>
+          <section class="layer-panel" data-stage="assembly" aria-labelledby="stage-asm-title">
+            <header><span>04</span><div><h3 id="stage-asm-title">JIT 汇编</h3><p id="assembly-caption">{{ASSEMBLY_CAPTION}}</p></div></header>
+            <pre tabindex="0" aria-label="JIT 汇编，当前高亮由上方语义说明解释" aria-describedby="focus-summary"><code id="stage-assembly-code">{{LAYER_ASSEMBLY_HTML}}</code></pre>
+          </section>
+        </div>
+      </section>
+
+      <section class="stack-lab" aria-labelledby="stack-title">
+        <div><p class="eyebrow"><span></span> CIL 求值栈</p><h2 id="stack-title">逐条执行 checked 加法</h2><p>这是一台抽象机器，不是 CPU 物理栈。单步观察 load、运算与 store 怎样传递值。</p></div>
+        <div class="stack-stepper">
+          <div class="stack-controls"><button type="button" id="stack-previous" disabled>上一步</button><span id="stack-position" aria-live="polite">1 / {{STACK_STEP_COUNT}}</span><button type="button" id="stack-next">下一步</button></div>
+          <div class="stack-state"><code id="stack-instruction">{{STACK_INSTRUCTION}}</code><p id="stack-explanation">{{STACK_EXPLANATION}}</p><div><span>执行前 <code id="stack-before">{{STACK_BEFORE}}</code></span><span aria-hidden="true">→</span><span>执行后 <code id="stack-after">{{STACK_AFTER}}</code></span></div></div>
+        </div>
+      </section>
+
+      <section class="layers-next" aria-labelledby="layers-next-title">
+        <div><p class="eyebrow"><span></span> 在本机复现</p><h2 id="layers-next-title">网页展示的是证据，不是永久契约</h2><p>换一个运行时、架构、ABI、tier 或 PGO 状态，汇编可以改变。运行实验并记录自己的环境。</p></div>
+        <div class="layers-actions"><button class="button button-secondary" id="copy-layer-command" type="button">复制制品生成命令</button><a class="button button-primary" href="../guide/chapter-20/#20-5-用-dotnet-jitdisasm-观察真实汇编">阅读观察方法</a></div>
+      </section>
+      <div class="layer-error" id="layer-error" role="alert" hidden></div>
+    </main>
+    <footer><div><strong>LearnDotnetCSharp</strong><p>同一个方法，不同抽象层。</p></div><div class="footer-links"><a href="../guide/chapter-19/">C# 到 CIL</a><a href="../guide/chapter-20/">CIL 到汇编</a></div></footer>
+    <script type="module" src="../navigation.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

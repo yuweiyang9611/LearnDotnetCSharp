@@ -13,7 +13,7 @@ namespace LearnDotnetCSharp.Demos.Compiler;
 
 public sealed class CompilerAndIlDemo : IDemo
 {
-    private const string SampleSource = """
+    internal const string SampleSource = """
         using System;
         using System.Threading.Tasks;
 

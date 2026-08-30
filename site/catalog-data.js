@@ -466,6 +466,13 @@ export const experiments = [
 
 export const resources = [
   {
+    type: "交互实验",
+    title: "高级 C# 到 JIT 汇编",
+    description: "用同一段代码对照高级写法、显式 lowering、真实 CIL/元数据与当前环境捕获的 JIT 汇编。",
+    href: "./layers/",
+    action: "打开四层实验台",
+  },
+  {
     type: "主教材",
     title: ".NET 10 与 C# 14 高级特性学习指导",
     description: "站内阅读 30 章正文、目录深链、代码示例、修改练习与结业验收。",

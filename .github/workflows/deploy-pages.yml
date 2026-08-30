@@ -7,12 +7,15 @@ on:
     paths:
       - .github/workflows/deploy-pages.yml
       - docs/*.md
+      - requirements-docs.txt
       - site/**
       - scripts/build-study-site.mjs
+      - scripts/markdown_to_pdf.py
       - scripts/markdown_to_site.mjs
       - scripts/templates/**
       - output/pdf/LearnDotnetCSharp-Study-Guide.pdf
-      - src/LearnDotnetCSharp.App/Demos/**
+      - global.json
+      - src/LearnDotnetCSharp.App/**
   workflow_dispatch:
 
 permissions:
@@ -26,7 +29,7 @@ jobs:
   build:
     name: Build site artifact
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     steps:
       - name: Check out repository
@@ -35,8 +38,70 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Set up .NET from global.json
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+
+      - name: Install Chinese fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes fonts-wqy-zenhei
+
+      - name: Install locked PDF dependencies
+        run: >-
+          python -m pip install
+          --no-deps
+          --only-binary=:all:
+          --requirement requirements-docs.txt
+
+      - name: Build and validate PDF from current Markdown
+        run: >-
+          python scripts/markdown_to_pdf.py
+          --input docs/advanced-dotnet-csharp-study-guide.md
+          --output output/pdf/LearnDotnetCSharp-Study-Guide.pdf
+          --repo-root .
+          --repo-url "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}"
+
+      - name: Restore app for the four-layer artifact
+        run: dotnet restore src/LearnDotnetCSharp.App/LearnDotnetCSharp.App.csproj
+
+      - name: Generate observed C# / CIL / JIT artifact
+        run: >-
+          dotnet run
+          --project src/LearnDotnetCSharp.App
+          --configuration Release
+          --no-restore
+          -- export-code-layers site/layers/artifacts.json
+
+      - name: Verify JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            node --check "$file"
+          done < <(find scripts site -type f \( -name '*.js' -o -name '*.mjs' \) -print | sort)
+
       - name: Build and validate static site
         run: node scripts/build-study-site.mjs
+
+      - name: Verify the site contains the newly generated PDF
+        run: >-
+          cmp
+          output/pdf/LearnDotnetCSharp-Study-Guide.pdf
+          artifacts/study-site/downloads/LearnDotnetCSharp-Study-Guide.pdf
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v5

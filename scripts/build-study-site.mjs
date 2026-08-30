@@ -1,7 +1,9 @@
+import { createHash } from "node:crypto";
 import { access, copyFile, cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, join, posix, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { categories, experiments, repositoryUrl, resources } from "../site/catalog-data.js";
+import { categories, experiments, learningStages, repositoryUrl, resources } from "../site/catalog-data.js";
+import { chapterTasks } from "../site/chapter-tasks.js";
 import {
   escapeHtml,
   markdownToPlainText,
@@ -15,6 +17,7 @@ const sourceDirectory = resolve(repositoryRoot, "site");
 const outputDirectory = resolve(repositoryRoot, "artifacts", "study-site");
 const pdfSource = resolve(repositoryRoot, "output", "pdf", "LearnDotnetCSharp-Study-Guide.pdf");
 const pdfDestination = resolve(outputDirectory, "downloads", "LearnDotnetCSharp-Study-Guide.pdf");
+const layerArtifactsSource = resolve(sourceDirectory, "layers", "artifacts.json");
 const guideSourceRelative = "docs/advanced-dotnet-csharp-study-guide.md";
 const guideSource = resolve(repositoryRoot, guideSourceRelative);
 const templatesDirectory = resolve(repositoryRoot, "scripts", "templates");
@@ -115,6 +118,18 @@ function normalizeSearch(value) {
   return String(value).normalize("NFKC").toLocaleLowerCase("zh-CN");
 }
 
+function chapterTaskRevision(task) {
+  const content = JSON.stringify({
+    command: task.command,
+    criteria: task.criteria,
+    evidence: task.evidence,
+    objective: task.objective,
+    steps: task.steps,
+    title: task.title,
+  });
+  return createHash("sha256").update(content).digest("hex").slice(0, 16);
+}
+
 function createPageSearchEntries({ articleMarkdown, baseUrl, headings, kind, pageTitle, subtitle }) {
   const lines = articleMarkdown ? articleMarkdown.split("\n") : [];
   const firstHeadingLine = headings[0]?.sourceLine ? headings[0].sourceLine - 1 : lines.length;
@@ -140,6 +155,106 @@ function createPageSearchEntries({ articleMarkdown, baseUrl, headings, kind, pag
     });
   }
   return entries;
+}
+
+function renderChapterAssessment(task, unit) {
+  if (!task || unit.kind !== "chapter") return "";
+  const taskId = `chapter-${String(task.chapter).padStart(2, "0")}`;
+  const layerLabLink = task.chapter === 19 || task.chapter === 20
+    ? `<a class="assessment-lab-link" href="${escapeHtml(relativeDirectoryHref(unit.route, "layers/"))}">打开四层代码实验台 <span aria-hidden="true">→</span></a>`
+    : "";
+  const checklist = (items, kind) => items.map((item, index) => `
+    <li><label><input type="checkbox" data-assessment-${kind}="${index}" /><span>${escapeHtml(item)}</span></label></li>`).join("");
+  return `
+  <section class="chapter-assessment" data-chapter-assessment data-task-id="${taskId}" data-task-chapter="${task.chapter}" data-task-revision="${chapterTaskRevision(task)}" aria-labelledby="${taskId}-title">
+    <header class="assessment-heading">
+      <div><p class="eyebrow"><span></span> 本章验收任务</p><h2 id="${taskId}-title">${escapeHtml(task.title)}</h2></div>
+      <span class="assessment-state" data-assessment-state>尚未验收</span>
+    </header>
+    <p class="assessment-objective">${escapeHtml(task.objective)}</p>
+    <noscript><p class="assessment-no-script">网页自动记录需要 JavaScript；你仍可按下面清单在本地执行，并把证据保存到自己的学习笔记。</p></noscript>
+    <div class="assessment-command"><code>${escapeHtml(task.command)}</code><button type="button" data-copy-task-command="${escapeHtml(task.command)}">复制命令</button></div>
+    ${layerLabLink}
+    <div class="assessment-columns">
+      <section><h3>完成步骤</h3><ol class="assessment-checklist">${checklist(task.steps, "step")}</ol></section>
+      <section><h3>通过标准</h3><ul class="assessment-checklist criteria-list">${checklist(task.criteria, "criterion")}</ul></section>
+    </div>
+    <details class="assessment-evidence-guide"><summary>查看需要保留的证据</summary><ul>${task.evidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></details>
+    <label class="assessment-notes"><span>证据记录</span><textarea data-assessment-notes rows="5" maxlength="2400" placeholder="记录关键输出、修改位置与解释；内容只保存在当前浏览器。"></textarea></label>
+    <div class="assessment-footer"><p data-assessment-status role="status" aria-live="polite">完成步骤、核对标准并填写证据记录后即可验收。</p><button class="button button-primary" type="button" data-assessment-complete disabled>标记为已验收</button></div>
+  </section>`;
+}
+
+function renderStaticHomepage(experimentGuideUrls) {
+  const pathHtml = learningStages.map((stage) => {
+    const total = experiments.filter(({ category }) => stage.categories.includes(category)).length;
+    return `
+        <article class="path-card">
+          <div class="path-card-topline"><span class="step-number">${escapeHtml(stage.number)}</span><span class="stage-progress">0/${total}</span></div>
+          <p>${escapeHtml(stage.label)}</p><h3>${escapeHtml(stage.title)}</h3>
+          <p class="path-description">${escapeHtml(stage.description)}</p>
+          <div class="mini-progress" aria-label="${escapeHtml(stage.label)}完成 0%"><span style="width: 0%"></span></div>
+          <button class="path-action" type="button" data-stage="${escapeHtml(stage.number)}">查看本阶段 <span aria-hidden="true">→</span></button>
+        </article>`;
+  }).join("");
+  const filtersHtml = [
+    `<button class="filter-chip is-active" type="button" data-category="all" aria-pressed="true">全部 <span>${experiments.length}</span></button>`,
+    ...Object.entries(categories).map(([key, category]) => {
+      const count = experiments.filter((experiment) => experiment.category === key).length;
+      return `<button class="filter-chip" type="button" data-category="${escapeHtml(key)}" aria-pressed="false">${escapeHtml(category.label)} <span>${count}</span></button>`;
+    }),
+  ].join("");
+  const experimentsHtml = experiments.map((experiment) => {
+    const category = categories[experiment.category];
+    const command = `dotnet run --project src/LearnDotnetCSharp.App -- run ${experiment.id}`;
+    const sourceUrl = `${repositoryUrl}/blob/main/${experiment.source}`;
+    return `
+        <article class="experiment-card" id="experiment-${escapeHtml(experiment.id)}">
+          <div class="experiment-topline">
+            <span class="category-badge tone-${escapeHtml(category.tone)}">${escapeHtml(category.label)}</span>
+            <button class="complete-toggle" type="button" data-complete-id="${escapeHtml(experiment.id)}" aria-pressed="false" aria-label="标记完成：${escapeHtml(experiment.title)}"><span aria-hidden="true"></span>标记完成</button>
+          </div>
+          <code class="experiment-id">${escapeHtml(experiment.id)}</code><h3>${escapeHtml(experiment.title)}</h3><p>${escapeHtml(experiment.summary)}</p>
+          <div class="experiment-actions">
+            <a href="${escapeHtml(experimentGuideUrls[experiment.id])}">阅读讲解 <span aria-hidden="true">→</span></a>
+            <a href="${escapeHtml(sourceUrl)}">查看源码 <span aria-hidden="true">↗</span></a>
+            <button type="button" data-copy="${escapeHtml(command)}">复制运行命令</button>
+          </div>
+        </article>`;
+  }).join("");
+  const resourcesHtml = resources.map((resource) => `
+        <a class="resource-card" href="${escapeHtml(resource.href)}"${resource.download ? " download" : ""}>
+          <span>${escapeHtml(resource.type)}</span><h3>${escapeHtml(resource.title)}</h3><p>${escapeHtml(resource.description)}</p>
+          <strong>${escapeHtml(resource.action)} <span aria-hidden="true">${resource.download ? "↓" : "→"}</span></strong>
+        </a>`).join("");
+  return { experimentsHtml, filtersHtml, pathHtml, resourcesHtml };
+}
+
+function validateLayerArtifacts(payload) {
+  const sha256 = /^[0-9a-f]{64}$/;
+  if (payload?.schemaVersion !== 1 || !sha256.test(payload.sourceSha256) || !sha256.test(payload.peSha256)) {
+    throw new Error("The four-layer artifact has an invalid schema or fingerprint.");
+  }
+  for (const key of ["runtime", "os", "architecture", "captureMode"]) {
+    if (!String(payload.environment?.[key] ?? "").trim()) throw new Error(`Layer artifact environment '${key}' is missing.`);
+  }
+  const stages = payload.stages ?? {};
+  const evidence = [
+    [stages.highLevel, "foreach"], [stages.highLevel, "checked"], [stages.highLevel, "using var"],
+    [stages.lowLevel, "try"], [stages.lowLevel, "finally"],
+    [stages.cil, "add.ovf"], [stages.cil, "endfinally"],
+    [stages.assembly, "Assembly listing for method"], [stages.assembly, "CORINFO_HELP_OVERFLOW"],
+  ];
+  for (const [text, token] of evidence) {
+    if (!String(text ?? "").includes(token)) throw new Error(`Layer artifact is missing '${token}' evidence.`);
+  }
+  if (!Array.isArray(payload.focuses) || payload.focuses.length < 3 || !Array.isArray(payload.stackSteps) || payload.stackSteps.length < 4) {
+    throw new Error("The four-layer artifact is missing focus mappings or CIL stack steps.");
+  }
+  const method = payload.method ?? {};
+  if (!method.signature || !/^0x[0-9A-F]{8}$/i.test(method.metadataToken ?? "") || method.ilByteCount <= 0 || method.maxStack <= 0) {
+    throw new Error("The four-layer artifact is missing MethodDef metadata evidence.");
+  }
 }
 
 async function findCSharpFiles(directory) {
@@ -354,11 +469,12 @@ const indexHtml = await readFile(resolve(sourceDirectory, "index.html"), "utf8")
 if (/(?:href|src)=["']\/(?!\/)/i.test(indexHtml)) {
   throw new Error("Root-relative assets are not compatible with the GitHub Pages project path.");
 }
-if (!indexHtml.includes('href="./guide/"') || !indexHtml.includes('href="./search/"')) {
-  throw new Error("The homepage must link directly to the online guide and full-text search.");
+if (!indexHtml.includes('href="./guide/"') || !indexHtml.includes('href="./search/"') || !indexHtml.includes('href="./layers/"')) {
+  throw new Error("The homepage must link directly to the online guide, search, and four-layer workbench.");
 }
 
 const expectedResourceHrefs = new Map([
+  ["交互实验", "./layers/"],
   ["主教材", "./guide/"],
   ["PDF", "./downloads/LearnDotnetCSharp-Study-Guide.pdf"],
   ["路线图", "./learning-path/"],
@@ -373,11 +489,15 @@ for (const [type, href] of expectedResourceHrefs) {
 const pdfResource = resources.find(({ type }) => type === "PDF");
 if (!pdfResource?.download) throw new Error("The PDF must remain an explicit download-only resource.");
 
-const [guideMarkdown, chapterTemplate, guideIndexTemplate, contentTemplate] = await Promise.all([
+const layerArtifacts = JSON.parse(await readFile(layerArtifactsSource, "utf8"));
+validateLayerArtifacts(layerArtifacts);
+
+const [guideMarkdown, chapterTemplate, guideIndexTemplate, contentTemplate, layerTemplate] = await Promise.all([
   readFile(guideSource, "utf8"),
   readFile(resolve(templatesDirectory, "study-guide.html"), "utf8"),
   readFile(resolve(templatesDirectory, "guide-index.html"), "utf8"),
   readFile(resolve(templatesDirectory, "content-page.html"), "utf8"),
+  readFile(resolve(sourceDirectory, "layers", "index.html"), "utf8"),
 ]);
 
 const renderedGuide = renderStudyGuide(guideMarkdown, {
@@ -414,6 +534,21 @@ if (JSON.stringify(renderedGuide.codeLanguages) !== JSON.stringify(expectedCodeL
 
 const units = splitGuideUnits(guideMarkdown, renderedGuide.headings);
 const chapters = units.filter(({ kind }) => kind === "chapter");
+if (chapterTasks.length !== chapters.length || chapterTasks.some((task, index) => task.chapter !== index + 1)) {
+  throw new Error(`Chapter tasks must cover chapters 1-${chapters.length} exactly once.`);
+}
+for (const task of chapterTasks) {
+  const chapter = chapters.find(({ number }) => number === task.chapter);
+  if (!chapter || chapter.headings[0]?.id !== task.sourceAnchor) {
+    throw new Error(`Chapter ${task.chapter} assessment anchor '${task.sourceAnchor}' does not match the guide.`);
+  }
+  if (!task.command || task.steps.length < 3 || task.criteria.length < 2 || task.evidence.length < 1) {
+    throw new Error(`Chapter ${task.chapter} assessment is incomplete.`);
+  }
+  if (task.command.includes("\\")) {
+    throw new Error(`Chapter ${task.chapter} assessment command must be portable across PowerShell and Bash.`);
+  }
+}
 if (units.length !== 35 || chapters.length !== 30 || units.filter(({ kind }) => kind === "appendix").length !== 4) {
   throw new Error(`Expected 35 reading units (30 chapters), found ${units.length} units (${chapters.length} chapters).`);
 }
@@ -449,6 +584,9 @@ const renderedUnitPages = [];
 
 for (let index = 0; index < units.length; index += 1) {
   const unit = units[index];
+  const chapterTask = unit.kind === "chapter"
+    ? chapterTasks.find(({ chapter }) => chapter === unit.number)
+    : null;
   const rendered = renderStudyGuide(unit.articleMarkdown, {
     experimentHeadingAliases,
     experimentIds: experiments.map(({ id }) => id),
@@ -467,6 +605,7 @@ for (let index = 0; index < units.length; index += 1) {
     : `${unit.label} · ${index + 1} / ${units.length}`;
   const html = applyTemplate(chapterTemplate, {
     ARTICLE_HTML: rendered.articleHtml,
+    ASSESSMENT_HTML: renderChapterAssessment(chapterTask, unit),
     BOOK_TITLE: escapeHtml(bookTitle),
     CANONICAL_URL: `${siteOrigin}${unit.route}`,
     DESCRIPTION: escapeHtml(unit.description),
@@ -475,6 +614,7 @@ for (let index = 0; index < units.length; index += 1) {
     GUIDE_HREF: relativeDirectoryHref(unit.route, "guide/"),
     HEADING_COUNT: rendered.headings.length + 1,
     HOME_HREF: relativeDirectoryHref(unit.route, ""),
+    LAYERS_HREF: relativeDirectoryHref(unit.route, "layers/"),
     LEARNING_PATH_HREF: relativeDirectoryHref(unit.route, "learning-path/"),
     NEXT_LINK_HTML: paginationLink(unit, units[index + 1], "next"),
     PAGE_HEADING_ID: escapeHtml(pageHeading.id),
@@ -549,7 +689,13 @@ const unitDirectoryHtml = [...groupedUnits.entries()].map(([partTitle, partUnits
   <section class="guide-part-group" aria-labelledby="${escapeHtml(groupHeadingId)}">
     <div class="guide-part-heading"><h3 id="${escapeHtml(groupHeadingId)}">${escapeHtml(partTitle)}</h3><span>${partUnits.length} 个阅读单元</span></div>
     <div class="guide-unit-grid">
-      ${partUnits.map((unit) => `<a class="guide-unit-card" href="${escapeHtml(relativeDirectoryHref("guide/", unit.route))}"><span class="guide-unit-number">${escapeHtml(unit.label)}</span><div><h4>${escapeHtml(unit.title.replace(/^\d+\.\s*/, ""))}</h4><p>${escapeHtml(unit.description)}</p></div></a>`).join("\n")}
+      ${partUnits.map((unit) => {
+        const chapterTask = unit.kind === "chapter" ? chapterTasks.find(({ chapter }) => chapter === unit.number) : null;
+        const taskId = chapterTask ? `chapter-${String(unit.number).padStart(2, "0")}` : "";
+        const taskRevision = chapterTask ? chapterTaskRevision(chapterTask) : "";
+        const taskStatus = taskId ? `<span class="guide-task-status" data-guide-task-status>待验收</span>` : "";
+        return `<a class="guide-unit-card"${taskId ? ` data-chapter-task-id="${taskId}" data-chapter-task-revision="${taskRevision}"` : ""} href="${escapeHtml(relativeDirectoryHref("guide/", unit.route))}"><span class="guide-unit-number">${escapeHtml(unit.label)}</span><div><div class="guide-unit-title-row"><h4>${escapeHtml(unit.title.replace(/^\d+\.\s*/, ""))}</h4>${taskStatus}</div><p>${escapeHtml(unit.description)}</p></div></a>`;
+      }).join("\n")}
     </div>
   </section>`;
 }).join("\n");
@@ -625,6 +771,47 @@ for (const experiment of experiments) {
   experimentGuideUrls[experiment.id] = `${relativeDirectoryHref("", anchorRoutes.get(anchor))}#${anchor}`;
 }
 
+const staticHomepage = renderStaticHomepage(experimentGuideUrls);
+const homepageHtml = applyTemplate(indexHtml, {
+  STATIC_EXPERIMENTS_HTML: staticHomepage.experimentsHtml,
+  STATIC_FILTERS_HTML: staticHomepage.filtersHtml,
+  STATIC_LEARNING_PATH_HTML: staticHomepage.pathHtml,
+  STATIC_RESOURCES_HTML: staticHomepage.resourcesHtml,
+});
+if (countMatches(homepageHtml, /class="experiment-card"/g) !== experiments.length ||
+    countMatches(homepageHtml, /class="path-card"/g) !== learningStages.length ||
+    countMatches(homepageHtml, /class="resource-card"/g) !== resources.length) {
+  throw new Error("The progressively rendered homepage is missing catalog content.");
+}
+
+const initialFocus = layerArtifacts.focuses[0];
+const initialStackStep = layerArtifacts.stackSteps[0];
+const layerHtml = applyTemplate(layerTemplate, {
+  ASSEMBLY_CAPTION: escapeHtml(`${layerArtifacts.environment.architecture} · ${layerArtifacts.environment.captureMode}`),
+  LAYER_ASSEMBLY_HTML: escapeHtml(layerArtifacts.stages.assembly),
+  LAYER_CIL_HTML: escapeHtml(layerArtifacts.stages.cil),
+  LAYER_FOCUS_CONTROLS_HTML: layerArtifacts.focuses.map((focus, index) => (
+    `<button type="button" data-focus="${escapeHtml(focus.id)}" aria-pressed="${index === 0}">${escapeHtml(focus.label)}</button>`
+  )).join(""),
+  LAYER_FOCUS_SUMMARY: escapeHtml(initialFocus.explanation),
+  LAYER_HASH: escapeHtml(`源码 ${layerArtifacts.sourceSha256.slice(0, 12)} · PE ${layerArtifacts.peSha256.slice(0, 12)}`),
+  LAYER_HIGH_LEVEL_HTML: escapeHtml(layerArtifacts.stages.highLevel),
+  LAYER_LOW_LEVEL_HTML: escapeHtml(layerArtifacts.stages.lowLevel),
+  LAYER_PLATFORM: escapeHtml(`${layerArtifacts.environment.os} · ${layerArtifacts.environment.architecture}`),
+  LAYER_RUNTIME: escapeHtml(layerArtifacts.environment.runtime),
+  METHOD_EH_COUNT: layerArtifacts.method.exceptionRegionCount,
+  METHOD_IL_BYTES: layerArtifacts.method.ilByteCount,
+  METHOD_MAX_STACK: layerArtifacts.method.maxStack,
+  METHOD_RVA: escapeHtml(layerArtifacts.method.relativeVirtualAddress),
+  METHOD_SIGNATURE: escapeHtml(layerArtifacts.method.signature),
+  METHOD_TOKEN: escapeHtml(layerArtifacts.method.metadataToken),
+  STACK_AFTER: escapeHtml(initialStackStep.after),
+  STACK_BEFORE: escapeHtml(initialStackStep.before),
+  STACK_EXPLANATION: escapeHtml(initialStackStep.explanation),
+  STACK_INSTRUCTION: escapeHtml(initialStackStep.instruction),
+  STACK_STEP_COUNT: layerArtifacts.stackSteps.length,
+});
+
 const guideSearchEntries = renderedUnitPages.flatMap(({ rendered, unit }) => {
   const kind = unit.kind === "chapter" ? "教材章节" : unit.kind === "appendix" ? "教材附录" : "教材导读";
   return createPageSearchEntries({
@@ -651,11 +838,29 @@ const resourceSearchEntries = renderedContentPages.flatMap(({ articleMarkdown, d
 const searchEntries = [
   ...guideSearchEntries,
   ...resourceSearchEntries,
+  {
+    kind: "交互实验",
+    subtitle: `${layerArtifacts.method.signature} · ${layerArtifacts.environment.architecture} · ${layerArtifacts.environment.captureMode}`,
+    text: [
+      "高级 C# 低层 C# lowering CIL IL 元数据 MethodDef RVA MaxStack JIT 汇编 assembly 求值栈",
+      layerArtifacts.method.metadataToken,
+      ...layerArtifacts.focuses.map(({ explanation, label }) => `${label} ${explanation}`),
+    ].join(" "),
+    title: "四层代码实验台：从高级 C# 到 JIT 汇编",
+    url: "../layers/",
+  },
+  ...chapterTasks.map((task) => ({
+    kind: "章节验收",
+    subtitle: `第 ${task.chapter} 章 · ${task.objective}`,
+    text: [...task.steps, ...task.criteria, ...task.evidence, task.command].join(" "),
+    title: task.title,
+    url: `${relativeDirectoryHref("search/", `guide/chapter-${String(task.chapter).padStart(2, "0")}/`)}#chapter-${String(task.chapter).padStart(2, "0")}-title`,
+  })),
   ...experiments.map((experiment) => ({
     id: experiment.id,
     kind: "实验",
     subtitle: `${experiment.id} · ${categories[experiment.category].label}`,
-    text: `${experiment.id} ${experiment.title} ${experiment.summary} ${categories[experiment.category].label} dotnet run --project .\\src\\LearnDotnetCSharp.App -- run ${experiment.id}`,
+    text: `${experiment.id} ${experiment.title} ${experiment.summary} ${categories[experiment.category].label} dotnet run --project src/LearnDotnetCSharp.App -- run ${experiment.id}`,
     title: experiment.title,
     url: experimentGuideUrls[experiment.id].replace(/^\.\//, "../"),
   })),
@@ -675,10 +880,18 @@ assertSearch("DOTNET_JitDisasm", ({ title, url }) => (
 assertSearch("lowering 元数据", ({ url }) => url.includes("chapter-19"));
 assertSearch("UnmanagedCallersOnly", ({ url }) => url.includes("chapter-26") || url.includes("interop"));
 assertSearch("compiler.roslyn-il", ({ id }) => id === "compiler.roslyn-il");
+assertSearch("CIL MethodDef JIT 汇编", ({ url }) => url === "../layers/");
 
 const manifest = {
   anchors: Object.fromEntries([...anchorRoutes.entries()].map(([id, route]) => [id, `${route}#${id}`])),
   experiments: Object.fromEntries(experiments.map(({ id }) => [id, experimentGuideUrls[id]])),
+  layers: {
+    architecture: layerArtifacts.environment.architecture,
+    captureMode: layerArtifacts.environment.captureMode,
+    peSha256: layerArtifacts.peSha256,
+    sourceSha256: layerArtifacts.sourceSha256,
+    url: "layers/",
+  },
   units: units.map(({ headings, kind, label, partTitle, route, title }) => ({
     anchors: headings.map(({ id }) => id), kind, label, partTitle, route, title,
   })),
@@ -692,6 +905,8 @@ await rm(outputDirectory, { force: true, recursive: true });
 await mkdir(dirname(pdfDestination), { recursive: true });
 await cp(sourceDirectory, outputDirectory, { recursive: true });
 await copyFile(pdfSource, pdfDestination);
+await writeFile(resolve(outputDirectory, "index.html"), homepageHtml, "utf8");
+await writeFile(resolve(outputDirectory, "layers", "index.html"), layerHtml, "utf8");
 await writeFile(resolve(outputDirectory, "guide", "index.html"), guideIndexHtml, "utf8");
 
 for (const { html, unit } of renderedUnitPages) {

@@ -53,6 +53,7 @@ a {
 }
 
 .site-header {
+  position: relative;
   width: min(calc(100% - 2rem), var(--max-width));
   min-height: 5.2rem;
   margin: 0 auto;
@@ -60,6 +61,73 @@ a {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
+}
+
+.navigation-toggle {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.8rem;
+  display: none;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text);
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.navigation-toggle:hover,
+.navigation-toggle:focus-visible,
+.navigation-toggle[aria-expanded="true"] {
+  color: var(--accent);
+  border-color: rgba(183, 243, 74, 0.45);
+  background: var(--accent-soft);
+}
+
+.navigation-toggle-icon,
+.navigation-toggle-icon::before,
+.navigation-toggle-icon::after {
+  width: 1rem;
+  height: 2px;
+  display: block;
+  background: currentColor;
+  border-radius: 999px;
+}
+
+.navigation-toggle-icon {
+  position: relative;
+}
+
+.navigation-toggle-icon::before,
+.navigation-toggle-icon::after {
+  position: absolute;
+  left: 0;
+  content: "";
+}
+
+.navigation-toggle-icon::before {
+  top: -0.35rem;
+}
+
+.navigation-toggle-icon::after {
+  top: 0.35rem;
+}
+
+.navigation-toggle[aria-expanded="true"] .navigation-toggle-icon {
+  background: transparent;
+}
+
+.navigation-toggle[aria-expanded="true"] .navigation-toggle-icon::before {
+  top: 0;
+  transform: rotate(45deg);
+}
+
+.navigation-toggle[aria-expanded="true"] .navigation-toggle-icon::after {
+  top: 0;
+  transform: rotate(-45deg);
 }
 
 .brand {
@@ -834,6 +902,33 @@ pre {
   border: 0;
 }
 
+.no-script-notice {
+  width: min(calc(100% - 2rem), var(--max-width));
+  margin: 1rem auto 0;
+  padding: 0.9rem 1rem;
+  color: var(--muted);
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  line-height: 1.65;
+}
+
+html:not(.home-js) .progress-panel,
+html:not(.home-js) .catalog-tools,
+html:not(.home-js) #catalog-filters,
+html:not(.home-js) .path-action,
+html:not(.home-js) .complete-toggle,
+html:not(.home-js) .experiment-actions button,
+html:not(.home-js) [data-global-copy] {
+  display: none;
+}
+
+.no-script-notice a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 footer {
   margin-top: 5rem;
   padding: 2rem 0 3rem;
@@ -863,12 +958,70 @@ footer p {
 }
 
 @media (max-width: 820px) {
-  .site-header nav a {
-    display: none;
+  .site-header {
+    min-height: 4.5rem;
+    padding-block: 0.75rem;
+    flex-wrap: wrap;
   }
 
-  .site-header nav a.nav-priority {
+  .site-header > nav {
+    width: 100%;
+    padding-top: 0.85rem;
+    flex-wrap: wrap;
+    gap: 0.65rem 1.1rem;
+  }
+
+  .site-header > nav a {
+    min-height: 2rem;
     display: inline-flex;
+    align-items: center;
+  }
+
+  .has-mobile-navigation .site-header {
+    padding-block: 0;
+    flex-wrap: nowrap;
+  }
+
+  .has-mobile-navigation .site-header .navigation-toggle {
+    display: inline-flex;
+  }
+
+  .has-mobile-navigation .site-header > nav {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    width: min(20rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 6rem);
+    padding: 0.65rem;
+    display: none;
+    overflow-y: auto;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0.15rem;
+    color: var(--muted);
+    background: rgba(9, 14, 27, 0.98);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 0.8rem;
+    box-shadow: 0 1.3rem 3.5rem rgba(0, 0, 0, 0.42);
+  }
+
+  .has-mobile-navigation .site-header.is-navigation-open > nav {
+    display: flex;
+  }
+
+  .has-mobile-navigation .site-header > nav a {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.5rem;
+  }
+
+  .has-mobile-navigation .site-header > nav a:hover,
+  .has-mobile-navigation .site-header > nav a:focus-visible,
+  .has-mobile-navigation .site-header > nav a[aria-current="page"] {
+    color: var(--accent);
+    background: var(--accent-soft);
   }
 
   .hero {

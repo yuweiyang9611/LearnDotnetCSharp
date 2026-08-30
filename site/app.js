@@ -42,6 +42,10 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function guideAnchor(experimentId) {
+  return `experiment-${experimentId.replaceAll(".", "-")}`;
+}
+
 function loadProgress() {
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
@@ -154,6 +158,7 @@ function renderCatalog() {
           <h3>${escapeHtml(experiment.title)}</h3>
           <p>${escapeHtml(experiment.summary)}</p>
           <div class="experiment-actions">
+            <a href="./guide/#${guideAnchor(experiment.id)}">阅读讲解 <span aria-hidden="true">→</span></a>
             <a href="${sourceUrl}">查看源码 <span aria-hidden="true">↗</span></a>
             <button type="button" data-copy="${escapeHtml(command)}">复制运行命令</button>
           </div>
@@ -186,11 +191,11 @@ function renderResources() {
   elements.resourcesGrid.innerHTML = resources
     .map(
       (resource) => `
-        <a class="resource-card" href="${resource.href}">
+        <a class="resource-card" href="${resource.href}"${resource.download ? " download" : ""}>
           <span>${escapeHtml(resource.type)}</span>
           <h3>${escapeHtml(resource.title)}</h3>
           <p>${escapeHtml(resource.description)}</p>
-          <strong>${escapeHtml(resource.action)} <span aria-hidden="true">↗</span></strong>
+          <strong>${escapeHtml(resource.action)} <span aria-hidden="true">${resource.download ? "↓" : "↗"}</span></strong>
         </a>`,
     )
     .join("");

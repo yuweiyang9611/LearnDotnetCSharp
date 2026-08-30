@@ -6,8 +6,11 @@ on:
       - main
     paths:
       - .github/workflows/deploy-pages.yml
+      - docs/advanced-dotnet-csharp-study-guide.md
       - site/**
       - scripts/build-study-site.mjs
+      - scripts/markdown_to_site.mjs
+      - scripts/templates/study-guide.html
       - output/pdf/LearnDotnetCSharp-Study-Guide.pdf
       - src/LearnDotnetCSharp.App/Demos/**
   workflow_dispatch:

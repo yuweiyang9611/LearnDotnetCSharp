@@ -722,6 +722,7 @@ pre {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.8rem;
   border-top: 1px solid var(--line);
   color: #cbd5e1;
@@ -862,8 +863,12 @@ footer p {
 }
 
 @media (max-width: 820px) {
-  .site-header nav a:not(:last-child) {
+  .site-header nav a {
     display: none;
+  }
+
+  .site-header nav a.nav-priority {
+    display: inline-flex;
   }
 
   .hero {

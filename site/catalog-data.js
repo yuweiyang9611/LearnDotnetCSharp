@@ -468,16 +468,17 @@ export const resources = [
   {
     type: "主教材",
     title: ".NET 10 与 C# 14 高级特性学习指导",
-    description: "53 个实验的目标、机制解析、观察点、修改练习与结业验收。",
-    href: `${repositoryUrl}/blob/main/docs/advanced-dotnet-csharp-study-guide.md`,
-    action: "在线阅读",
+    description: "站内阅读 30 章正文、目录深链、代码示例、修改练习与结业验收。",
+    href: "./guide/",
+    action: "开始站内阅读",
   },
   {
     type: "PDF",
     title: "完整离线学习手册",
-    description: "带目录、书签和页码的中文 PDF，适合集中阅读与批注。",
+    description: "带目录、书签和页码的离线快照，适合下载后集中阅读与批注。",
     href: "./downloads/LearnDotnetCSharp-Study-Guide.pdf",
-    action: "打开 PDF",
+    action: "下载 PDF",
+    download: true,
   },
   {
     type: "路线图",

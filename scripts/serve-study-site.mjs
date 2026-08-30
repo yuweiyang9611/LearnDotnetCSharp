@@ -28,6 +28,10 @@ const server = createServer(async (request, response) => {
 
   try {
     const info = await stat(filePath);
+    if (info.isDirectory() && !pathname.endsWith("/")) {
+      response.writeHead(308, { Location: `${pathname}/` }).end();
+      return;
+    }
     if (!info.isFile()) {
       throw new Error("Not a file");
     }

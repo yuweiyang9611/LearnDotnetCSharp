@@ -111,17 +111,17 @@
 
 五个综合项目分别覆盖：
 
-- `project.cancellable-data-pipeline`：用 UTF-8 字节偏移 checkpoint、原子 JSON 状态和幂等 NDJSON 死信形成 at-least-once 管线；确定性中断后从连续终态前缀 resume，sink 仍只提交每个业务 ID 一次。
+- `project.cancellable-data-pipeline`：用 UTF-8 字节偏移 checkpoint、SQLite 增量事务状态和幂等 NDJSON 死信形成 at-least-once 管线；确定性中断后从连续终态前缀 resume，sink 仍只提交每个业务 ID 一次。
 - `project.versioned-local-service`：把 SQLite 写入放在 503 之前，模拟“服务已经提交、客户端只看到失败”的提交歧义；自动重试、显式重放和重启 Kestrel/Store 后都返回相同原始 NDJSON 字节。
 - `project.collectible-plugin-host`：扫描 v1/v2 元数据，按能力选择最高兼容版本；v2 普通异常只以复制后的失败描述越过 ALC 边界，随后隔离 v2、回退 v1，并通过刷新路由快照恢复 v2。
 - `project.polyglot-compute`：两个 Python 常驻 worker 复用 JSON Lines 会话；其中一个确定性崩溃后由池重建并重试一次幂等请求，再与 C ABI、C++ `SafeHandle` 结果比较。
 - `project.resilient-analytics-workflow`：把 checkpoint/DLQ/resume、Python 崩溃恢复、v2 能力路由、可收集 ALC 和 SQLite 重开重放串成跨平台最终项目。
 
-可复用机制位于 `LearnDotnetCSharp.Capstones`，App 中的五个 Demo 只负责接入真实文件、SQLite、插件程序集、Python/C/C++ 和教学断言。这个边界让 `LearnDotnetCSharp.Tests` 的 31 个正式测试可以直接验证连续 checkpoint、single-flight、能力路由和 worker 替换，而不必从控制台输出反推内部状态。
+可复用机制位于 `LearnDotnetCSharp.Capstones`，App 中的五个 Demo 只负责接入真实文件、SQLite、插件程序集、Python/C/C++ 和教学断言。这个边界让 `LearnDotnetCSharp.Tests` 的 45 个正式测试可以直接验证连续 checkpoint、single-flight、能力路由和 worker 替换，而不必从控制台输出反推内部状态。
 
 收尾阶段不要只核对最终数字；还要逐项确认 checkpoint 何时才可前移、死信是否重复、提交后失败为何必须重用幂等键、插件异常是否钉住 ALC，以及 worker 崩溃时谁完成旧请求并创建替代进程。五个项目既可单独用 `run <id>` 观察，也会进入 53 项 `self-test` 回归；后者为每项创建独立子进程，并分别汇总 `Passed / Skipped / Failed / Timeout`，所以平台缺失能力不会伪装成成功，超时也不会淹没在普通失败中。
 
-最终提交前运行 `scripts\verify.cmd`：它会检查格式、Release 构建、至少 31 个 Microsoft.Testing.Platform 正式测试和进程隔离回归。综合项目中的中断、提交后 503 与 Python 崩溃都由可控 gate、协议字段或确定性的 `FaultPlan` 触发，不使用随机故障或固定 `Sleep` 猜测时序。
+最终提交前运行 `scripts\verify.cmd`：它会检查格式、Release 构建、至少 45 个 Microsoft.Testing.Platform 正式测试和进程隔离回归。综合项目中的中断、提交后 503 与 Python 崩溃都由可控 gate、协议字段或确定性的 `FaultPlan` 触发，不使用随机故障或固定 `Sleep` 猜测时序。
 
 ## 实验方法
 

@@ -33,7 +33,7 @@ Linux、macOS 或 Git Bash 使用 `./scripts/enable-git-hooks.sh "YOUR_ID+YOUR_U
 
 ## 环境基准
 
-- SDK：`10.0.301`（`global.json` 允许向同一 feature band 的更新版本滚动）
+- SDK：`10.0.301`（`global.json` 允许在同一 major/minor 下向较新的 feature band 滚动）
 - TFM：`net10.0`
 - C#：`14.0`
 - Nullable：启用
@@ -54,7 +54,7 @@ Linux、macOS 或 Git Bash 使用 `./scripts/enable-git-hooks.sh "YOUR_ID+YOUR_U
 
 ```bash
 dotnet build LearnDotnetCSharp.slnx --configuration Release --no-restore
-dotnet test --solution LearnDotnetCSharp.slnx --configuration Release --no-restore --no-build --minimum-expected-tests 31
+dotnet test --solution LearnDotnetCSharp.slnx --configuration Release --no-restore --no-build --minimum-expected-tests 45
 dotnet run --project src/LearnDotnetCSharp.App --configuration Release --no-build -- self-test
 dotnet run --project src/LearnDotnetCSharp.App --configuration Release --no-build -- export-code-layers site/layers/artifacts.json
 node scripts/build-study-site.mjs
@@ -71,7 +71,7 @@ Dev Container 基于 Linux，适合跨平台托管代码、Python 互操作、�
 .\scripts\setup-python.cmd
 dotnet restore .\LearnDotnetCSharp.slnx --ignore-failed-sources
 dotnet build .\LearnDotnetCSharp.slnx --no-restore
-dotnet test --solution .\LearnDotnetCSharp.slnx --no-build --minimum-expected-tests 31
+dotnet test --solution .\LearnDotnetCSharp.slnx --no-build --minimum-expected-tests 45
 dotnet run --project .\src\LearnDotnetCSharp.App -- list
 dotnet run --project .\src\LearnDotnetCSharp.App -- run runtime.overview
 dotnet run --project .\src\LearnDotnetCSharp.App -- self-test
@@ -108,7 +108,26 @@ CLI 命令：
 
 `self-test` 不再把平台分支中的提前返回误记为成功。子进程退出码 `0` 表示 `Passed`，`77` 表示 `Skipped`，`124` 保留给 `Timeout`；失败或超时会保留该实验有界的标准输出和标准错误摘要，并让整体命令失败。超时后运行器会终止整个子进程树，因此死锁、忽略取消或污染进程级状态的实验不会阻塞后续项目。
 
-正式测试项目使用 .NET 10 的 Microsoft.Testing.Platform，当前包含 31 个测试，既覆盖目录/运行器基础设施，也直接验证可恢复管线、SQLite 幂等、插件路由和 Python worker 池。GitHub Actions 会在 Windows 与 Linux 上执行还原、Release 构建、格式检查、测试和完整 `self-test`，并在 Pull Request 中重新生成 PDF 与四层代码制品、检查前端 JavaScript 语法、构建静态站及验收关键产物；Windows 同时验证仓库自带的 C/C++ DLL，Linux 通过可用性契约测试和自检确认这些 Windows 专有实验明确报告 `Skipped`。Pages 发布任务也会先从当前提交的 Markdown 与 C# 源码重新生成 PDF、HTML 和 JIT 快照并核对站内副本，避免在线内容来自不同版本。
+正式测试项目使用 .NET 10 的 Microsoft.Testing.Platform，当前包含 45 个测试，既覆盖目录/运行器基础设施，也直接验证可恢复管线、SQLite 幂等、插件路由和 Python worker 池。GitHub Actions 会在 Windows 与 Linux 上执行还原、Release 构建、格式检查、测试和完整 `self-test`，并在 Pull Request 中重新生成 PDF 与四层代码制品、检查前端 JavaScript 语法、构建静态站及验收关键产物；Windows 同时验证仓库自带的 C/C++ DLL，Linux 通过可用性契约测试和自检确认这些 Windows 专有实验明确报告 `Skipped`。Pages 发布任务也会先从当前提交的 Markdown 与 C# 源码重新生成 PDF、HTML 和 JIT 快照并核对站内副本，避免在线内容来自不同版本。
+
+## 学习备份与浏览器验证
+
+首页、教材目录和章节页提供“导出备份”和“导入备份”。备份包含实验完成记录、章节步骤与笔记、历史/冲突副本和阅读位置，不上传服务器。导入先预览再合并；同版本步骤取并集，冲突笔记保留本地正文并另存副本。旧版本章节与未知记录保留但不计入当前进度，重复导入不会重复生成副本。文件上限为 5 MiB。旧浏览器存储自动迁移，原始键保留；保存失败会持续提示“尚未保存”，当前编辑仍可重试或导出。“清空实验完成记录”不会删除章节笔记。
+
+浏览器验收使用锁定的 Playwright 和 Chromium，覆盖桌面及手机尺寸，并通过 `/LearnDotnetCSharp/` 子路径运行真实生成站点：
+
+```powershell
+npm ci
+npx playwright install chromium
+node scripts/build-study-site.mjs
+npm run test:site
+```
+
+当前包含 24 个浏览器用例，覆盖搜索、导航、复制、验收、迁移、合并和保存失败。CI 与 Pages 发布前均运行浏览器测试；失败截图和 trace 位于 `artifacts/playwright-results`，HTML 报告位于 `artifacts/playwright-report`。
+
+数据管线通过 `IPipelineStateStore` 支持 JSON 教学快照和 SQLite 增量事务。两个综合实验使用 SQLite，保留 JSON v1 文件兼容性，不自动迁移。`MaxUncommittedRecords` 默认 64：有效帧和死信均占用额度，连续 checkpoint 成功持久化后才归还。NDJSON 在验收时显式导出；同一状态文件仅支持一个管线拥有者，业务处理器仍须幂等。
+
+Python worker 的 `StartupTimeout` 默认 5 秒，与单次 `RequestTimeout` 独立。首次启动或替代 worker 启动失败会使整个池故障，结束在途/排队请求并拒绝后续请求；并发释放等待同一个清理任务，进程退出和标准错误泵均有界等待。
 
 ## 解决方案结构
 
@@ -129,7 +148,7 @@ LearnDotnetCSharp.slnx
 │  ├─ LearnDotnetCSharp.SamplePlugin/        # v1 示例插件与日语资源
 │  └─ LearnDotnetCSharp.SamplePlugin.V2/     # 用于热切换、隔离和回退的 v2 插件
 ├─ tests/
-│  └─ LearnDotnetCSharp.Tests/                # 31 个 MTP 正式测试：基础设施、Core 与边界恢复
+│  └─ LearnDotnetCSharp.Tests/                # 45 个 MTP 正式测试：基础设施、Core 与边界恢复
 ├─ python/                                   # .venv 子进程加载的 Python JSON worker
 ├─ native/                                   # C API 与带 extern C 外壳的 C++ 实现
 ├─ docs/
@@ -231,7 +250,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-category projects
 | `interop.python-process-json` | 工作区 `.venv`、子进程生命周期、UTF-8 JSON Lines、超时和退出码 |
 | `interop.c-abi` | C ABI、blittable 结构体、固定数组指针与 `UnmanagedCallersOnly` 反向回调 |
 | `interop.cpp-opaque-handle` | `extern "C"`、不透明 C++ 对象、状态码、UTF-8 缓冲区与 `SafeHandle` |
-| `project.cancellable-data-pipeline` | UTF-8 字节 checkpoint、原子 JSON 状态、幂等 NDJSON 死信、有界 Channel 与中断后恢复 |
+| `project.cancellable-data-pipeline` | UTF-8 字节 checkpoint、SQLite 增量事务、显式 NDJSON 死信导出、有界连续提交窗口与中断后恢复 |
 | `project.versioned-local-service` | 版本化契约、HMAC、SQLite 幂等、提交后 503、服务重启重放与 NDJSON 流式响应 |
 | `project.collectible-plugin-host` | v1/v2 能力路由、热切换、故障隔离、回退、异常复制与可收集加载上下文 |
 | `project.polyglot-compute` | Python 常驻 worker 池和崩溃重建，以及 C ABI、C++ 不透明对象和跨语言不变量 |

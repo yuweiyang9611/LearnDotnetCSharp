@@ -144,6 +144,8 @@ public sealed record ResumableDataPipelineOptions
 {
     public int ChannelCapacity { get; init; } = 2;
 
+    public int MaxUncommittedRecords { get; init; } = 64;
+
     public int ConsumerCount { get; init; } = 3;
 
     public int ReadBufferBytes { get; init; } = 256;
@@ -153,6 +155,7 @@ public sealed record ResumableDataPipelineOptions
     internal void Validate()
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(ChannelCapacity, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxUncommittedRecords, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(ConsumerCount, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(ReadBufferBytes, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(MaximumFrameBytes, 1);

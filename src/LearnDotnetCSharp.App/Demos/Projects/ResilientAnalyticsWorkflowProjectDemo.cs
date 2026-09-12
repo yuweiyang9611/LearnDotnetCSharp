@@ -35,7 +35,7 @@ public sealed class ResilientAnalyticsWorkflowProjectDemo : IDemo
         var stateDirectory = Path.Combine(Path.GetTempPath(), $"learn-dotnet-analytics-{Guid.NewGuid():N}");
         Directory.CreateDirectory(stateDirectory);
         var sourcePath = Path.Combine(stateDirectory, "metrics.txt");
-        var checkpointPath = Path.Combine(stateDirectory, "pipeline-state.json");
+        var checkpointPath = Path.Combine(stateDirectory, "pipeline-state.db");
         var databasePath = Path.Combine(stateDirectory, "requests.db");
         await File.WriteAllTextAsync(
             sourcePath,
@@ -65,7 +65,7 @@ public sealed class ResilientAnalyticsWorkflowProjectDemo : IDemo
         {
             Interlocked.Increment(ref workflowExecutions);
             var pipeline = new ResumableDataPipeline<AnalyticsMetric>(
-                new JsonPipelineStateStore(checkpointPath),
+                new SqlitePipelineStateStore(checkpointPath),
                 ParseMetric,
                 (record, _) =>
                 {
@@ -182,8 +182,10 @@ public sealed class ResilientAnalyticsWorkflowProjectDemo : IDemo
                 AnalyticsWorkflowJsonContext.Default.AnalyticsWorkflowReport)
                 ?? throw new JsonException("The analytics workflow report was JSON null.");
             var poolSnapshot = pythonPool.Snapshot;
+            var exportStore = new SqlitePipelineStateStore(checkpointPath);
+            await exportStore.ExportDeadLettersAsync(exportStore.DeadLetterPath, timeout.Token).ConfigureAwait(false);
             var deadLetterLines = await File.ReadAllLinesAsync(
-                new JsonPipelineStateStore(checkpointPath).DeadLetterPath,
+                new SqlitePipelineStateStore(checkpointPath).DeadLetterPath,
                 timeout.Token).ConfigureAwait(false);
 
             context.WriteProperty("workflow executions", $"interrupted + resumed = {workflowExecutions}");

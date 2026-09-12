@@ -21,9 +21,13 @@ public sealed class PythonWorkerPool : IAsyncDisposable
     private readonly int[] generations;
     private readonly TaskCompletionSource[] readiness;
     private readonly Task[] workerTasks;
+    private readonly PythonWorkerSession?[] sessions;
     private long starts;
     private long restarts;
     private int disposeState;
+    private readonly object disposalGate = new();
+    private Task? disposalTask;
+    private PythonWorkerException? fault;
 
     private PythonWorkerPool(PythonWorkerPoolOptions options)
     {
@@ -31,6 +35,7 @@ public sealed class PythonWorkerPool : IAsyncDisposable
         standardErrorTail = new BoundedTextTail(options.StandardErrorTailCharacters);
         activeProcessIds = new int[options.WorkerCount];
         generations = new int[options.WorkerCount];
+        sessions = new PythonWorkerSession?[options.WorkerCount];
         readiness = Enumerable.Range(0, options.WorkerCount)
             .Select(static _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously))
             .ToArray();
@@ -83,6 +88,8 @@ public sealed class PythonWorkerPool : IAsyncDisposable
         catch
         {
             await pool.DisposeAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            pool.ThrowIfFaulted();
             throw;
         }
     }
@@ -106,6 +113,7 @@ public sealed class PythonWorkerPool : IAsyncDisposable
         catch
         {
             inFlightIds.TryRemove(request.Id, out _);
+            ThrowIfDisposed();
             throw;
         }
 
@@ -116,17 +124,29 @@ public sealed class PythonWorkerPool : IAsyncDisposable
     {
         ThrowIfDisposed();
         var item = PythonWorkItem.ForCrash(cancellationToken);
-        await workItems.Writer.WriteAsync(item, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await workItems.Writer.WriteAsync(item, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            ThrowIfDisposed();
+            throw;
+        }
         await item.Response.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref disposeState, 1) != 0)
+        lock (disposalGate)
         {
-            return;
+            return new ValueTask(disposalTask ??= DisposeCoreAsync());
         }
+    }
 
+    private async Task DisposeCoreAsync()
+    {
+        Interlocked.Exchange(ref disposeState, 1);
         workItems.Writer.TryComplete();
         await lifetime.CancelAsync().ConfigureAwait(false);
 
@@ -138,14 +158,34 @@ public sealed class PythonWorkerPool : IAsyncDisposable
         {
         }
 
-        var disposedException = new ObjectDisposedException(nameof(PythonWorkerPool));
+        Exception disposedException = Volatile.Read(ref fault) ?? (Exception)new ObjectDisposedException(nameof(PythonWorkerPool));
         while (workItems.Reader.TryRead(out var item))
         {
             CompleteWithException(item, disposedException);
         }
 
         lifetime.Dispose();
-        GC.SuppressFinalize(this);
+    }
+
+    private async Task FailAsync(Exception exception)
+    {
+        var failure = new PythonWorkerException("The Python worker pool is unavailable after a worker failure.", exception);
+        if (Interlocked.CompareExchange(ref fault, failure, null) is not null)
+        {
+            return;
+        }
+
+        workItems.Writer.TryComplete(failure);
+        foreach (var ready in readiness)
+        {
+            ready.TrySetException(failure);
+        }
+
+        await lifetime.CancelAsync().ConfigureAwait(false);
+        while (workItems.Reader.TryRead(out var queued))
+        {
+            CompleteWithException(queued, failure);
+        }
     }
 
     private async Task RunWorkerAsync(
@@ -154,6 +194,7 @@ public sealed class PythonWorkerPool : IAsyncDisposable
         CancellationToken cancellationToken)
     {
         PythonWorkerSession? session = null;
+        PythonWorkItem? current = null;
         try
         {
             session = await StartSessionAsync(workerIndex, cancellationToken).ConfigureAwait(false);
@@ -161,14 +202,17 @@ public sealed class PythonWorkerPool : IAsyncDisposable
 
             await foreach (var item in workItems.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
+                current = item;
                 if (item.CancellationToken.IsCancellationRequested)
                 {
                     CompleteCanceled(item);
+                    current = null;
                     continue;
                 }
 
                 session = await ProcessItemAsync(workerIndex, session, item, cancellationToken)
                     .ConfigureAwait(false);
+                current = null;
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -177,15 +221,29 @@ public sealed class PythonWorkerPool : IAsyncDisposable
         }
         catch (Exception exception)
         {
-            ready.TrySetException(exception);
+            await FailAsync(exception).ConfigureAwait(false);
             standardErrorTail.Append($"[pool worker {workerIndex}] {exception}\n");
         }
         finally
         {
+            if (current is not null)
+            {
+                CompleteWithException(current, Volatile.Read(ref fault) ?? (Exception)new ObjectDisposedException(nameof(PythonWorkerPool)));
+            }
+
             Volatile.Write(ref activeProcessIds[workerIndex], 0);
+            session = sessions[workerIndex] ?? session;
             if (session is not null)
             {
-                await session.DisposeAsync().ConfigureAwait(false);
+                try
+                {
+                    await session.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    standardErrorTail.Append($"[cleanup worker {workerIndex}] {exception}\n");
+                    await FailAsync(exception).ConfigureAwait(false);
+                }
             }
         }
     }
@@ -259,7 +317,7 @@ public sealed class PythonWorkerPool : IAsyncDisposable
             }
             catch (OperationCanceledException) when (poolCancellationToken.IsCancellationRequested)
             {
-                CompleteWithException(item, new ObjectDisposedException(nameof(PythonWorkerPool)));
+                CompleteWithException(item, Volatile.Read(ref fault) ?? (Exception)new ObjectDisposedException(nameof(PythonWorkerPool)));
                 throw;
             }
             catch (Exception exception) when (exception is PythonProtocolException or IOException or InvalidOperationException)
@@ -277,14 +335,25 @@ public sealed class PythonWorkerPool : IAsyncDisposable
         CancellationToken cancellationToken)
     {
         var generation = Interlocked.Increment(ref generations[workerIndex]);
-        var session = await PythonWorkerSession.StartAsync(
+        using var startup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        startup.CancelAfter(options.StartupTimeout);
+        PythonWorkerSession session;
+        try
+        {
+            session = await PythonWorkerSession.StartAsync(
             options,
             workerIndex,
             generation,
             standardErrorTail,
-            cancellationToken).ConfigureAwait(false);
+                startup.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new TimeoutException($"Python worker {workerIndex}/{generation} startup timed out.", exception);
+        }
 
         Volatile.Write(ref activeProcessIds[workerIndex], session.ProcessId);
+        sessions[workerIndex] = session;
         observedProcessIds.TryAdd(session.ProcessId, 0);
         Interlocked.Increment(ref starts);
         return session;
@@ -362,8 +431,19 @@ public sealed class PythonWorkerPool : IAsyncDisposable
         }
     }
 
-    private void ThrowIfDisposed() =>
+    private void ThrowIfDisposed()
+    {
+        ThrowIfFaulted();
         ObjectDisposedException.ThrowIf(Volatile.Read(ref disposeState) != 0, this);
+    }
+
+    private void ThrowIfFaulted()
+    {
+        if (Volatile.Read(ref fault) is { } failure)
+        {
+            throw failure;
+        }
+    }
 
     private enum PythonWorkItemKind
     {
@@ -502,7 +582,14 @@ public sealed class PythonWorkerPool : IAsyncDisposable
                 }
                 catch
                 {
-                    await session.DisposeAsync().ConfigureAwait(false);
+                    try
+                    {
+                        await session.DisposeAsync().ConfigureAwait(false);
+                    }
+                    catch (Exception cleanupException)
+                    {
+                        standardErrorTail.Append($"[startup cleanup] {cleanupException}\n");
+                    }
                     throw;
                 }
             }
@@ -556,36 +643,61 @@ public sealed class PythonWorkerPool : IAsyncDisposable
                 return;
             }
 
-            TryCloseStandardInput();
-            if (!process.HasExited)
-            {
-                using var gracefulExit = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
-                try
-                {
-                    await process.WaitForExitAsync(gracefulExit.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    TryKill(process);
-                }
-            }
-
-            if (!process.HasExited)
-            {
-                await process.WaitForExitAsync().ConfigureAwait(false);
-            }
-
-            await stderrLifetime.CancelAsync().ConfigureAwait(false);
+            Exception? cleanupFailure = null;
             try
             {
-                await stderrPump.ConfigureAwait(false);
+                TryCloseStandardInput();
+                if (!process.HasExited)
+                {
+                    try
+                    {
+                        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
+                    }
+                    catch (TimeoutException)
+                    {
+                        TryKill(process);
+                        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                    }
+                }
             }
-            catch (OperationCanceledException) when (stderrLifetime.IsCancellationRequested)
+            catch (Exception exception)
             {
+                cleanupFailure = exception;
+                TryKill(process);
+                try
+                {
+                    await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                }
+                catch (Exception exitException)
+                {
+                    standardErrorTail.Append($"[cleanup exit] {exitException.Message}\n");
+                }
+            }
+            finally
+            {
+                await stderrLifetime.CancelAsync().ConfigureAwait(false);
+                try
+                {
+                    await stderrPump.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (stderrLifetime.IsCancellationRequested)
+                {
+                }
+                catch (Exception exception)
+                {
+                    cleanupFailure ??= exception;
+                }
+                finally
+                {
+                    stderrLifetime.Dispose();
+                    process.Dispose();
+                }
             }
 
-            stderrLifetime.Dispose();
-            process.Dispose();
+            if (cleanupFailure is not null)
+            {
+                throw new PythonWorkerException("Python worker cleanup failed within its bounded shutdown period.", cleanupFailure);
+            }
         }
 
         private async Task<PythonProtocolResponse> ExchangeAsync(

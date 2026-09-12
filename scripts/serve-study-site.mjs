@@ -1,12 +1,14 @@
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
-import { extname, join, normalize, resolve } from "node:path";
+import { extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const port = Number.parseInt(process.argv[2] ?? process.env.STUDY_SITE_PORT ?? "4173", 10);
 const defaultRoot = fileURLToPath(new URL("../artifacts/study-site", import.meta.url));
 const root = resolve(process.argv[3] ?? defaultRoot);
+const basePath = process.argv[4] ?? "/";
+if (!basePath.startsWith("/") || !basePath.endsWith("/")) throw new Error("Base path must begin and end with '/'.");
 const contentTypes = new Map([
   [".css", "text/css; charset=utf-8"],
   [".html", "text/html; charset=utf-8"],
@@ -17,11 +19,15 @@ const contentTypes = new Map([
 ]);
 
 const server = createServer(async (request, response) => {
-  const pathname = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
+  let pathname;
+  try { pathname = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname); }
+  catch { response.writeHead(400).end("Bad request"); return; }
+  if (!pathname.startsWith(basePath)) { response.writeHead(404).end("Not found"); return; }
+  pathname = "/" + pathname.slice(basePath.length);
   const requestedPath = pathname.endsWith("/") ? `${pathname}index.html` : pathname;
   const filePath = normalize(join(root, requestedPath));
 
-  if (!filePath.startsWith(root)) {
+  if (filePath !== root && !filePath.startsWith(root + sep)) {
     response.writeHead(403).end("Forbidden");
     return;
   }
@@ -29,7 +35,7 @@ const server = createServer(async (request, response) => {
   try {
     const info = await stat(filePath);
     if (info.isDirectory() && !pathname.endsWith("/")) {
-      response.writeHead(308, { Location: `${pathname}/` }).end();
+      response.writeHead(308, { Location: `${basePath}${pathname.slice(1)}/` }).end();
       return;
     }
     if (!info.isFile()) {

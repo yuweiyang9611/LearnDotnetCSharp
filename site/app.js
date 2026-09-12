@@ -1,3 +1,6 @@
+import { progress } from "./progress-store.js";
+import { initializeProgressUI } from "./progress-ui.js";
+import { copyText as copyToClipboard } from "./clipboard.js";
 import {
   categories,
   experiments,
@@ -9,7 +12,6 @@ import { experimentGuideUrls } from "./guide-routes.js";
 
 document.documentElement.classList.add("home-js");
 
-const storageKey = "learn-dotnet-csharp-progress-v1";
 const appProject = "src/LearnDotnetCSharp.App";
 const validExperimentIds = new Set(experiments.map(({ id }) => id));
 
@@ -45,26 +47,8 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function loadProgress() {
-  try {
-    const stored = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
-    if (!Array.isArray(stored)) {
-      return new Set();
-    }
-
-    return new Set(stored.filter((id) => validExperimentIds.has(id)));
-  } catch {
-    return new Set();
-  }
-}
-
-function saveProgress() {
-  try {
-    localStorage.setItem(storageKey, JSON.stringify([...completedIds]));
-  } catch {
-    showToast("浏览器未允许保存进度");
-  }
-}
+function loadProgress() { return new Set(progress.completedIds()); }
+function saveProgress() { return progress.setExperiments([...completedIds]); }
 
 function showToast(message) {
   window.clearTimeout(toastTimer);
@@ -220,19 +204,7 @@ function setActiveCategories(categoryKeys, label, categoryKey = null) {
 }
 
 async function copyText(text, successMessage = "已复制运行命令") {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const input = document.createElement("textarea");
-    input.value = text;
-    input.style.position = "fixed";
-    input.style.opacity = "0";
-    document.body.append(input);
-    input.select();
-    document.execCommand("copy");
-    input.remove();
-  }
-  showToast(successMessage);
+  showToast(await copyToClipboard(text) ? successMessage : "复制失败，请手动选择命令复制");
 }
 
 elements.catalogFilters.addEventListener("click", (event) => {
@@ -315,16 +287,19 @@ elements.continueAction.addEventListener("click", () => {
 });
 
 elements.resetProgress.addEventListener("click", () => {
-  if (!window.confirm("确认清空这台设备上的全部学习进度吗？")) {
+  if (!window.confirm("确认清空实验完成记录吗？章节笔记会保留。")) {
     return;
   }
 
   completedIds = new Set();
-  saveProgress();
+  const saved = saveProgress();
   renderAll();
-  showToast("学习进度已清空");
+  showToast(saved ? "实验完成记录已清空" : "清空操作尚未保存，请重试");
 });
 
 renderFilters();
 renderResources();
 renderAll();
+
+initializeProgressUI(document.querySelector("[data-learning-backup]"));
+window.addEventListener("learning-data-change", () => { completedIds = loadProgress(); renderAll(); });

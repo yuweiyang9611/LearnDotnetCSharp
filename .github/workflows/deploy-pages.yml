@@ -16,6 +16,12 @@ on:
       - output/pdf/LearnDotnetCSharp-Study-Guide.pdf
       - global.json
       - src/LearnDotnetCSharp.App/**
+      - src/LearnDotnetCSharp.Capstones/**
+      - tests/site/**
+      - playwright.config.mjs
+      - package.json
+      - package-lock.json
+      - scripts/serve-study-site.mjs
   workflow_dispatch:
 
 permissions:
@@ -29,7 +35,7 @@ jobs:
   build:
     name: Build site artifact
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
@@ -96,6 +102,25 @@ jobs:
 
       - name: Build and validate static site
         run: node scripts/build-study-site.mjs
+
+      - name: Install locked browser test dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Test desktop and mobile study flows
+        run: npm run test:site
+
+      - name: Preserve browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failures
+          path: |
+            artifacts/playwright-results
+            artifacts/playwright-report
+          retention-days: 7
 
       - name: Verify the site contains the newly generated PDF
         run: >-

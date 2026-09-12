@@ -15,13 +15,13 @@ public sealed class ResumableDataPipeline<T>
     private static readonly Encoding Utf8 = new UTF8Encoding(
         encoderShouldEmitUTF8Identifier: false,
         throwOnInvalidBytes: false);
-    private readonly JsonPipelineStateStore stateStore;
+    private readonly IPipelineStateStore stateStore;
     private readonly Func<ReadOnlyMemory<byte>, PipelineParseResult<T>> parser;
     private readonly Func<PipelineRecord<T>, CancellationToken, ValueTask> processor;
     private readonly ResumableDataPipelineOptions options;
 
     public ResumableDataPipeline(
-        JsonPipelineStateStore stateStore,
+        IPipelineStateStore stateStore,
         Func<ReadOnlyMemory<byte>, PipelineParseResult<T>> parser,
         Func<PipelineRecord<T>, CancellationToken, ValueTask> processor,
         ResumableDataPipelineOptions? options = null)
@@ -45,7 +45,7 @@ public sealed class ResumableDataPipeline<T>
         var fullSourcePath = Path.GetFullPath(sourcePath);
         var fingerprint = await PipelineSourceFingerprint.ComputeAsync(fullSourcePath, cancellationToken)
             .ConfigureAwait(false);
-        var initialState = await stateStore.LoadOrCreateAsync(fingerprint, cancellationToken)
+        var initialState = await stateStore.InitializeAsync(fingerprint, cancellationToken)
             .ConfigureAwait(false);
         var sourceLength = new FileInfo(fullSourcePath).Length;
         if (initialState.Checkpoint.NextByteOffset > sourceLength)
@@ -54,7 +54,7 @@ public sealed class ResumableDataPipeline<T>
                 $"Checkpoint byte offset {initialState.Checkpoint.NextByteOffset} exceeds source length {sourceLength}.");
         }
 
-        using var coordinator = new PipelineStateCoordinator(stateStore, initialState);
+        using var coordinator = new PipelineStateCoordinator(stateStore, initialState, options.MaxUncommittedRecords);
         var channel = Channel.CreateBounded<PipelineRecord<T>>(new BoundedChannelOptions(options.ChannelCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
@@ -116,7 +116,7 @@ public sealed class ResumableDataPipeline<T>
             finalState.Checkpoint,
             processedThisRun,
             newDeadLettersThisRun,
-            finalState.DeadLetters.Length);
+            finalState.TotalDeadLetters);
     }
 
     private async Task ProduceAsync(
@@ -226,6 +226,7 @@ public sealed class ResumableDataPipeline<T>
         Action recordNewDeadLetter,
         CancellationToken cancellationToken)
     {
+        await coordinator.WaitForCapacityAsync(cancellationToken).ConfigureAwait(false);
         var frame = bufferedFrame.ToArray();
         var logicalLength = frame.Length > 0 && frame[^1] == (byte)'\r'
             ? frame.Length - 1
@@ -305,83 +306,67 @@ public sealed class ResumableDataPipeline<T>
 
     private sealed class PipelineStateCoordinator : IDisposable
     {
-        private readonly JsonPipelineStateStore store;
+        private readonly IPipelineStateStore store;
         private readonly SemaphoreSlim gate = new(1, 1);
+        private readonly SemaphoreSlim capacity;
         private readonly ContiguousCheckpointTracker tracker;
-        private readonly HashSet<string> deadLetterIds;
-        private readonly List<PipelineDeadLetter> deadLetters;
-        private PipelineCheckpoint checkpoint;
+        private PipelineStoredState state;
+        private Exception? failure;
 
-        public PipelineStateCoordinator(JsonPipelineStateStore store, PipelineStateSnapshot initialState)
+        public PipelineStateCoordinator(IPipelineStateStore store, PipelineStoredState initialState, int maximumUncommitted)
         {
             this.store = store;
-            checkpoint = initialState.Checkpoint;
-            deadLetters = [.. initialState.DeadLetters];
-            deadLetterIds = new HashSet<string>(
-                initialState.DeadLetters.Select(item => item.EntryId),
-                StringComparer.Ordinal);
-            tracker = new ContiguousCheckpointTracker(
-                checkpoint.LastContiguousSequence,
-                checkpoint.NextByteOffset);
+            state = initialState;
+            capacity = new SemaphoreSlim(maximumUncommitted, maximumUncommitted);
+            tracker = new ContiguousCheckpointTracker(state.Checkpoint.LastContiguousSequence, state.Checkpoint.NextByteOffset);
         }
 
-        public string SourceFingerprint => checkpoint.SourceFingerprint;
+        public string SourceFingerprint => state.Checkpoint.SourceFingerprint;
 
-        public PipelineStateSnapshot Snapshot
-        {
-            get
-            {
-                gate.Wait();
-                try
-                {
-                    return CreateSnapshot();
-                }
-                finally
-                {
-                    gate.Release();
-                }
-            }
-        }
+        // Read only after all producer/consumer tasks have been observed.
+        public PipelineStoredState Snapshot => state;
+
+        public Task WaitForCapacityAsync(CancellationToken cancellationToken) => capacity.WaitAsync(cancellationToken);
 
         public ValueTask MarkProcessedAsync(PipelinePosition position, CancellationToken cancellationToken) =>
-            MarkTerminalAsync(position, deadLetter: null, cancellationToken).AsVoid();
+            MarkTerminalAsync(position, null, cancellationToken).AsVoid();
 
-        public ValueTask<bool> MarkDeadLetterAsync(
-            PipelineDeadLetter deadLetter,
-            CancellationToken cancellationToken) =>
+        public ValueTask<bool> MarkDeadLetterAsync(PipelineDeadLetter deadLetter, CancellationToken cancellationToken) =>
             MarkTerminalAsync(deadLetter.Position, deadLetter, cancellationToken);
 
-        private async ValueTask<bool> MarkTerminalAsync(
-            PipelinePosition position,
-            PipelineDeadLetter? deadLetter,
-            CancellationToken cancellationToken)
+        private async ValueTask<bool> MarkTerminalAsync(PipelinePosition position, PipelineDeadLetter? deadLetter, CancellationToken cancellationToken)
         {
             await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                var deadLetterAdded = deadLetter is not null && deadLetterIds.Add(deadLetter.EntryId);
-                if (deadLetterAdded)
+                if (failure is not null)
                 {
-                    deadLetters.Add(deadLetter!);
+                    ExceptionDispatchInfo.Capture(failure).Throw();
                 }
 
-                var checkpointAdvanced = tracker.MarkTerminal(position);
-                if (checkpointAdvanced)
+                var advanced = tracker.MarkTerminal(position);
+                if (!advanced && deadLetter is null)
                 {
-                    var progress = tracker.Progress;
-                    checkpoint = new PipelineCheckpoint(
-                        PipelineCheckpoint.CurrentFormatVersion,
-                        checkpoint.SourceFingerprint,
-                        progress.NextByteOffset,
-                        progress.LastContiguousSequence);
+                    return false;
                 }
 
-                if (deadLetterAdded || checkpointAdvanced)
+                var progress = tracker.Progress;
+                var checkpoint = new PipelineCheckpoint(PipelineCheckpoint.CurrentFormatVersion,
+                    SourceFingerprint, progress.NextByteOffset, progress.LastContiguousSequence);
+                var committed = await store.CommitAsync(checkpoint, deadLetter, cancellationToken).ConfigureAwait(false);
+                var released = checked((int)(committed.State.Checkpoint.LastContiguousSequence - state.Checkpoint.LastContiguousSequence));
+                state = committed.State;
+                if (released > 0)
                 {
-                    await store.SaveAsync(CreateSnapshot(), cancellationToken).ConfigureAwait(false);
+                    capacity.Release(released);
                 }
 
-                return deadLetterAdded;
+                return committed.DeadLetterAdded;
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+                throw;
             }
             finally
             {
@@ -389,11 +374,13 @@ public sealed class ResumableDataPipeline<T>
             }
         }
 
-        private PipelineStateSnapshot CreateSnapshot() =>
-            new(checkpoint, [.. deadLetters]);
-
-        public void Dispose() => gate.Dispose();
+        public void Dispose()
+        {
+            gate.Dispose();
+            capacity.Dispose();
+        }
     }
+
 }
 
 public static class PipelineSourceFingerprint

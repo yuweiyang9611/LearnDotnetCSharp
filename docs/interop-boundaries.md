@@ -18,9 +18,9 @@
 
 这种单次交换方式牺牲一部分进程启动和序列化性能，换来明确的故障/内存隔离以及不依赖 CPython 内部 ABI。不要为每个标量启动一个进程；大量小调用应改为长期 worker、批处理请求或专门 RPC。
 
-`LearnDotnetCSharp.Capstones.Polyglot.PythonWorkerPool` 给出长期 worker 的完整实验：有界 `Channel` 为请求施加背压，N 个消费者各自拥有一个持续读取 JSON Lines 的 Python session。启动时先执行 handshake，响应必须带回相同请求 ID、进程 PID 和 generation；同一 ID 仍在途时，池会在写入协议前拒绝重复请求。stderr 始终由独立异步泵读取，只保留固定长度尾部，避免子进程因错误流管道写满而死锁。
+`LearnDotnetCSharp.Capstones.Polyglot.PythonWorkerPool` 给出长期 worker 的完整实验：有界 `Channel` 为请求施加背压，N 个消费者各自拥有一个持续读取 JSON Lines 的 Python session。首次与替代 session 的启动都受 StartupTimeout（默认五秒）限制，与 RequestTimeout 独立；启动时先执行 handshake，响应必须带回相同请求 ID、进程 PID 和 generation；同一 ID 仍在途时，池会在写入协议前拒绝重复请求。stderr 始终由独立异步泵读取，只保留固定长度尾部，避免子进程因错误流管道写满而死锁。
 
-worker 在 `analyze` 响应前以 `os._exit(86)` 确定性崩溃时，session 会把 EOF 转换成包含 stderr 尾部的 `PythonWorkerCrashedException`，关闭旧进程并建立下一 generation。只有明确为幂等的分析请求会沿用原 ID 自动重试一次；`crash` 控制请求本身不重试。取消发生在一次请求中途时，协议已无法证明下一行属于哪个请求，因此池会废弃整个 session，而不是把可能错位的 stdout 交给下一调用。
+worker 在 `analyze` 响应前以 `os._exit(86)` 确定性崩溃时，session 会把 EOF 转换成包含 stderr 尾部的 `PythonWorkerCrashedException`，关闭旧进程并建立下一 generation。只有明确为幂等的分析请求会沿用原 ID 自动重试一次；`crash` 控制请求本身不重试。若重建本身失败，整个池立即进入故障状态，取消其他 worker、结束在途与排队请求，并拒绝后续调用；并发 DisposeAsync 等待同一有界清理任务。取消发生在一次请求中途时，协议已无法证明下一行属于哪个请求，因此池会废弃整个 session，而不是把可能错位的 stdout 交给下一调用。
 
 这仍不是任意 Python 代码的安全沙箱。工作进程提供比进程内 CPython 嵌入更清晰的崩溃和内存隔离，但文件、网络、CPU、内存与操作系统权限仍需由容器、作业对象、cgroup 或独立账户限制。自动重试也只适用于无副作用或具有业务幂等键的操作。
 

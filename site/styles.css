@@ -1125,3 +1125,13 @@ footer p {
     transition-duration: 0.01ms !important;
   }
 }
+.learning-backup { margin: 1.5rem 0; padding: 1.2rem; border: 1px solid #354044; border-radius: 1rem; min-width: 0; }
+.backup-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.learning-backup button { padding: .65rem 1rem; border: 1px solid #71818a; border-radius: .5rem; background: #162228; color: #f2f8f9; cursor: pointer; font: inherit; }
+.learning-backup button:focus-visible { outline: 3px solid #b7f34a; outline-offset: 3px; }
+.learning-backup [data-storage-state], .learning-backup [data-backup-message] { overflow-wrap: anywhere; }
+.learning-backup pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+.learning-backup article { border-top: 1px solid #354044; padding: 1rem 0; }
+.learning-backup dialog { background: #142025; color: #f2f8f9; border: 1px solid #71818a; border-radius: 1rem; width: min(36rem, calc(100vw - 2rem)); max-height: 85vh; overflow: auto; padding: 1.5rem; }
+.learning-backup dialog::backdrop { background: #000b; }
+.learning-backup [hidden] { display: none; }

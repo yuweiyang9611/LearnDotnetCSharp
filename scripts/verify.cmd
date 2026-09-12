@@ -16,7 +16,7 @@ rem Folder mode verifies whitespace without loading the mixed C#/F#/VB project g
 dotnet format whitespace "%ROOT%" --folder --verify-no-changes --include "%ROOT%\src" "%ROOT%\tests" --verbosity minimal
 if errorlevel 1 exit /b %errorlevel%
 
-dotnet test --solution "%ROOT%\LearnDotnetCSharp.slnx" --configuration Release --no-build --minimum-expected-tests 31
+dotnet test --solution "%ROOT%\LearnDotnetCSharp.slnx" --configuration Release --no-build --minimum-expected-tests 45
 if errorlevel 1 exit /b %errorlevel%
 
 dotnet run --project "%ROOT%\src\LearnDotnetCSharp.App" --configuration Release --no-build -- self-test

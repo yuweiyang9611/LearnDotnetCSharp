@@ -938,6 +938,11 @@ await writeFile(
   `export const experimentGuideUrls = Object.freeze(${JSON.stringify(experimentGuideUrls, null, 2)});\n`,
   "utf8",
 );
+const progressTasks = Object.fromEntries(chapterTasks.map((task) => [
+  `chapter-${String(task.chapter).padStart(2, "0")}`, { revision: chapterTaskRevision(task), steps: task.steps.length, criteria: task.criteria.length },
+]));
+await writeFile(resolve(outputDirectory, "progress-catalog.js"),
+  `export const tasks = ${JSON.stringify(progressTasks)};\nexport const guideRoutes = ${JSON.stringify(units.map(({ route }) => route))};\n`, "utf8");
 await writeFile(resolve(outputDirectory, "guide-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 await writeFile(resolve(outputDirectory, "search-index.json"), `${JSON.stringify({ entries: searchEntries, version: 1 }, null, 2)}\n`, "utf8");
 await writeFile(resolve(outputDirectory, ".nojekyll"), "", "utf8");

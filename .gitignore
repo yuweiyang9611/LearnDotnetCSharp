@@ -10,3 +10,4 @@
 TestResults/
 artifacts/
 tmp/
+node_modules/

@@ -52,6 +52,8 @@ public sealed class PythonWorkerPoolOptions(
 
     public TimeSpan RequestTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
+    public TimeSpan StartupTimeout { get; init; } = TimeSpan.FromSeconds(5);
+
     public int MaxCrashRetries { get; init; } = 1;
 
     public int StandardErrorTailCharacters { get; init; } = 8 * 1024;
@@ -86,6 +88,11 @@ public sealed class PythonWorkerPoolOptions(
         if (RequestTimeout <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(RequestTimeout), RequestTimeout, "RequestTimeout must be positive.");
+        }
+
+        if (StartupTimeout <= TimeSpan.Zero || StartupTimeout.TotalMilliseconds > uint.MaxValue - 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(StartupTimeout));
         }
 
         if (MaxCrashRetries is < 0 or > 1)

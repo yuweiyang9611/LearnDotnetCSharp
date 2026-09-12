@@ -1,0 +1,12 @@
+{
+  "name": "learndotnetcsharp-study-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:site": "node scripts/build-study-site.mjs",
+    "test:site": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2"
+  }
+}

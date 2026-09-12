@@ -1,7 +1,8 @@
+import { progress } from "../progress-store.js";
+import { initializeProgressUI } from "../progress-ui.js";
+import { copyText } from "../clipboard.js";
 document.documentElement.classList.add("guide-js");
 
-const lastReadingStorageKey = "learn-dotnet-csharp-guide-last-reading-v2";
-const assessmentStorageKey = "learn-dotnet-csharp-chapter-assessments-v1";
 const tocLinks = [...document.querySelectorAll("[data-toc-id]")];
 const headings = [...document.querySelectorAll("[data-guide-heading]")];
 const searchInputs = [...document.querySelectorAll("[data-toc-search]")];
@@ -22,17 +23,8 @@ function showToast(message) {
 }
 
 function saveReadingPosition(id) {
-  try {
-    localStorage.setItem(
-      lastReadingStorageKey,
-      JSON.stringify({
-        title: document.getElementById(id)?.textContent.trim() ?? document.title,
-        url: `${window.location.pathname}#${encodeURIComponent(id)}`,
-      }),
-    );
-  } catch {
-    // Reading and navigation work without browser storage.
-  }
+  progress.setReading({ title: document.getElementById(id)?.textContent.trim() ?? document.title,
+    url: `${window.location.pathname}#${encodeURIComponent(id)}` });
 }
 
 function setActiveHeading(id, updateAddress = false) {
@@ -78,29 +70,6 @@ function scheduleScrollUpdate() {
   }
 }
 
-async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const input = document.createElement("textarea");
-    input.value = text;
-    input.style.position = "fixed";
-    input.style.opacity = "0";
-    document.body.append(input);
-    input.select();
-    document.execCommand("copy");
-    input.remove();
-  }
-}
-
-function loadAssessmentProgress() {
-  try {
-    const value = JSON.parse(localStorage.getItem(assessmentStorageKey) ?? "{}");
-    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  } catch {
-    return {};
-  }
-}
 
 function initializeAssessment() {
   const section = document.querySelector("[data-chapter-assessment]");
@@ -113,7 +82,7 @@ function initializeAssessment() {
   const completeButton = section.querySelector("[data-assessment-complete]");
   const stateLabel = section.querySelector("[data-assessment-state]");
   const status = section.querySelector("[data-assessment-status]");
-  const savedState = loadAssessmentProgress()[taskId];
+  const savedState = progress.assessment(taskId, taskRevision);
   let state = savedState?.revision === taskRevision
     ? savedState
     : { completed: false, criteria: [], notes: "", revision: taskRevision, steps: [] };
@@ -134,7 +103,9 @@ function initializeAssessment() {
     stateLabel.textContent = state.completed ? "已完成验收" : ready ? "证据齐全" : "尚未验收";
     completeButton.disabled = !ready && !state.completed;
     completeButton.textContent = state.completed ? "重新验收" : "标记为已验收";
-    status.textContent = state.completed
+    status.textContent = !progress.saved
+      ? "尚未保存：请重试保存或导出备份保留当前笔记。"
+      : state.completed
       ? "本章验收已保存在当前浏览器；修改任一项会重新打开验收。"
       : ready
         ? "步骤、标准和证据记录已齐全，可以完成本章验收。"
@@ -149,22 +120,30 @@ function initializeAssessment() {
       revision: taskRevision,
       steps: stepInputs.map((input) => input.checked),
     };
-    const latestProgress = loadAssessmentProgress();
-    latestProgress[taskId] = state;
-    try { localStorage.setItem(assessmentStorageKey, JSON.stringify(latestProgress)); } catch { /* local-only enhancement */ }
+    progress.setAssessment(taskId, state);
     renderAssessmentState();
   }
 
   [...stepInputs, ...criterionInputs].forEach((input) => input.addEventListener("change", () => persist(false)));
   notes.addEventListener("input", () => persist(false));
   completeButton.addEventListener("click", () => persist(state.completed ? false : readyToComplete()));
+  window.addEventListener("learning-data-change", () => {
+    const latest = progress.assessment(taskId, taskRevision);
+    if (latest) {
+      state = latest;
+      stepInputs.forEach((input, index) => { input.checked = Boolean(state.steps[index]); });
+      criterionInputs.forEach((input, index) => { input.checked = Boolean(state.criteria[index]); });
+      if (notes.value !== state.notes) notes.value = state.notes;
+    }
+    renderAssessmentState();
+  });
   renderAssessmentState();
 }
 
 document.addEventListener("click", async (event) => {
   const taskCommandButton = event.target.closest("[data-copy-task-command]");
   if (taskCommandButton) {
-    await copyText(taskCommandButton.dataset.copyTaskCommand);
+    if (!await copyText(taskCommandButton.dataset.copyTaskCommand)) { showToast("复制失败，请手动选择命令复制"); return; }
     const originalText = taskCommandButton.textContent;
     taskCommandButton.textContent = "已复制";
     showToast("验收命令已复制");
@@ -176,7 +155,7 @@ document.addEventListener("click", async (event) => {
   if (copyButton) {
     const code = copyButton.closest(".code-block")?.querySelector("pre code")?.textContent;
     if (code) {
-      await copyText(code);
+      if (!await copyText(code)) { showToast("复制失败，请手动选择代码复制"); return; }
       const originalText = copyButton.textContent;
       copyButton.textContent = "已复制";
       showToast("代码已复制");
@@ -251,6 +230,7 @@ backToTop?.addEventListener("click", () => {
 window.addEventListener("scroll", scheduleScrollUpdate, { passive: true });
 window.addEventListener("resize", scheduleScrollUpdate);
 updateScrollState();
+initializeProgressUI(document.querySelector("[data-learning-backup]"));
 initializeAssessment();
 
 if (window.location.hash) {

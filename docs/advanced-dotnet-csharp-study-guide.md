@@ -77,7 +77,7 @@ dotnet --info
 .\scripts\setup-python.cmd
 dotnet restore .\LearnDotnetCSharp.slnx --ignore-failed-sources
 dotnet build .\LearnDotnetCSharp.slnx
-dotnet test --solution .\LearnDotnetCSharp.slnx --no-build --minimum-expected-tests 31
+dotnet test --solution .\LearnDotnetCSharp.slnx --no-build --minimum-expected-tests 45
 dotnet run --project .\src\LearnDotnetCSharp.App -- self-test
 ```
 
@@ -129,7 +129,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-all
 
 ### 2.2 正式测试、故障计划与代码 CI
 
-`tests/LearnDotnetCSharp.Tests` 使用 .NET 10 的 Microsoft.Testing.Platform，当前共 31 个正式测试。基础组验证目录数量、ID 唯一性、平台可用性、结果/退出码、输出截断和 `FaultPlan`；Capstones 组直接验证连续 checkpoint、死信幂等、源指纹拒绝、SQLite replay/conflict/single-flight/reopen、插件 v1/v2 路由和回退，以及 Python 常驻进程复用、崩溃替换、重复请求 ID 与取消清理。53 个端到端实验仍由进程隔离的 `self-test` 验证。二者不能互相替代：正式测试负责快速、精确定位状态转换，实验回归负责证明真实网络、文件、运行时和互操作边界仍能共同工作。
+`tests/LearnDotnetCSharp.Tests` 使用 .NET 10 的 Microsoft.Testing.Platform，当前共 45 个正式测试。基础组验证目录数量、ID 唯一性、平台可用性、结果/退出码、输出截断和 `FaultPlan`；Capstones 组直接验证连续 checkpoint、死信幂等、源指纹拒绝、SQLite replay/conflict/single-flight/reopen、插件 v1/v2 路由和回退，以及 Python 常驻进程复用、崩溃替换、重复请求 ID 与取消清理。53 个端到端实验仍由进程隔离的 `self-test` 验证。二者不能互相替代：正式测试负责快速、精确定位状态转换，实验回归负责证明真实网络、文件、运行时和互操作边界仍能共同工作。
 
 `FaultPlan` 用“命名故障点 + 第 N 次调用”描述可重复失败，并以原子计数保证并发调用中只触发一次。数据管线在 checkpoint 前中断，本地服务在 SQLite 已提交响应之后返回 503，最终工作流则先中断管线、再让 Python worker 按协议确定性退出。测试中的 `TaskCompletionSource` gate 与协议字段负责协调并发，不依赖随机数或用 `Sleep` 猜测时序。
 
@@ -160,6 +160,8 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-all
 - 能迁移到生产代码的规则：
 - 本实验不能证明什么：
 ```
+
+在线学习数据由共享存储模块统一保存，旧版进度自动迁移且保留旧键。首页、目录与章节页可导出 JSON 备份；导入不超过 5 MiB 的备份时，先预览再合并。同版本步骤取并集，笔记冲突保留本地正文并另存副本；旧章节版本不自动计入当前验收。保存失败会显示“尚未保存”，可重试或导出当前编辑。Playwright 在桌面与手机尺寸下验证搜索、导航、复制、验收、备份和存储失败，不把 JavaScript 语法通过当作交互通过。
 
 ## 4. 推荐进度
 
@@ -1628,7 +1630,7 @@ Core 按 `DataPipeline`、`LocalService`、`PluginHost`、`Polyglot` 组织，�
 
 实验：`project.cancellable-data-pipeline`
 
-源码：[CancellableDataPipelineProjectDemo.cs](../src/LearnDotnetCSharp.App/Demos/Projects/CancellableDataPipelineProjectDemo.cs)、[ResumableDataPipeline.cs](../src/LearnDotnetCSharp.Capstones/DataPipeline/ResumableDataPipeline.cs) 与 [JsonPipelineStateStore.cs](../src/LearnDotnetCSharp.Capstones/DataPipeline/JsonPipelineStateStore.cs)
+源码：[CancellableDataPipelineProjectDemo.cs](../src/LearnDotnetCSharp.App/Demos/Projects/CancellableDataPipelineProjectDemo.cs)、[ResumableDataPipeline.cs](../src/LearnDotnetCSharp.Capstones/DataPipeline/ResumableDataPipeline.cs) 与 [SqlitePipelineStateStore.cs](../src/LearnDotnetCSharp.Capstones/DataPipeline/SqlitePipelineStateStore.cs)
 
 深化后的项目不再只证明“一次运行处理成功”，而是证明物理字节位置、业务提交和持久化恢复点之间的关系：
 
@@ -1636,15 +1638,15 @@ Core 按 `DataPipeline`、`LocalService`、`PluginHost`、`Polyglot` 组织，�
 UTF-8 文件 + SHA-256 source fingerprint
   -> 从 checkpoint.NextByteOffset 定位
   -> 按换行拆出带 sequence/start/next byte offset 的物理帧
-  -> bounded Channel 施加背压
+  -> 连续提交窗口 + bounded Channel 施加背压
   -> 成功帧进入幂等业务 sink
   -> 失败帧形成稳定 EntryId 的 dead letter
   -> ContiguousCheckpointTracker 只推进连续终态前缀
-  -> checkpoint + 去重死信原子写入 JSON
-  -> NDJSON 死信只是可重建投影
+  -> checkpoint + 新增死信以 SQLite 短事务增量提交
+  -> 验收时显式流式导出 NDJSON 死信投影
 ```
 
-这里的语义是 **at-least-once 读取 + 幂等 sink**，不是凭空得到 exactly-once。消费者 4 可能先于消费者 3 完成，但 checkpoint 不能越过 sequence 3 的空洞；`ContiguousCheckpointTracker` 暂存乱序终态，只有连续前缀闭合时才更新字节高水位。状态文件同时保存 checkpoint 与已去重死信，写入临时文件、flush 到磁盘后再原子替换；NDJSON 文件若在投影阶段中断，可以从权威 JSON 快照重建。
+这里的语义是 **at-least-once 读取 + 幂等 sink**，不是凭空得到 exactly-once。消费者 4 可能先于消费者 3 完成，但 checkpoint 不能越过 sequence 3 的空洞；`ContiguousCheckpointTracker` 暂存乱序终态，只有连续前缀闭合时才更新字节高水位。`MaxUncommittedRecords` 默认 64，限制已派发但尚未连续持久化的记录数量。有效记录和死信都占用额度，只有连续 checkpoint 成功提交后才归还；前面的慢记录因此不会让乱序字典无限增长。SQLite 将 checkpoint、死信总数与新增死信写入同一短事务，稳定 EntryId 唯一键去重；不在每次提交时加载或重写历史死信。NDJSON 在需要验收时显式流式导出，失败可重新导出。`IPipelineStateStore` 同时保留 JSON v1 教学实现，保留全量快照用于对照，不隐式迁移。每份状态仅允许一个管线使用。
 
 项目先以单消费者运行，在 ID 3 的 sink 成功前由 `FaultPlan` 中断；随后创建全新的 runner，以三个消费者从 sequence 3、对应 UTF-8 字节偏移继续。源指纹绑定 checkpoint 与原文件；若内容被替换，即使路径相同也会 fail closed，而不是把旧偏移应用到新数据。
 
@@ -1654,7 +1656,7 @@ UTF-8 文件 + SHA-256 source fingerprint
 
 1. 让 sequence 4 在 gate 后等待、sequence 5 先完成，观察 checkpoint 仍停在 3；释放 gate 后再一次推进到 5。
 2. 在业务 sink 已成功、checkpoint 尚未保存的边界中断，解释为何重放不可避免，并把 sink 从内存集合换成带唯一键的 SQLite 表。
-3. 删除或截断 dead-letter NDJSON 后重开状态，证明它能从权威 JSON 快照重建且 EntryId 不重复。
+3. 删除或截断 dead-letter NDJSON 后显式调用 ExportDeadLettersAsync，证明它能从权威 SQLite 状态重建且 EntryId 不重复。
 4. 修改源文件一个字节后复用旧状态，确认 `PipelineSourceMismatchException` 阻止错误续跑；再设计显式“放弃旧 checkpoint”命令。
 5. 将状态格式版本改为未知值，写出迁移策略，不要无条件忽略新旧格式差异。
 
@@ -1749,7 +1751,7 @@ C# batch
   -> C# ConcurrentDictionary exactly-once + source-generated JSON report
 ```
 
-`batch-a` 的第一次 Python 尝试在写响应前按协议确定性退出。池观察 EOF/退出码与有界 stderr tail，替换该 session 后重放同一请求；其他常驻 worker 可继续处理队列。请求 ID 在 in-flight 集合中唯一，避免两个调用竞争同一响应。调用方取消或单请求超时会替换无法再安全复用的 session；`DisposeAsync` 完成队列、取消循环并清理全部进程树。
+`batch-a` 的第一次 Python 尝试在写响应前按协议确定性退出。池观察 EOF/退出码与有界 stderr tail，替换该 session 后重放同一请求；其他常驻 worker 可继续处理队列。请求 ID 在 in-flight 集合中唯一，避免两个调用竞争同一响应。调用方取消或单请求超时会替换无法再安全复用的 session。`StartupTimeout` 默认五秒，独立约束首次和替代进程的握手；任一 worker 启动或重建失败会使整个池故障，取消其他 worker，结束在途与排队请求，并以包含原始原因的 PythonWorkerException 拒绝后续调用。`DisposeAsync` 的并发调用等待同一清理任务，正常退出等待 500 ms，随后终止进程树并最多再等两秒，stderr 泵清理也最多等两秒；清理错误保留在诊断中，不替换原始故障。
 
 C 阶段仍只在同步 `unsafe` helper 内固定数组，不跨 `await` 保存指针；C++ 阶段仍为每个批次创建独立句柄，并由 `SafeHandle.Dispose` 关闭。稳定验收为：四批恰好一次；Python 池 `Starts=3`、`Restarts=1`，结束时两个活跃 PID、总共观察三个 PID；每批 Python/C 的 count、sum、mean 相同；C++ history 为逐项前缀和且句柄关闭。完整 C/C++ 链路当前需要 Windows x64，其他平台明确 `Skipped`；Python worker 池本身由跨平台正式测试覆盖。
 
@@ -1785,7 +1787,7 @@ SQLite idempotency key + source SHA-256
   -> Dispose Store，重新打开数据库并逐字节 replay
 ```
 
-这里有两套彼此独立的恢复状态。第一次 workflow factory 抛出 `AnalyticsWorkflowInterruptedException` 时，SQLite 不保存“已完成响应”，但数据管线自己的 JSON checkpoint 和死信已经保存连续终态前缀；第二次 factory 因而可以 resume。Python worker 的 generation、PID 和请求重试属于进程池的瞬时状态；插件描述符和 quarantine 属于路由快照；只有最终响应进入 SQLite 后，整个请求才达到 durable complete。
+这里有两套彼此独立的恢复状态。第一次 workflow factory 抛出 `AnalyticsWorkflowInterruptedException` 时，SQLite 不保存“已完成响应”，但数据管线自己的独立 SQLite checkpoint 和死信已经保存连续终态前缀；第二次 factory 因而可以 resume。Python worker 的 generation、PID 和请求重试属于进程池的瞬时状态；插件描述符和 quarantine 属于路由快照；只有最终响应进入 SQLite 后，整个请求才达到 durable complete。
 
 当前示例用 `ConcurrentDictionary` 作为同一进程内的幂等业务 sink，让两次 runner 执行不会重复提交 metric。它演示恢复契约，但不声称这个内存集合能跨进程持久化；若要模拟真正进程重启，应把业务 sink 也换成带唯一业务键的持久化存储。
 
@@ -1855,7 +1857,7 @@ SQLite idempotency key + source SHA-256
 - [ ] 能为 Python/C/C++ 边界写出协议、ABI 与所有权说明。
 - [ ] 能说明密码学示例之外仍需哪些生产安全措施。
 - [ ] 五个综合项目都至少完成一次修改，并能解释管线中断、提交后 503、插件失败回退和 Python 崩溃各自的恢复状态。
-- [ ] 能画出 `App -> Capstones -> PluginContract` 依赖边界，并说明 31 个正式测试与 53 项 `self-test` 分别证明什么。
+- [ ] 能画出 `App -> Capstones -> PluginContract` 依赖边界，并说明 45 个正式测试与 53 项 `self-test` 分别证明什么。
 
 # 附录 A：实验速查表
 

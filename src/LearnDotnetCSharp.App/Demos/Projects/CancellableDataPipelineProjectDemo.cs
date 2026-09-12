@@ -21,7 +21,7 @@ public sealed partial class CancellableDataPipelineProjectDemo : IDemo
         "project.cancellable-data-pipeline",
         "projects",
         "综合项目：带 checkpoint、死信与恢复的数据管线",
-        "以 UTF-8 字节偏移 checkpoint、原子 JSON 状态、幂等 NDJSON 死信和有界 Channel 组合出 at-least-once 管线；确定性中断后从连续前缀恢复。",
+        "以 UTF-8 字节偏移 checkpoint、SQLite 增量事务状态、显式 NDJSON 死信导出和有界连续提交窗口 组合出 at-least-once 管线；确定性中断后从连续前缀恢复。",
         [8, 11, 13, 14, 15, 22, 26],
         ["UTF-8 byte offsets", "checkpoint", "dead-letter", "bounded Channel", "cancellation", "resume", "idempotent sink", "Activity", "Meter"]);
 
@@ -32,7 +32,7 @@ public sealed partial class CancellableDataPipelineProjectDemo : IDemo
         var stateDirectory = Path.Combine(Path.GetTempPath(), $"learn-dotnet-pipeline-{Guid.NewGuid():N}");
         Directory.CreateDirectory(stateDirectory);
         var sourcePath = Path.Combine(stateDirectory, "jobs.ndjson");
-        var statePath = Path.Combine(stateDirectory, "checkpoint.json");
+        var statePath = Path.Combine(stateDirectory, "checkpoint.db");
         await File.WriteAllTextAsync(
             sourcePath,
             "job-001|alpha|10\njob-002|beta|7\ninvalid-record\njob-003|alpha|5\njob-004|beta|11\njob-005|gamma|3\n",
@@ -87,7 +87,7 @@ public sealed partial class CancellableDataPipelineProjectDemo : IDemo
         var durationHistogram = meter.CreateHistogram<int>("pipeline.duration", unit: "ms");
         using var rootActivity = activitySource.StartActivity("pipeline.run")
             ?? throw new InvalidOperationException("数据管线根 Activity 应被监听器采样。");
-        var stateStore = new JsonPipelineStateStore(statePath);
+        var stateStore = new SqlitePipelineStateStore(statePath);
         var processed = new ConcurrentDictionary<int, PipelineWorkItem>();
         var faultPlan = FaultPlan.FailOn(InterruptionFault, invocation: 1);
 
@@ -149,11 +149,11 @@ public sealed partial class CancellableDataPipelineProjectDemo : IDemo
 
             var fingerprint = await PipelineSourceFingerprint.ComputeAsync(sourcePath, timeout.Token)
                 .ConfigureAwait(false);
-            var interruptedState = await stateStore.LoadOrCreateAsync(fingerprint, timeout.Token)
+            var interruptedState = await stateStore.InitializeAsync(fingerprint, timeout.Token)
                 .ConfigureAwait(false);
             var resumedFromSequence = interruptedState.Checkpoint.LastContiguousSequence;
             var resumed = new ResumableDataPipeline<PipelineWorkItem>(
-                new JsonPipelineStateStore(statePath),
+                new SqlitePipelineStateStore(statePath),
                 Parse,
                 ProcessAsync,
                 new ResumableDataPipelineOptions
@@ -181,6 +181,7 @@ public sealed partial class CancellableDataPipelineProjectDemo : IDemo
             var json = JsonSerializer.Serialize(report, DataPipelineProjectJsonContext.Default.DataPipelineReport);
             var roundTrip = JsonSerializer.Deserialize(json, DataPipelineProjectJsonContext.Default.DataPipelineReport)
                 ?? throw new JsonException("数据管线报告反序列化为 null。");
+            await stateStore.ExportDeadLettersAsync(stateStore.DeadLetterPath, timeout.Token).ConfigureAwait(false);
             var deadLetterLines = await File.ReadAllLinesAsync(stateStore.DeadLetterPath, timeout.Token)
                 .ConfigureAwait(false);
             rootActivity.Stop();

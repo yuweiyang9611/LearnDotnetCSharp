@@ -7,7 +7,7 @@ namespace LearnDotnetCSharp.Capstones.DataPipeline;
 /// Persists the checkpoint and deduplicated dead letters in one authoritative JSON snapshot.
 /// A derived NDJSON file is atomically regenerated for convenient inspection.
 /// </summary>
-public sealed class JsonPipelineStateStore
+public sealed class JsonPipelineStateStore : IPipelineStateStore
 {
     private static readonly JsonSerializerOptions SnapshotJsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -32,9 +32,39 @@ public sealed class JsonPipelineStateStore
 
     public string DeadLetterPath { get; }
 
-    public async ValueTask<PipelineStateSnapshot> LoadOrCreateAsync(
+    public async ValueTask<PipelineStoredState> InitializeAsync(string sourceFingerprint, CancellationToken cancellationToken = default)
+    {
+        var snapshot = await ReadOrCreateAsync(sourceFingerprint, projectDeadLetters: false, cancellationToken).ConfigureAwait(false);
+        return new PipelineStoredState(snapshot.Checkpoint, snapshot.DeadLetters.Length);
+    }
+
+    public async ValueTask<PipelineCommitResult> CommitAsync(
+        PipelineCheckpoint checkpoint, PipelineDeadLetter? deadLetter, CancellationToken cancellationToken = default)
+    {
+        var previous = await ReadSnapshotAsync(cancellationToken).ConfigureAwait(false);
+        Validate(previous);
+        PipelineStateValidation.ValidateCommit(previous.Checkpoint, checkpoint, deadLetter);
+        var added = deadLetter is not null && !previous.DeadLetters.Any(item => item.EntryId == deadLetter.EntryId);
+        var snapshot = new PipelineStateSnapshot(checkpoint, added ? [.. previous.DeadLetters, deadLetter!] : previous.DeadLetters);
+        await SaveUnderLockAsync(snapshot, cancellationToken, projectDeadLetters: false).ConfigureAwait(false);
+        return new PipelineCommitResult(new PipelineStoredState(checkpoint, snapshot.DeadLetters.Length), added);
+    }
+
+    public async ValueTask ExportDeadLettersAsync(string destinationPath, CancellationToken cancellationToken = default)
+    {
+        var snapshot = await ReadSnapshotAsync(cancellationToken).ConfigureAwait(false);
+        Validate(snapshot);
+        var contents = string.Concat(snapshot.DeadLetters.OrderBy(item => item.Position.StartByteOffset)
+            .Select(item => JsonSerializer.Serialize(item, LineJsonOptions) + "\n"));
+        await WriteAtomicAsync(Path.GetFullPath(destinationPath), Encoding.UTF8.GetBytes(contents), cancellationToken).ConfigureAwait(false);
+    }
+
+    public ValueTask<PipelineStateSnapshot> LoadOrCreateAsync(
         string sourceFingerprint,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) => ReadOrCreateAsync(sourceFingerprint, projectDeadLetters: true, cancellationToken);
+
+    private async ValueTask<PipelineStateSnapshot> ReadOrCreateAsync(
+        string sourceFingerprint, bool projectDeadLetters, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceFingerprint);
         PipelineStateSnapshot snapshot;
@@ -43,7 +73,7 @@ public sealed class JsonPipelineStateStore
             snapshot = new PipelineStateSnapshot(
                 PipelineCheckpoint.Initial(sourceFingerprint),
                 []);
-            await SaveUnderLockAsync(snapshot, cancellationToken).ConfigureAwait(false);
+            await SaveUnderLockAsync(snapshot, cancellationToken, projectDeadLetters).ConfigureAwait(false);
             return snapshot;
         }
 
@@ -61,7 +91,10 @@ public sealed class JsonPipelineStateStore
 
         // The JSON snapshot is authoritative. Rebuild a projection that could have been
         // interrupted after the snapshot's atomic replacement.
-        await WriteDeadLetterProjectionAsync(snapshot.DeadLetters, cancellationToken).ConfigureAwait(false);
+        if (projectDeadLetters)
+        {
+            await WriteDeadLetterProjectionAsync(snapshot.DeadLetters, cancellationToken).ConfigureAwait(false);
+        }
         return snapshot;
     }
 
@@ -102,7 +135,8 @@ public sealed class JsonPipelineStateStore
 
     private async ValueTask SaveUnderLockAsync(
         PipelineStateSnapshot snapshot,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool projectDeadLetters = true)
     {
         var ordered = snapshot with
         {
@@ -112,7 +146,10 @@ public sealed class JsonPipelineStateStore
         };
         var stateBytes = JsonSerializer.SerializeToUtf8Bytes(ordered, SnapshotJsonOptions);
         await WriteAtomicAsync(StatePath, stateBytes, cancellationToken).ConfigureAwait(false);
-        await WriteDeadLetterProjectionAsync(ordered.DeadLetters, cancellationToken).ConfigureAwait(false);
+        if (projectDeadLetters)
+        {
+            await WriteDeadLetterProjectionAsync(ordered.DeadLetters, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async ValueTask WriteDeadLetterProjectionAsync(

@@ -161,73 +161,87 @@ function renderChapterAssessment(task, unit) {
   if (!task || unit.kind !== "chapter") return "";
   const taskId = `chapter-${String(task.chapter).padStart(2, "0")}`;
   const layerLabLink = task.chapter === 19 || task.chapter === 20
-    ? `<a class="assessment-lab-link" href="${escapeHtml(relativeDirectoryHref(unit.route, "layers/"))}">打开四层代码实验台 <span aria-hidden="true">→</span></a>`
+    ? `<p class="assessment-lab-link"><a href="${escapeHtml(relativeDirectoryHref(unit.route, "layers/"))}">打开四层代码实验台</a></p>`
     : "";
   const checklist = (items, kind) => items.map((item, index) => `
-    <li><label><input type="checkbox" data-assessment-${kind}="${index}" /><span>${escapeHtml(item)}</span></label></li>`).join("");
+    <li class="nb-entry"><label><input type="checkbox" data-assessment-${kind}="${index}" /><span>${escapeHtml(item)}</span></label></li>`).join("");
   return `
   <section class="chapter-assessment" data-chapter-assessment data-task-id="${taskId}" data-task-chapter="${task.chapter}" data-task-revision="${chapterTaskRevision(task)}" aria-labelledby="${taskId}-title">
     <header class="assessment-heading">
-      <div><p class="eyebrow"><span></span> 本章验收任务</p><h2 id="${taskId}-title">${escapeHtml(task.title)}</h2></div>
+      <h2 id="${taskId}-title">本章验收：${escapeHtml(task.title)}</h2>
       <span class="assessment-state" data-assessment-state>尚未验收</span>
     </header>
     <p class="assessment-objective">${escapeHtml(task.objective)}</p>
     <noscript><p class="assessment-no-script">网页自动记录需要 JavaScript；你仍可按下面清单在本地执行，并把证据保存到自己的学习笔记。</p></noscript>
-    <div class="assessment-command"><code>${escapeHtml(task.command)}</code><button type="button" data-copy-task-command="${escapeHtml(task.command)}">复制命令</button></div>
+    <div class="assessment-command"><code tabindex="0">${escapeHtml(task.command)}</code><button class="text-action" type="button" data-copy-task-command="${escapeHtml(task.command)}">复制命令</button></div>
     ${layerLabLink}
-    <div class="assessment-columns">
-      <section><h3>完成步骤</h3><ol class="assessment-checklist">${checklist(task.steps, "step")}</ol></section>
-      <section><h3>通过标准</h3><ul class="assessment-checklist criteria-list">${checklist(task.criteria, "criterion")}</ul></section>
-    </div>
-    <details class="assessment-evidence-guide"><summary>查看需要保留的证据</summary><ul>${task.evidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></details>
-    <label class="assessment-notes"><span>证据记录</span><textarea data-assessment-notes rows="5" maxlength="2400" placeholder="记录关键输出、修改位置与解释；内容只保存在当前浏览器。"></textarea></label>
-    <div class="assessment-footer"><p data-assessment-status role="status" aria-live="polite">完成步骤、核对标准并填写证据记录后即可验收。</p><button class="button button-primary" type="button" data-assessment-complete disabled>标记为已验收</button></div>
+    <section class="assessment-list"><h3>完成步骤</h3><ol class="assessment-checklist">${checklist(task.steps, "step")}</ol></section>
+    <section class="assessment-list"><h3>通过标准</h3><ul class="assessment-checklist criteria-list">${checklist(task.criteria, "criterion")}</ul></section>
+    <details class="assessment-evidence-guide"><summary>需要保留的证据</summary><ul>${task.evidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></details>
+    <label class="assessment-notes"><span>证据记录</span><textarea class="nb-input" data-assessment-notes rows="5" maxlength="2400" placeholder="记录关键输出、修改位置与解释；内容只保存在当前浏览器。"></textarea></label>
+    <div class="assessment-footer"><p data-assessment-status role="status" aria-live="polite">完成步骤、核对标准并填写证据记录后即可验收。</p><button class="nb-button nb-button--solid" type="button" data-assessment-complete disabled>标记为已验收</button></div>
   </section>`;
 }
 
+function experimentCommand(id) {
+  return `dotnet run --project src/LearnDotnetCSharp.App -- run ${id}`;
+}
+
+// The homepage is complete without JavaScript; app.js only adds the reader's record and the filters.
 function renderStaticHomepage(experimentGuideUrls) {
   const pathHtml = learningStages.map((stage) => {
     const total = experiments.filter(({ category }) => stage.categories.includes(category)).length;
+    const categoryLabels = stage.categories.map((key) => categories[key].label).join("、");
     return `
-        <article class="path-card">
-          <div class="path-card-topline"><span class="step-number">${escapeHtml(stage.number)}</span><span class="stage-progress">0/${total}</span></div>
-          <p>${escapeHtml(stage.label)}</p><h3>${escapeHtml(stage.title)}</h3>
-          <p class="path-description">${escapeHtml(stage.description)}</p>
-          <div class="mini-progress" aria-label="${escapeHtml(stage.label)}完成 0%"><span style="width: 0%"></span></div>
-          <button class="path-action" type="button" data-stage="${escapeHtml(stage.number)}">查看本阶段 <span aria-hidden="true">→</span></button>
-        </article>`;
+          <li class="path-card nb-entry" data-stage-row="${escapeHtml(stage.number)}">
+            <span class="row-key">${escapeHtml(stage.number)}</span>
+            <h3><a href="#catalog" data-stage="${escapeHtml(stage.number)}">${escapeHtml(stage.title)}</a></h3>
+            <p class="row-sub">${escapeHtml(stage.label)}</p>
+            <p class="row-note">${escapeHtml(stage.description)}<span class="row-tags">${escapeHtml(categoryLabels)}</span></p>
+            <p class="row-state" data-stage-state>0 / ${total} 个实验</p>
+          </li>`;
   }).join("");
   const filtersHtml = [
-    `<button class="filter-chip is-active" type="button" data-category="all" aria-pressed="true">全部 <span>${experiments.length}</span></button>`,
+    `<button class="filter-button" type="button" data-category="all" aria-pressed="true">全部 <span>${experiments.length}</span></button>`,
     ...Object.entries(categories).map(([key, category]) => {
       const count = experiments.filter((experiment) => experiment.category === key).length;
-      return `<button class="filter-chip" type="button" data-category="${escapeHtml(key)}" aria-pressed="false">${escapeHtml(category.label)} <span>${count}</span></button>`;
+      return `<button class="filter-button" type="button" data-category="${escapeHtml(key)}" aria-pressed="false">${escapeHtml(category.label)} <span>${count}</span></button>`;
     }),
   ].join("");
   const experimentsHtml = experiments.map((experiment) => {
     const category = categories[experiment.category];
-    const command = `dotnet run --project src/LearnDotnetCSharp.App -- run ${experiment.id}`;
     const sourceUrl = `${repositoryUrl}/blob/main/${experiment.source}`;
     return `
-        <article class="experiment-card" id="experiment-${escapeHtml(experiment.id)}">
-          <div class="experiment-topline">
-            <span class="category-badge tone-${escapeHtml(category.tone)}">${escapeHtml(category.label)}</span>
-            <button class="complete-toggle" type="button" data-complete-id="${escapeHtml(experiment.id)}" aria-pressed="false" aria-label="标记完成：${escapeHtml(experiment.title)}"><span aria-hidden="true"></span>标记完成</button>
-          </div>
-          <code class="experiment-id">${escapeHtml(experiment.id)}</code><h3>${escapeHtml(experiment.title)}</h3><p>${escapeHtml(experiment.summary)}</p>
-          <div class="experiment-actions">
-            <a href="${escapeHtml(experimentGuideUrls[experiment.id])}">阅读讲解 <span aria-hidden="true">→</span></a>
-            <a href="${escapeHtml(sourceUrl)}">查看源码 <span aria-hidden="true">↗</span></a>
-            <button type="button" data-copy="${escapeHtml(command)}">复制运行命令</button>
-          </div>
-        </article>`;
+          <article class="experiment-card nb-entry" id="experiment-${escapeHtml(experiment.id)}" data-experiment-id="${escapeHtml(experiment.id)}">
+            <span class="row-key">${escapeHtml(category.label)}</span>
+            <h3><a href="${escapeHtml(experimentGuideUrls[experiment.id])}">${escapeHtml(experiment.title)}</a></h3>
+            <p class="nb-stopped" hidden>停在这里</p>
+            <p class="row-note">${escapeHtml(experiment.summary)}<code class="experiment-id">${escapeHtml(experiment.id)}</code></p>
+            <div class="row-state">
+              <label class="complete-toggle"><input type="checkbox" data-complete-id="${escapeHtml(experiment.id)}" aria-label="已完成：${escapeHtml(experiment.title)}" /><span>已完成</span></label>
+              <span class="experiment-actions"><button class="text-action" type="button" data-copy="${escapeHtml(experimentCommand(experiment.id))}">复制命令</button><a class="source-link" href="${escapeHtml(sourceUrl)}">源码</a></span>
+            </div>
+          </article>`;
   }).join("");
   const resourcesHtml = resources.map((resource) => `
-        <a class="resource-card" href="${escapeHtml(resource.href)}"${resource.download ? " download" : ""}>
-          <span>${escapeHtml(resource.type)}</span><h3>${escapeHtml(resource.title)}</h3><p>${escapeHtml(resource.description)}</p>
-          <strong>${escapeHtml(resource.action)} <span aria-hidden="true">${resource.download ? "↓" : "→"}</span></strong>
-        </a>`).join("");
-  return { experimentsHtml, filtersHtml, pathHtml, resourcesHtml };
+          <li class="resource-card row">
+            <span class="row-key">${escapeHtml(resource.type)}</span>
+            <h3><a href="${escapeHtml(resource.href)}"${resource.download ? " download" : ""}>${escapeHtml(resource.title)}</a></h3>
+            <p class="row-note">${escapeHtml(resource.description)}</p>
+          </li>`).join("");
+  const firstExperiment = experiments[0];
+  return {
+    experimentsHtml,
+    filtersHtml,
+    nextLab: {
+      NEXT_LAB_COMMAND: escapeHtml(experimentCommand(firstExperiment.id)),
+      NEXT_LAB_HREF: escapeHtml(experimentGuideUrls[firstExperiment.id]),
+      NEXT_LAB_SUMMARY: escapeHtml(firstExperiment.summary),
+      NEXT_LAB_TITLE: escapeHtml(firstExperiment.title),
+    },
+    pathHtml,
+    resourcesHtml,
+  };
 }
 
 function validateLayerArtifacts(payload) {
@@ -420,8 +434,8 @@ function paginationLink(currentUnit, targetUnit, direction) {
   if (!targetUnit) {
     return `<span class="pagination-placeholder ${direction}-unit" aria-hidden="true"></span>`;
   }
-  const label = direction === "previous" ? "上一个阅读单元" : "下一个阅读单元";
-  return `<a class="${direction}-unit" href="${escapeHtml(relativeDirectoryHref(currentUnit.route, targetUnit.route))}"><small>${label}</small><strong>${escapeHtml(targetUnit.title)}</strong></a>`;
+  const label = direction === "previous" ? "上一单元" : "下一单元";
+  return `<a class="${direction}-unit" href="${escapeHtml(relativeDirectoryHref(currentUnit.route, targetUnit.route))}">${label}：${escapeHtml(targetUnit.title)}</a>`;
 }
 
 if (!outputDirectory.startsWith(`${repositoryRoot}\\`) && !outputDirectory.startsWith(`${repositoryRoot}/`)) {
@@ -688,15 +702,21 @@ const unitDirectoryHtml = [...groupedUnits.entries()].map(([partTitle, partUnits
   return `
   <section class="guide-part-group" aria-labelledby="${escapeHtml(groupHeadingId)}">
     <div class="guide-part-heading"><h3 id="${escapeHtml(groupHeadingId)}">${escapeHtml(partTitle)}</h3><span>${partUnits.length} 个阅读单元</span></div>
-    <div class="guide-unit-grid">
+    <ol class="guide-unit-grid">
       ${partUnits.map((unit) => {
         const chapterTask = unit.kind === "chapter" ? chapterTasks.find(({ chapter }) => chapter === unit.number) : null;
         const taskId = chapterTask ? `chapter-${String(unit.number).padStart(2, "0")}` : "";
         const taskRevision = chapterTask ? chapterTaskRevision(chapterTask) : "";
         const taskStatus = taskId ? `<span class="guide-task-status" data-guide-task-status>待验收</span>` : "";
-        return `<a class="guide-unit-card"${taskId ? ` data-chapter-task-id="${taskId}" data-chapter-task-revision="${taskRevision}"` : ""} href="${escapeHtml(relativeDirectoryHref("guide/", unit.route))}"><span class="guide-unit-number">${escapeHtml(unit.label)}</span><div><div class="guide-unit-title-row"><h4>${escapeHtml(unit.title.replace(/^\d+\.\s*/, ""))}</h4>${taskStatus}</div><p>${escapeHtml(unit.description)}</p></div></a>`;
+        // A chapter is described by its verification objective, other units by their section titles;
+        // the raw opening text carries table debris and loose spacing.
+        const note = chapterTask
+          ? chapterTask.objective
+          : unit.headings.slice(1).map(({ text }) => text.replace(/^[\d.]+\s*/, "")).join("、");
+        const title = unit.title.replace(/^\d+\.\s*/, "").replace(/^附录\s+[A-D]：/, "");
+        return `<li class="guide-unit-card nb-entry"${taskId ? ` data-chapter-task-id="${taskId}" data-chapter-task-revision="${taskRevision}"` : ""} data-unit-route="${escapeHtml(unit.route)}"><span class="guide-unit-number">${escapeHtml(unit.label)}</span><h4><a href="${escapeHtml(relativeDirectoryHref("guide/", unit.route))}">${escapeHtml(title)}</a></h4><p class="nb-stopped" hidden>停在这里</p>${note ? `<p class="guide-unit-description">${escapeHtml(note)}</p>` : ""}${taskStatus}</li>`;
       }).join("\n")}
-    </div>
+    </ol>
   </section>`;
 }).join("\n");
 
@@ -773,14 +793,15 @@ for (const experiment of experiments) {
 
 const staticHomepage = renderStaticHomepage(experimentGuideUrls);
 const homepageHtml = applyTemplate(indexHtml, {
+  ...staticHomepage.nextLab,
   STATIC_EXPERIMENTS_HTML: staticHomepage.experimentsHtml,
   STATIC_FILTERS_HTML: staticHomepage.filtersHtml,
   STATIC_LEARNING_PATH_HTML: staticHomepage.pathHtml,
   STATIC_RESOURCES_HTML: staticHomepage.resourcesHtml,
 });
-if (countMatches(homepageHtml, /class="experiment-card"/g) !== experiments.length ||
-    countMatches(homepageHtml, /class="path-card"/g) !== learningStages.length ||
-    countMatches(homepageHtml, /class="resource-card"/g) !== resources.length) {
+if (countMatches(homepageHtml, /class="experiment-card[ "]/g) !== experiments.length ||
+    countMatches(homepageHtml, /class="path-card[ "]/g) !== learningStages.length ||
+    countMatches(homepageHtml, /class="resource-card[ "]/g) !== resources.length) {
   throw new Error("The progressively rendered homepage is missing catalog content.");
 }
 
@@ -791,7 +812,7 @@ const layerHtml = applyTemplate(layerTemplate, {
   LAYER_ASSEMBLY_HTML: escapeHtml(layerArtifacts.stages.assembly),
   LAYER_CIL_HTML: escapeHtml(layerArtifacts.stages.cil),
   LAYER_FOCUS_CONTROLS_HTML: layerArtifacts.focuses.map((focus, index) => (
-    `<button type="button" data-focus="${escapeHtml(focus.id)}" aria-pressed="${index === 0}">${escapeHtml(focus.label)}</button>`
+    `<button class="filter-button" type="button" data-focus="${escapeHtml(focus.id)}" aria-pressed="${index === 0}">${escapeHtml(focus.label)}</button>`
   )).join(""),
   LAYER_FOCUS_SUMMARY: escapeHtml(initialFocus.explanation),
   LAYER_HASH: escapeHtml(`源码 ${layerArtifacts.sourceSha256.slice(0, 12)} · PE ${layerArtifacts.peSha256.slice(0, 12)}`),

@@ -6,7 +6,6 @@ document.documentElement.classList.add("guide-js");
 const tocLinks = [...document.querySelectorAll("[data-toc-id]")];
 const headings = [...document.querySelectorAll("[data-guide-heading]")];
 const searchInputs = [...document.querySelectorAll("[data-toc-search]")];
-const progressBar = document.querySelector("#reading-progress-bar");
 const backToTop = document.querySelector("#back-to-top");
 const toast = document.querySelector("#guide-toast");
 let toastTimer;
@@ -22,9 +21,14 @@ function showToast(message) {
   toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2200);
 }
 
+// Only book units are reading positions. A resource page would otherwise clear the place the owner stopped.
+const isBookUnit = document.body.classList.contains("chapter-page");
+
 function saveReadingPosition(id) {
-  progress.setReading({ title: document.getElementById(id)?.textContent.trim() ?? document.title,
-    url: `${window.location.pathname}#${encodeURIComponent(id)}` });
+  if (!isBookUnit) return;
+  const heading = document.getElementById(id);
+  const title = heading ? [...heading.childNodes].filter((node) => !node.classList?.contains("heading-anchor")).map((node) => node.textContent).join("").trim() : "";
+  progress.setReading({ title: title || document.title, url: `${window.location.pathname}#${encodeURIComponent(id)}` });
 }
 
 function setActiveHeading(id, updateAddress = false) {
@@ -55,11 +59,6 @@ function setActiveHeading(id, updateAddress = false) {
 }
 
 function updateScrollState() {
-  const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-  const percent = scrollable <= 0 ? 0 : Math.min(100, (window.scrollY / scrollable) * 100);
-  if (progressBar) {
-    progressBar.style.width = `${percent}%`;
-  }
   backToTop?.classList.toggle("is-visible", window.scrollY > 900);
   scrollFrame = undefined;
 }
@@ -100,6 +99,13 @@ function initializeAssessment() {
   function renderAssessmentState() {
     const ready = readyToComplete();
     section.classList.toggle("is-complete", Boolean(state.completed));
+    // Each ticked step or criterion turns its stretch of the record line solid.
+    for (const input of [...stepInputs, ...criterionInputs]) {
+      const row = input.closest("li");
+      if (input.checked) row.dataset.record = "done";
+      else row.removeAttribute("data-record");
+    }
+    status.classList.toggle("is-unsaved", !progress.saved);
     stateLabel.textContent = state.completed ? "已完成验收" : ready ? "证据齐全" : "尚未验收";
     completeButton.disabled = !ready && !state.completed;
     completeButton.textContent = state.completed ? "重新验收" : "标记为已验收";

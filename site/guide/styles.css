@@ -1,1221 +1,265 @@
-.guide-page {
-  background:
-    linear-gradient(90deg, rgba(112, 225, 245, 0.025) 1px, transparent 1px) 0 0 / 4rem 4rem,
-    radial-gradient(circle at 82% 8%, rgba(183, 243, 74, 0.08), transparent 28rem),
-    var(--bg);
-}
-
-.reading-progress {
-  position: fixed;
-  z-index: 60;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 0.2rem;
-  pointer-events: none;
-}
-
-.reading-progress span {
-  display: block;
-  width: 0;
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--cyan));
-  box-shadow: 0 0 0.8rem rgba(183, 243, 74, 0.45);
-}
-
-.guide-site-header {
-  max-width: 1480px;
-}
-
-.guide-site-header nav a[aria-current="page"] {
-  color: var(--accent);
-}
+/* The online book: contents in the gutter, the text at the reading measure. */
 
 .guide-shell {
-  width: min(calc(100% - 2rem), 1480px);
-  margin-inline: auto;
   display: grid;
-  grid-template-columns: minmax(15rem, 18rem) minmax(0, 56rem);
-  gap: clamp(2.5rem, 6vw, 6rem);
-  justify-content: center;
+  grid-template-columns: minmax(13rem, 17rem) minmax(0, var(--nb-measure));
+  justify-content: start;
   align-items: start;
+  gap: 3rem;
+  max-width: var(--nb-page);
+  margin: 0 auto;
+  padding: 1.75rem var(--nb-gutter) 3rem;
 }
+.guide-main { min-width: 0; }
 
+/* Contents: each entry hangs on a dashed line, the current section on a solid blue one.
+   This shows position, not a record. */
 .guide-sidebar {
   position: sticky;
-  top: 1rem;
-  height: calc(100vh - 2rem);
-  padding: 1.4rem 0.7rem 1.4rem 0;
-  overflow-y: auto;
-  scrollbar-color: rgba(148, 163, 184, 0.32) transparent;
+  top: calc(var(--nb-head-height) + 1rem);
+  max-height: calc(100dvh - var(--nb-head-height) - 2rem);
+  overflow: auto;
+  padding-right: .25rem;
+  font-size: .875rem;
+  line-height: 1.5;
 }
-
-.guide-sidebar-heading {
-  margin-bottom: 1rem;
-  padding: 0 0.75rem 1rem;
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid var(--line);
-}
-
-.guide-sidebar-heading p,
-.guide-sidebar-heading span {
-  margin: 0;
-  color: var(--muted);
-  font: 700 0.72rem "Cascadia Code", Consolas, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.guide-sidebar-heading span {
-  color: var(--accent);
-}
-
-.guide-toc {
-  display: grid;
-  gap: 0.1rem;
-}
-
-.toc-search {
-  min-height: 2.7rem;
-  margin: 0 0.55rem 0.45rem;
-  padding: 0 0.7rem;
-  display: flex;
-  align-items: center;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid var(--line);
-  border-radius: 0.55rem;
-}
-
-.toc-search:focus-within {
-  border-color: rgba(112, 225, 245, 0.58);
-  box-shadow: 0 0 0 0.18rem rgba(112, 225, 245, 0.08);
-}
-
-.toc-search input {
-  width: 100%;
-  color: var(--text);
-  background: none;
-  border: 0;
-  outline: 0;
-  font: 0.78rem inherit;
-}
-
-.toc-search input::placeholder {
-  color: #718096;
-}
-
-.toc-search-status {
-  min-height: 1rem;
-  margin: 0 0.75rem 0.4rem;
-  color: var(--cyan);
-  font-size: 0.68rem;
-}
-
+.guide-sidebar-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.guide-sidebar-heading p { font-weight: 600; }
+.guide-sidebar-heading span { color: var(--nb-ink-soft); font-variant-numeric: tabular-nums; }
+.toc-search { display: block; margin-block: .5rem; }
+.toc-search input { font-size: .875rem; }
+.toc-search-status { margin-bottom: .25rem; color: var(--nb-ink-soft); font-size: .875rem; }
+.toc-search-status:empty { display: none; }
+.guide-toc { display: flex; flex-direction: column; }
 .toc-link {
-  padding: 0.42rem 0.75rem;
-  color: var(--muted);
-  border-left: 1px solid transparent;
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
-.toc-link:hover,
-.toc-link:focus-visible,
-.toc-link.is-active {
-  color: var(--text);
-  background: rgba(148, 163, 184, 0.06);
-  border-left-color: var(--cyan);
-}
-
-.toc-link.is-active {
-  box-shadow: inset 0.18rem 0 var(--cyan);
-  font-weight: 750;
-}
-
-.toc-level-1 {
-  margin-top: 0.65rem;
-  color: var(--accent);
-  font-weight: 750;
-}
-
-.toc-level-2 {
-  padding-left: 1.15rem;
-  color: #cbd5e1;
-  font-weight: 650;
-}
-
-.toc-level-3 {
-  padding-left: 1.8rem;
-  font-size: 0.72rem;
-}
-
-.guide-main {
-  min-width: 0;
-}
-
-.guide-hero {
-  padding: clamp(4.5rem, 9vw, 8rem) 0 clamp(3rem, 7vw, 5.5rem);
-  border-bottom: 1px solid var(--line);
-}
-
-.guide-hero h1 {
-  max-width: 15ch;
-  margin-bottom: 1.2rem;
-  font-size: clamp(2.7rem, 7vw, 5.6rem);
-  line-height: 1.04;
-}
-
-.guide-subtitle {
-  max-width: 42rem;
-  margin-bottom: 1.6rem;
-  color: var(--muted);
-  font-size: clamp(1rem, 2vw, 1.22rem);
-  line-height: 1.75;
-}
-
-.guide-meta {
-  margin-bottom: 2rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
-.guide-meta span {
-  padding: 0.38rem 0.65rem;
-  color: #cbd5e1;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font: 650 0.72rem "Cascadia Code", Consolas, monospace;
-}
-
-.mobile-toc {
-  display: none;
-}
-
-.guide-content {
-  padding: 4.5rem 0 2rem;
-  color: #dce4f0;
-  font-size: 1rem;
-  line-height: 1.88;
-}
-
-.guide-content p,
-.guide-content li {
+  display: block;
+  padding: .25rem 0 .25rem .75rem;
+  border-left: 1px dashed var(--nb-rule-strong);
+  color: var(--nb-ink-soft);
+  text-decoration: none;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   text-wrap: pretty;
 }
+.toc-link.toc-level-2 { padding-left: 1.25rem; }
+.toc-link.toc-level-3 { padding-left: 1.875rem; }
+.toc-link:hover { color: var(--nb-ink); }
+.toc-link[aria-current="location"] { border-left: 1px solid var(--nb-link); color: var(--nb-link); font-weight: 600; }
+.sidebar-links { display: flex; flex-wrap: wrap; gap: 0 1rem; margin-top: .75rem; border-top: 1px solid var(--nb-rule); }
+.sidebar-links a { display: inline-flex; align-items: center; min-height: 2.75rem; color: var(--nb-ink-soft); }
+.sidebar-links a:hover { color: var(--nb-ink); }
+.mobile-toc { display: none; }
 
-.guide-content p {
-  margin: 0 0 1.2rem;
+.chapter-hero { margin-bottom: 1.5rem; }
+.breadcrumbs { display: flex; flex-wrap: wrap; gap: 0 .375rem; color: var(--nb-ink-soft); font-size: .875rem; font-variant-numeric: tabular-nums; }
+.chapter-hero h1 { margin-top: .375rem; }
+.chapter-lead { margin-top: .5rem; color: var(--nb-ink-soft); }
+
+/* Generated prose. The kit zeroes margins, so the reading rhythm is restored here. */
+.guide-content p { margin: 0 0 1em; }
+.guide-content ul, .guide-content ol { margin: 0 0 1em; padding-left: 1.5rem; }
+.guide-content li { margin: .25em 0; }
+.guide-content li > ul, .guide-content li > ol { margin-bottom: 0; }
+.guide-content .guide-heading { position: relative; }
+.guide-content h2 { margin: 2.5rem 0 .75rem; padding-bottom: .375rem; border-bottom: 1px solid var(--nb-rule-bold); font-size: 1.375rem; }
+.guide-content > h2:first-child { margin-top: 0; }
+.guide-content h3 { margin: 1.75rem 0 .5rem; font-size: 1.0625rem; }
+.guide-content h4, .guide-content h5, .guide-content h6 {
+  margin: 1.25rem 0 .375rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
-
-.guide-content a:not(.heading-anchor) {
-  color: var(--cyan);
-  text-decoration: underline;
-  text-decoration-color: rgba(112, 225, 245, 0.35);
-  text-underline-offset: 0.2em;
-}
-
-.guide-content a:not(.heading-anchor):hover,
-.guide-content a:not(.heading-anchor):focus-visible {
-  color: var(--accent);
-  text-decoration-color: currentColor;
-}
-
-.guide-heading {
-  position: relative;
-  scroll-margin-top: 1.5rem;
-  text-wrap: balance;
-}
-
-.guide-heading-1 {
-  margin: 6rem 0 2rem;
-  padding-top: 2.2rem;
-  color: var(--accent);
-  border-top: 1px solid var(--line);
-  font-size: clamp(2.1rem, 4.8vw, 3.4rem);
-  line-height: 1.15;
-  letter-spacing: -0.045em;
-}
-
-.guide-content > .guide-heading-1:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
-}
-
-.guide-heading-2 {
-  margin: 4.2rem 0 1.45rem;
-  color: var(--text);
-  font-size: clamp(1.65rem, 3.6vw, 2.35rem);
-  line-height: 1.25;
-  letter-spacing: -0.035em;
-}
-
-.guide-heading-3 {
-  margin: 3rem 0 1rem;
-  color: #edf2f8;
-  font-size: clamp(1.2rem, 2.4vw, 1.55rem);
-  line-height: 1.35;
-}
-
-.guide-heading-4,
-.guide-heading-5,
-.guide-heading-6 {
-  margin: 2.4rem 0 0.8rem;
-}
-
 .heading-anchor {
   position: absolute;
-  right: calc(100% + 0.55rem);
-  color: var(--cyan);
-  font: 500 0.65em "Cascadia Code", Consolas, monospace;
+  left: -1.125rem;
+  color: var(--nb-ink-soft);
+  font-weight: 400;
+  text-decoration: none;
   opacity: 0;
 }
+.guide-heading:hover .heading-anchor, .heading-anchor:focus-visible { opacity: 1; }
+.guide-content strong { font-weight: 600; }
+.guide-content hr { margin: 2rem 0; border: 0; border-top: 1px solid var(--nb-rule); }
+.guide-content blockquote { margin: 1rem 0; padding: 0 0 0 1rem; border-left: 1px solid var(--nb-rule-strong); }
+.guide-content blockquote > :last-child { margin-bottom: 0; }
 
-.guide-heading:hover .heading-anchor,
-.heading-anchor:focus-visible {
-  opacity: 0.75;
-}
+.guide-content code { padding: .08em .3em; border-radius: 2px; background: var(--nb-sheet); color: var(--nb-code); }
+.guide-content a code { color: inherit; }
 
-.guide-content strong {
-  color: var(--text);
-}
-
-.guide-content code {
-  padding: 0.12em 0.34em;
-  color: #ff9fb5;
-  background: rgba(255, 145, 200, 0.08);
-  border: 1px solid rgba(255, 145, 200, 0.13);
-  border-radius: 0.3rem;
-  font: 0.88em "Cascadia Code", Consolas, monospace;
-}
-
-.guide-content ul,
-.guide-content ol {
-  margin: 0 0 1.4rem;
-  padding-left: 1.55rem;
-}
-
-.guide-content li {
-  margin-bottom: 0.45rem;
-  padding-left: 0.25rem;
-}
-
-.guide-content li::marker {
-  color: var(--accent);
-  font-family: "Cascadia Code", Consolas, monospace;
-}
-
-.guide-content .task-list {
-  padding-left: 0;
-  list-style: none;
-}
-
-.guide-content .task-list-item {
-  display: grid;
-  grid-template-columns: 1.1rem minmax(0, 1fr);
-  gap: 0.65rem;
-  align-items: start;
-  padding-left: 0;
-}
-
-.guide-content .task-list-item input {
-  width: 1rem;
-  height: 1rem;
-  margin: 0.45rem 0 0;
-  accent-color: var(--accent);
-}
-
-.guide-content blockquote {
-  margin: 1.7rem 0;
-  padding: 1.1rem 1.25rem;
-  color: #dce7c5;
-  background: linear-gradient(90deg, rgba(183, 243, 74, 0.1), rgba(183, 243, 74, 0.025));
-  border-left: 0.22rem solid var(--accent);
-  border-radius: 0 0.65rem 0.65rem 0;
-}
-
-.guide-content blockquote p:last-child {
-  margin-bottom: 0;
-}
-
-.code-block {
-  margin: 1.6rem 0 2rem;
-  overflow: hidden;
-  background: #0b1220;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 0.75rem;
-  box-shadow: 0 1.2rem 3rem rgba(0, 0, 0, 0.14);
-}
-
+/* Code is pasted between hairlines on the sheet, under a plain label line. */
+.code-block { margin: 1rem 0; }
 .code-block figcaption {
-  min-height: 2.5rem;
-  padding: 0 0.9rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #7f8da3;
-  background: rgba(255, 255, 255, 0.025);
-  border-bottom: 1px solid var(--line);
-  font: 650 0.68rem "Cascadia Code", Consolas, monospace;
-  text-transform: uppercase;
+  gap: 1rem;
+  color: var(--nb-ink-soft);
+  font-family: var(--nb-mono);
+  font-size: .875rem;
 }
-
 .code-block figcaption button {
-  display: none;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--nb-ink-soft);
+  font-family: var(--nb-sans);
+  font-size: .875rem;
+  text-decoration: underline;
+  text-decoration-color: var(--nb-rule-strong);
+  text-underline-offset: .22em;
+  cursor: pointer;
 }
+.code-block figcaption button:hover { color: var(--nb-ink); text-decoration-color: currentColor; }
+.code-block pre {
+  max-width: 100%;
+  margin: 0;
+  padding: .75rem 1rem;
+  overflow-x: auto;
+  border-block: 1px solid var(--nb-rule-strong);
+  background: var(--nb-sheet);
+  font-family: var(--nb-mono);
+  font-size: .875rem;
+  line-height: 1.65;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+.code-block pre code { padding: 0; border-radius: 0; background: none; color: var(--nb-ink); font-size: 1em; }
 
-.guide-js .code-block figcaption button {
-  min-height: 2rem;
-  padding: 0.35rem 0.55rem;
+/* Tables: rules under rows, a bold rule under the header, no fills. */
+.table-scroll { width: 100%; max-width: 100%; margin: 1rem 0; overflow-x: auto; overscroll-behavior-inline: contain; }
+.table-scroll table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: .9375rem; line-height: 1.65; }
+.guide-content th, .guide-content td { padding: .5rem .75rem .5rem 0; border-bottom: 1px solid var(--nb-rule); vertical-align: top; overflow-wrap: anywhere; }
+.guide-content th { border-bottom-color: var(--nb-rule-bold); font-weight: 600; }
+.guide-content [style*="text-align:center"] { text-align: left !important; }
+.table-scroll:focus-visible, .code-block pre:focus-visible { outline: 2px solid var(--nb-link); outline-offset: 2px; }
+
+.task-list { list-style: none; padding-left: 0 !important; }
+.task-list-item { display: flex; align-items: flex-start; gap: .625rem; }
+.task-list-item input { margin-top: .25rem; }
+
+/* Chapter verification: a tall panel, so no fill. Its steps carry the record line. */
+.chapter-assessment { margin-top: 2.5rem; padding-top: .75rem; border-top: 1px solid var(--nb-rule-bold); }
+.assessment-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; }
+.assessment-heading h2 { font-size: 1.375rem; }
+.assessment-state { color: var(--nb-ink-soft); font-size: .875rem; }
+.chapter-assessment.is-complete .assessment-heading h2 { color: var(--nb-done); }
+.chapter-assessment.is-complete .assessment-state { color: var(--nb-done); font-weight: 600; }
+.assessment-objective { margin-top: .5rem; }
+.assessment-no-script { margin-top: .5rem; color: var(--nb-ink-soft); font-size: .9375rem; }
+.assessment-command { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .75rem; margin-top: .75rem; padding: .25rem .75rem; background: var(--nb-run-wash); }
+.assessment-command code { flex: 1 1 100%; min-width: 0; padding-top: .25rem; overflow-x: auto; color: var(--nb-run); font-size: .875rem; line-height: 1.65; white-space: pre; }
+.assessment-lab-link { margin-top: .25rem; }
+.assessment-lab-link a { display: inline-flex; align-items: center; min-height: 2.75rem; }
+.assessment-list { margin-top: 1.25rem; }
+.assessment-list h3 { margin-bottom: .25rem; }
+.assessment-checklist { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--nb-rule); }
+.assessment-checklist li { padding-block: .25rem; border-bottom: 1px solid var(--nb-rule); }
+.assessment-checklist label { display: flex; align-items: flex-start; gap: .625rem; padding-block: .375rem; cursor: pointer; }
+.assessment-checklist input { margin-top: .25rem; }
+.assessment-evidence-guide { margin-top: .75rem; font-size: .9375rem; }
+.assessment-evidence-guide summary { padding-block: .625rem; color: var(--nb-ink-soft); cursor: pointer; }
+.assessment-evidence-guide summary:hover { color: var(--nb-ink); }
+.assessment-evidence-guide ul { margin: 0 0 .5rem; padding-left: 1.5rem; }
+.assessment-notes { display: block; margin-top: 1rem; }
+.assessment-notes > span { display: block; margin-bottom: .25rem; font-weight: 600; }
+.assessment-notes textarea { display: block; min-height: 8rem; resize: vertical; line-height: 1.65; }
+.assessment-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-top: .75rem; }
+.assessment-footer p { flex: 1 1 20rem; color: var(--nb-ink-soft); font-size: .9375rem; }
+.assessment-footer p.is-unsaved { color: var(--nb-wrong); }
+
+.guide-records { margin-top: 2rem; padding-top: .75rem; border-top: 1px solid var(--nb-rule); }
+
+.chapter-pagination {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: .25rem 1.5rem;
+  margin-top: 1.5rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--nb-rule);
+}
+.chapter-pagination a {
   display: inline-flex;
   align-items: center;
-  color: var(--cyan);
-  background: transparent;
-  border: 1px solid rgba(112, 225, 245, 0.2);
-  border-radius: 0.4rem;
-  cursor: pointer;
-  font: inherit;
+  min-height: 2.75rem;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
+.previous-unit { grid-column: 1; grid-row: 1; font-weight: 600; }
+.next-unit { grid-column: 2; grid-row: 1; justify-self: end; text-align: right; font-weight: 600; }
+.chapter-directory-link { grid-column: 1 / -1; grid-row: 2; font-size: .9375rem; }
 
-.guide-js .code-block figcaption button:hover,
-.guide-js .code-block figcaption button:focus-visible {
-  color: var(--accent);
-  border-color: rgba(183, 243, 74, 0.45);
-}
-
-.code-block pre {
-  padding: 1.2rem 1.35rem;
-  font-size: 0.8rem;
-  line-height: 1.72;
-}
-
-.code-block pre code {
-  padding: 0;
-  color: #d7deea;
-  background: none;
-  border: 0;
-  border-radius: 0;
-  font: inherit;
-}
-
-.table-scroll {
-  margin: 1.7rem 0 2rem;
-  overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: 0.7rem;
-}
-
-.table-scroll:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 2px;
-}
-
-.guide-content table {
-  width: 100%;
-  min-width: 38rem;
-  border-collapse: collapse;
-  font-size: 0.82rem;
-  line-height: 1.55;
-}
-
-.guide-content th,
-.guide-content td {
-  padding: 0.78rem 0.9rem;
-  vertical-align: top;
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.guide-content th:last-child,
-.guide-content td:last-child {
-  border-right: 0;
-}
-
-.guide-content tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.guide-content th {
-  color: var(--text);
-  background: rgba(112, 225, 245, 0.08);
-  font-weight: 750;
-}
-
-.guide-content tbody tr:nth-child(even) {
-  background: rgba(148, 163, 184, 0.025);
-}
-
-.guide-content hr {
-  margin: 4rem 0;
-  border: 0;
-  border-top: 1px solid var(--line);
-}
-
-.guide-footer {
-  width: auto;
-  margin: 3rem 0 5rem;
-  padding: 1.5rem;
-  align-items: center;
-  color: var(--muted);
-  background: linear-gradient(135deg, rgba(183, 243, 74, 0.09), rgba(112, 225, 245, 0.04));
-  border: 1px solid rgba(183, 243, 74, 0.22);
-  border-radius: 0.9rem;
-}
-
-.guide-footer strong {
-  color: var(--text);
-}
+.guide-footer { margin-top: 2rem; padding-top: .75rem; border-top: 1px solid var(--nb-rule); color: var(--nb-ink-soft); font-size: .9375rem; }
 
 .back-to-top {
   position: fixed;
-  z-index: 40;
   right: 1rem;
   bottom: 1rem;
-  width: 2.8rem;
-  height: 2.8rem;
-  display: grid;
-  place-items: center;
-  color: #091108;
-  background: var(--accent);
-  border: 0;
-  border-radius: 50%;
-  box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.28);
-  cursor: pointer;
-  font: 800 1rem "Cascadia Code", Consolas, monospace;
+  z-index: 70;
+  background: var(--nb-paper);
+  visibility: hidden;
   opacity: 0;
-  pointer-events: none;
-  transform: translateY(0.7rem);
-  transition: opacity 160ms ease, transform 160ms ease;
+  transition: opacity .2s ease-out, visibility .2s;
 }
+.back-to-top.is-visible { visibility: visible; opacity: 1; }
 
-.back-to-top.is-visible {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-.guide-toast {
-  position: fixed;
-  z-index: 50;
-  right: 1rem;
-  bottom: 4.5rem;
-  padding: 0.68rem 0.85rem;
-  color: #091108;
-  background: var(--accent);
-  border-radius: 0.55rem;
-  font-size: 0.78rem;
-  font-weight: 750;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(0.5rem);
-  transition: opacity 160ms ease, transform 160ms ease;
-}
-
-.guide-toast.is-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.guide-page :focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 3px;
-}
-
-.sidebar-search-link {
-  margin: 1rem 0.55rem 0;
-  padding: 0.7rem 0.75rem;
-  display: flex;
-  justify-content: space-between;
-  color: var(--cyan);
-  border: 1px solid rgba(112, 225, 245, 0.2);
-  border-radius: 0.55rem;
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.chapter-hero {
-  padding: clamp(4rem, 8vw, 7rem) 0 2.8rem;
-  border-bottom: 1px solid var(--line);
-}
-
-.chapter-hero h1 {
-  max-width: 18ch;
-  margin: 0.55rem 0 1.1rem;
-  font-size: clamp(2.35rem, 6vw, 4.7rem);
-  line-height: 1.05;
-  letter-spacing: -0.055em;
-  scroll-margin-top: 2rem;
-}
-
-.chapter-hero > p:last-child {
-  max-width: 44rem;
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.75;
-}
-
-.breadcrumbs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
-.breadcrumbs a {
-  color: var(--cyan);
-}
-
-.chapter-position {
-  margin: 1.6rem 0 0;
-  color: var(--accent);
-  font: 750 0.72rem "Cascadia Code", Consolas, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.chapter-pagination {
-  margin: 3rem 0 5rem;
-  padding-top: 1.4rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: stretch;
-  gap: 0.8rem;
-  border-top: 1px solid var(--line);
-}
-
-.chapter-pagination a,
-.chapter-pagination span {
-  min-height: 4.2rem;
-  padding: 0.8rem 1rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  color: var(--text);
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid var(--line);
-  border-radius: 0.7rem;
-}
-
-.chapter-pagination a:hover,
-.chapter-pagination a:focus-visible {
-  border-color: var(--cyan);
-}
-
-.chapter-pagination small {
-  margin-bottom: 0.2rem;
-  color: var(--muted);
-  font-size: 0.68rem;
-}
-
-.chapter-pagination .next-unit {
-  text-align: right;
-  align-items: flex-end;
-}
-
-.chapter-pagination .chapter-directory-link {
-  min-height: auto;
-  align-self: center;
-  color: var(--muted);
-  background: transparent;
-  font-size: 0.76rem;
-  white-space: nowrap;
-}
-
-.chapter-pagination .pagination-placeholder {
-  opacity: 0.35;
-}
-
-.resource-footer-actions {
-  display: flex;
-  gap: 0.6rem;
-}
-
-.guide-index-main {
-  width: min(1180px, calc(100% - 2rem));
-  margin-inline: auto;
-  padding-bottom: 6rem;
-}
-
-.guide-index-hero {
-  max-width: 920px;
-  padding: clamp(4rem, 9vw, 8rem) 0 clamp(3.5rem, 7vw, 5.5rem);
-}
-
-.guide-index-hero h1 {
-  max-width: 14ch;
-  margin: 0.8rem 0 1.2rem;
-  font-size: clamp(2.8rem, 7vw, 5.8rem);
-  line-height: 1.02;
-  letter-spacing: -0.065em;
-}
-
-.guide-index-hero > p:not(.eyebrow) {
-  max-width: 45rem;
-  color: var(--muted);
-  font-size: 1.08rem;
-  line-height: 1.8;
-}
-
-.guide-search-form {
-  max-width: 48rem;
-  margin: 2rem 0;
-  padding: 1.1rem;
-  background: rgba(15, 23, 42, 0.78);
-  border: 1px solid var(--line);
-  border-radius: 0.9rem;
-}
-
-.guide-search-form label {
-  display: block;
-  margin-bottom: 0.65rem;
-  color: #cbd5e1;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.guide-search-form > div {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.65rem;
-}
-
-.guide-search-form input {
-  min-width: 0;
-  padding: 0.85rem 0.9rem;
-  color: var(--text);
-  background: #070b15;
-  border: 1px solid var(--line);
-  border-radius: 0.55rem;
-  font: inherit;
-}
-
-.guide-unit-directory {
-  scroll-margin-top: 2rem;
-}
-
-.compact-heading {
-  margin-bottom: 2rem;
-}
-
-.guide-part-group {
-  margin: 2.8rem 0 0;
-}
-
-.guide-part-heading {
-  margin-bottom: 0.9rem;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.guide-part-heading h3 {
-  margin: 0;
-  font-size: 1.22rem;
-}
-
-.guide-part-heading span {
-  color: var(--muted);
-  font: 0.7rem "Cascadia Code", Consolas, monospace;
-}
-
-.guide-unit-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
+/* Book directory: one ruled row per reading unit; a verified chapter turns its stretch solid. */
+.guide-desk { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); grid-template-areas: "record side"; }
+.guide-desk-side { grid-area: side; padding-top: .5rem; }
+.guide-desk-side .desk-search { margin-top: 0; }
+.guide-desk-note { margin-top: .75rem; color: var(--nb-ink-soft); font-size: .875rem; }
+.guide-part-group + .guide-part-group { margin-top: 1.75rem; }
+.guide-part-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 1rem; padding-bottom: .375rem; border-bottom: 1px solid var(--nb-rule-bold); }
+.guide-part-heading h3 { font-size: 1.0625rem; }
+.guide-part-heading span { color: var(--nb-ink-soft); font-size: .875rem; }
+.guide-unit-grid { margin: 0; padding: 0; list-style: none; }
 .guide-unit-card {
-  position: relative;
-  min-height: 8.5rem;
-  padding: 1.1rem 1.15rem;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.9rem;
-  color: var(--text);
-  background: linear-gradient(145deg, rgba(18, 27, 47, 0.86), rgba(11, 16, 32, 0.94));
-  border: 1px solid var(--line);
-  border-radius: 0.8rem;
-  transition: transform 160ms ease, border-color 160ms ease;
+  grid-template-columns: var(--col-key) var(--col-name) minmax(0, 1fr) 5rem;
+  gap: 0 var(--col-gap);
+  padding-block: .75rem;
+  border-bottom: 1px solid var(--nb-rule);
+}
+.guide-unit-number { grid-column: 1; grid-row: 1 / span 2; color: var(--nb-ink-soft); font-family: var(--nb-mono); font-size: .875rem; line-height: 1.75; }
+.guide-unit-card h4 { grid-column: 2; grid-row: 1; font-size: 1.0625rem; line-height: 1.5; }
+.guide-unit-card .nb-stopped { grid-column: 2; grid-row: 2; }
+.guide-unit-description { grid-column: 3; grid-row: 1 / span 2; color: var(--nb-ink-soft); font-size: .9375rem; line-height: 1.65; }
+.guide-task-status { grid-column: 4; grid-row: 1; color: var(--nb-ink-soft); font-size: .875rem; }
+.guide-unit-card[data-record="done"] .guide-task-status { color: var(--nb-done); font-weight: 600; }
+
+@media (max-width: 62rem) {
+  .guide-desk { grid-template-columns: minmax(0, 1fr); grid-template-areas: "record" "side"; }
+  .guide-unit-card { grid-template-columns: var(--col-key) minmax(0, 1fr) 5rem; }
+  .guide-unit-card h4, .guide-unit-card .nb-stopped, .guide-unit-description { grid-column: 2; grid-row: auto; }
+  .guide-unit-number { grid-row: 1 / span 3; }
+  .guide-task-status { grid-column: 3; grid-row: 1; }
 }
 
-.guide-unit-card:hover,
-.guide-unit-card:focus-visible {
-  color: var(--text);
-  border-color: rgba(112, 225, 245, 0.52);
-  transform: translateY(-2px);
+@media (max-width: 56rem) {
+  .guide-shell { display: block; padding: 0 var(--nb-gutter) 2.5rem; }
+  .guide-sidebar { display: none; }
+  .chapter-hero { padding-top: 1.25rem; margin-bottom: .5rem; }
+  .mobile-toc { display: block; margin-bottom: 1.25rem; border-block: 1px solid var(--nb-rule); font-size: .9375rem; }
+  .mobile-toc summary { padding-block: .625rem; color: var(--nb-ink-soft); cursor: pointer; }
+  .mobile-toc[open] { padding-bottom: .75rem; }
+  .heading-anchor { display: none; }
 }
 
-.guide-unit-number {
-  min-width: 2.3rem;
-  color: var(--accent);
-  font: 750 0.78rem "Cascadia Code", Consolas, monospace;
-}
-
-.guide-unit-card h4 {
-  margin: 0 0 0.45rem;
-  font-size: 1rem;
-  line-height: 1.4;
-}
-
-.guide-unit-card p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.55;
-}
-
-.guide-unit-title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.7rem;
-}
-
-.guide-task-status {
-  flex: 0 0 auto;
-  padding: 0.18rem 0.42rem;
-  color: var(--muted);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font: 0.62rem "Cascadia Code", Consolas, monospace;
-}
-
-.guide-unit-card.is-task-complete {
-  border-color: rgba(183, 243, 74, 0.5);
-}
-
-.guide-unit-card.is-task-complete .guide-task-status {
-  color: var(--accent);
-  border-color: rgba(183, 243, 74, 0.42);
-}
-
-.chapter-assessment {
-  margin: 4.5rem 0 2.5rem;
-  padding: clamp(1.2rem, 4vw, 2rem);
-  background: linear-gradient(145deg, rgba(18, 27, 47, 0.88), rgba(11, 16, 32, 0.96));
-  border: 1px solid var(--line);
-  border-radius: 0.9rem;
-}
-
-.chapter-assessment.is-complete {
-  border-color: rgba(183, 243, 74, 0.55);
-}
-
-.assessment-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.assessment-heading h2 {
-  margin: 0.55rem 0 0;
-  font-size: clamp(1.5rem, 4vw, 2.25rem);
-  letter-spacing: -0.035em;
-}
-
-.assessment-state {
-  flex: 0 0 auto;
-  padding: 0.45rem 0.65rem;
-  color: var(--cyan);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font: 0.7rem "Cascadia Code", Consolas, monospace;
-}
-
-.chapter-assessment.is-complete .assessment-state {
-  color: var(--accent);
-  border-color: rgba(183, 243, 74, 0.45);
-}
-
-.assessment-objective {
-  max-width: 52rem;
-  color: var(--muted);
-  line-height: 1.75;
-}
-
-.assessment-command {
-  margin: 1.2rem 0 0.7rem;
-  padding: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  background: #070b15;
-  border-radius: 0.6rem;
-}
-
-.assessment-command code {
-  min-width: 0;
-  flex: 1;
-  overflow-wrap: anywhere;
-}
-
-.assessment-command button {
-  flex: 0 0 auto;
-  min-height: 2.5rem;
-  padding: 0.45rem 0.7rem;
-  color: var(--text);
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 0.45rem;
-  cursor: pointer;
-}
-
-.assessment-lab-link {
-  display: inline-flex;
-  margin: 0.25rem 0 1rem;
-  color: var(--accent);
-  font-weight: 700;
-}
-
-.assessment-columns {
-  margin-top: 1.4rem;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.4rem;
-}
-
-.assessment-columns h3 {
-  margin: 0 0 0.7rem;
-  font-size: 1rem;
-}
-
-.assessment-checklist {
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.55rem;
-  list-style: none;
-}
-
-.assessment-checklist label {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.65rem;
-  align-items: start;
-  color: var(--muted);
-  line-height: 1.55;
-  cursor: pointer;
-}
-
-.assessment-checklist input {
-  width: 1.1rem;
-  height: 1.1rem;
-  margin-top: 0.2rem;
-  accent-color: var(--accent);
-}
-
-.assessment-evidence-guide {
-  margin-top: 1.4rem;
-  padding: 0.75rem 0;
-  color: var(--muted);
-  border-block: 1px solid var(--line);
-}
-
-.assessment-evidence-guide summary {
-  color: var(--text);
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.assessment-evidence-guide li {
-  margin: 0.45rem 0;
-  line-height: 1.55;
-}
-
-.assessment-notes {
-  margin-top: 1.3rem;
-  display: grid;
-  gap: 0.55rem;
-  color: var(--text);
-  font-weight: 700;
-}
-
-.assessment-notes textarea {
-  width: 100%;
-  padding: 0.85rem;
-  resize: vertical;
-  color: var(--text);
-  background: #070b15;
-  border: 1px solid var(--line);
-  border-radius: 0.55rem;
-  font: 1rem/1.6 inherit;
-}
-
-.assessment-notes textarea:focus-visible,
-.assessment-command button:focus-visible {
-  outline: 2px solid var(--cyan);
-  outline-offset: 3px;
-}
-
-.assessment-footer {
-  margin-top: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.assessment-footer p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.5;
-}
-
-.assessment-footer button:disabled {
-  opacity: 0.42;
-  cursor: not-allowed;
-}
-
-html:not(.guide-js) .chapter-assessment .assessment-state,
-html:not(.guide-js) .chapter-assessment input,
-html:not(.guide-js) .chapter-assessment .assessment-command button,
-html:not(.guide-js) .chapter-assessment .assessment-notes,
-html:not(.guide-js) .chapter-assessment .assessment-footer {
-  display: none;
-}
-
-.assessment-no-script {
-  padding: 0.75rem 0.9rem;
-  color: var(--muted);
-  background: rgba(56, 189, 248, 0.08);
-  border-left: 3px solid var(--cyan);
-  line-height: 1.6;
-}
-
-@media (max-width: 720px) {
-  .assessment-heading,
-  .assessment-footer {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .assessment-state {
-    align-self: flex-start;
-  }
-
-  .assessment-columns {
-    grid-template-columns: 1fr;
-  }
-
-  .assessment-command {
-    align-items: stretch;
-    flex-direction: column;
-  }
-}
-
-.guide-resource-strip {
-  margin-top: 6rem;
-  padding-top: 3rem;
-  border-top: 1px solid var(--line);
-}
-
-.guide-resource-strip h2 {
-  margin: 0.7rem 0 1.6rem;
-  font-size: clamp(1.8rem, 4vw, 2.7rem);
-}
-
-.guide-resource-links {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.7rem;
-}
-
-.guide-resource-links a {
-  padding: 1rem;
-  display: grid;
-  gap: 0.35rem;
-  color: var(--text);
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid var(--line);
-  border-radius: 0.7rem;
-}
-
-.guide-resource-links a:hover,
-.guide-resource-links a:focus-visible {
-  border-color: var(--accent);
-}
-
-.guide-resource-links span {
-  color: var(--muted);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
-
-@media (max-width: 980px) {
-  .guide-shell {
-    grid-template-columns: minmax(0, 56rem);
-  }
-
-  .guide-sidebar {
-    display: none;
-  }
-
-  .mobile-toc {
-    margin: 2rem 0 0;
-    display: block;
-    background: rgba(15, 23, 42, 0.74);
-    border: 1px solid var(--line);
-    border-radius: 0.75rem;
-  }
-
-  .mobile-toc summary {
-    padding: 0.9rem 1rem;
-    color: var(--text);
-    cursor: pointer;
-    font-weight: 700;
-  }
-
-  .mobile-toc .guide-toc {
-    max-height: 60vh;
-    padding: 0 0.6rem 1rem;
-    overflow-y: auto;
-  }
-
-  .mobile-toc .toc-search {
-    margin: 0.25rem 0.85rem 0.45rem;
-  }
-
-  .mobile-toc .toc-search input {
-    font-size: 1rem;
-  }
-
-  .mobile-toc .toc-search-status {
-    margin-inline: 1rem;
-  }
-
-  .heading-anchor {
-    position: static;
-    margin-right: 0.35rem;
-    opacity: 0.5;
-  }
-
-  .guide-resource-links {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 560px) {
-  .guide-hero {
-    padding-top: 3.6rem;
-  }
-
-  .guide-hero h1 {
-    font-size: clamp(2.35rem, 12vw, 3.5rem);
-  }
-
-  .guide-content {
-    padding-top: 3rem;
-    font-size: 0.96rem;
-  }
-
-  .guide-heading-1 {
-    margin-top: 4.5rem;
-  }
-
-  .guide-heading-2 {
-    margin-top: 3.3rem;
-  }
-
-  .code-block {
-    margin-inline: -0.3rem;
-  }
-
-  .code-block pre {
-    padding: 1rem;
-    font-size: 0.74rem;
-  }
-
-  .guide-footer {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .chapter-hero h1 {
-    font-size: clamp(2.25rem, 11vw, 3.5rem);
-  }
-
-  .chapter-pagination {
-    grid-template-columns: 1fr;
-  }
-
-  .chapter-pagination .next-unit {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .chapter-pagination .chapter-directory-link {
-    order: 3;
-    text-align: center;
-  }
-
-  .resource-footer-actions {
-    flex-direction: column;
-  }
-
-  .guide-search-form > div {
-    grid-template-columns: 1fr;
-  }
-
-  .guide-unit-grid,
-  .guide-resource-links {
-    grid-template-columns: 1fr;
-  }
-
-  .guide-index-hero {
-    padding-top: 3.5rem;
-  }
-
-  .guide-index-hero h1 {
-    font-size: clamp(2.5rem, 12vw, 3.8rem);
-  }
+@media (max-width: 44rem) {
+  .chapter-pagination { grid-template-columns: minmax(0, 1fr); }
+  .previous-unit, .next-unit, .chapter-directory-link { grid-column: 1; grid-row: auto; justify-self: start; text-align: left; }
+  .next-unit { order: -1; }
+  .guide-unit-card { grid-template-columns: 3.75rem minmax(0, 1fr); }
+  .guide-unit-number { grid-row: 1 / span 4; }
+  .guide-task-status { grid-column: 2; grid-row: auto; }
 }
 
 @media print {
-  .guide-page {
-    color: #111827;
-    background: #fff;
-  }
-
-  .guide-site-header,
-  .guide-sidebar,
-  .sidebar-search-link,
-  .mobile-toc,
-  .guide-hero .hero-actions,
-  .guide-footer,
-  .chapter-pagination,
-  .heading-anchor,
-  .reading-progress,
-  .back-to-top,
-  .guide-toast {
-    display: none;
-  }
-
-  .guide-shell {
-    display: block;
-  }
-
-  .guide-content {
-    color: #111827;
-  }
-
-  .guide-heading,
-  .guide-content strong {
-    color: #111827;
-  }
-
-  .code-block,
-  .guide-content blockquote,
-  .guide-content th {
-    color: #111827;
-    background: #f3f4f6;
-    box-shadow: none;
-  }
+  .nb-head, .guide-sidebar, .mobile-toc, .back-to-top, .toast, .chapter-pagination, .guide-records, .site-footer { display: none !important; }
+  .guide-shell { display: block; padding: 0; }
+  .heading-anchor { display: none; }
 }

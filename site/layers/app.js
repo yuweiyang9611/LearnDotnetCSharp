@@ -76,6 +76,7 @@ function wirePayload(data) {
   controls.replaceChildren(...data.focuses.map((focus, index) => {
     const button = document.createElement("button");
     button.type = "button";
+    button.className = "filter-button";
     button.dataset.focus = focus.id;
     button.setAttribute("aria-pressed", String(index === 0));
     button.textContent = focus.label;
@@ -102,8 +103,8 @@ copyButton.addEventListener("click", async () => {
     document.execCommand("copy");
     input.remove();
   }
-  copyButton.textContent = "已复制制品生成命令";
-  window.setTimeout(() => { copyButton.textContent = "复制制品生成命令"; }, 1600);
+  copyButton.textContent = "已复制";
+  window.setTimeout(() => { copyButton.textContent = "复制命令"; }, 1600);
 });
 
 try {

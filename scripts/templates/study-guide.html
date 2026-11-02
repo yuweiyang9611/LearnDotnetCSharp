@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="{{DESCRIPTION}}" />
-    <meta name="theme-color" content="#0b1020" />
+    <meta name="theme-color" content="#f4efe4" />
     <meta property="og:type" content="article" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:title" content="{{PAGE_TITLE}} · {{BOOK_TITLE}}" />
@@ -15,49 +15,56 @@
     <meta name="twitter:description" content="{{DESCRIPTION}}" />
     <link rel="canonical" href="{{CANONICAL_URL}}" />
     <title>{{PAGE_TITLE}} · {{BOOK_TITLE}}</title>
+    <link rel="icon" href="{{HOME_HREF}}favicon.svg" type="image/svg+xml" />
+    <script>document.documentElement.classList.add("js");</script>
+    <script src="{{HOME_HREF}}theme.js"></script>
+    <link rel="stylesheet" href="{{HOME_HREF}}notebook.css" />
     <link rel="stylesheet" href="{{SHARED_CSS_HREF}}" />
     <link rel="stylesheet" href="{{GUIDE_CSS_HREF}}" />
   </head>
   <body class="guide-page chapter-page" data-reading-route="{{READING_ROUTE}}">
-    <div class="reading-progress" aria-hidden="true"><span id="reading-progress-bar"></span></div>
     <a class="skip-link" href="#guide-content">跳到本章正文</a>
-    <header class="site-header guide-site-header">
-      <a class="brand" href="{{HOME_HREF}}" aria-label="LearnDotnetCSharp 首页"><span class="brand-mark" aria-hidden="true">{ }</span><span>LearnDotnetCSharp</span></a>
-      <nav aria-label="教材导航">
-        <a class="nav-priority" href="{{GUIDE_HREF}}">教材目录</a><a href="{{SEARCH_HREF}}">全文搜索</a>
-        <a href="{{LAYERS_HREF}}">四层实验台</a><a href="{{LEARNING_PATH_HREF}}">学习路线</a><a href="{{PDF_HREF}}" download>下载 PDF</a>
+    <header class="site-header nb-head">
+      <a class="brand nb-brand" href="{{HOME_HREF}}" aria-label="LearnDotnetCSharp 首页">LearnDotnetCSharp</a>
+      <button class="nb-nav-toggle" type="button" aria-expanded="false" aria-controls="site-navigation">菜单</button>
+      <nav class="nb-nav nb-nav--collapsible" id="site-navigation" aria-label="教材导航">
+        <a aria-current="page" href="{{GUIDE_HREF}}">教材</a><a href="{{HOME_HREF}}#catalog">实验</a><a href="{{LAYERS_HREF}}">四层实验台</a><a href="{{HOME_HREF}}#resources">资料</a><a href="{{SEARCH_HREF}}">搜索</a><a href="https://github.com/yuweiyang9611/LearnDotnetCSharp">GitHub</a><a href="https://yuweiyang9611.github.io/">全部项目</a>
       </nav>
     </header>
     <main class="guide-shell" id="main">
       <aside class="guide-sidebar" aria-label="本章目录">
         <div class="guide-sidebar-heading"><p>本章目录</p><span>{{HEADING_COUNT}} 节</span></div>
-        <label class="toc-search"><span class="sr-only">筛选本章目录</span><input type="search" data-toc-search placeholder="筛选本章…" autocomplete="off" /></label>
+        <label class="toc-search"><span class="sr-only">筛选本章目录</span><input class="nb-input" type="search" data-toc-search placeholder="筛选本章" autocomplete="off" /></label>
         <p class="toc-search-status" data-toc-search-status aria-live="polite"></p>
         <nav class="guide-toc">{{TOC_HTML}}</nav>
-        <a class="sidebar-search-link" href="{{SEARCH_HREF}}">搜索整本教材 <span aria-hidden="true">→</span></a>
+        <p class="sidebar-links"><a href="{{SEARCH_HREF}}">搜索整本教材</a><a href="{{PDF_HREF}}" download>下载 PDF</a></p>
       </aside>
       <article class="guide-main">
         <header class="chapter-hero">
-          <nav class="breadcrumbs" aria-label="面包屑"><a href="{{GUIDE_HREF}}">在线教材</a><span aria-hidden="true">/</span><span>{{PART_TITLE}}</span></nav>
-          <p class="chapter-position">{{POSITION_LABEL}}</p>
-          <h1 id="{{PAGE_HEADING_ID}}" data-guide-heading>{{PAGE_TITLE}}</h1><p>{{DESCRIPTION}}</p>
+          <nav class="breadcrumbs" aria-label="面包屑"><a href="{{GUIDE_HREF}}">在线教材</a><span aria-hidden="true">/</span><span>{{PART_TITLE}}</span><span aria-hidden="true">/</span><span>{{POSITION_LABEL}}</span></nav>
+          <h1 id="{{PAGE_HEADING_ID}}" data-guide-heading>{{PAGE_TITLE}}</h1>
         </header>
         <details class="mobile-toc">
-          <summary>打开本章目录</summary>
-          <label class="toc-search"><span class="sr-only">筛选本章目录</span><input type="search" data-toc-search placeholder="筛选本章…" autocomplete="off" /></label>
+          <summary>本章目录</summary>
+          <label class="toc-search"><span class="sr-only">筛选本章目录</span><input class="nb-input" type="search" data-toc-search placeholder="筛选本章" autocomplete="off" /></label>
           <p class="toc-search-status" data-toc-search-status aria-live="polite"></p>
           <nav class="guide-toc">{{TOC_HTML}}</nav>
         </details>
         <div class="guide-content" id="guide-content">{{ARTICLE_HTML}}</div>
         {{ASSESSMENT_HTML}}
-        <section data-learning-backup aria-label="学习数据备份"></section>
+        <section class="guide-records" data-learning-backup aria-label="学习数据备份"></section>
         <nav class="chapter-pagination" aria-label="前后阅读单元">
           {{PREVIOUS_LINK_HTML}}<a class="chapter-directory-link" href="{{GUIDE_HREF}}">返回教材目录</a>{{NEXT_LINK_HTML}}
         </nav>
       </article>
     </main>
-    <button class="back-to-top" id="back-to-top" type="button" aria-label="返回页面顶部">↑</button>
-    <div class="guide-toast" id="guide-toast" role="status" aria-live="polite"></div>
+    <footer class="site-footer">
+      <p>{{BOOK_TITLE}} · 在线教材与 PDF 由同一份 Markdown 生成。</p>
+      <p class="footer-links"><a href="{{PDF_HREF}}" download>下载 PDF</a><a href="{{LEARNING_PATH_HREF}}">学习路线</a></p>
+    </footer>
+    <button class="back-to-top nb-button" id="back-to-top" type="button">返回顶部</button>
+    <div class="toast guide-toast" id="guide-toast" role="status" aria-live="polite"></div>
+    <script src="{{HOME_HREF}}code-colors.js" defer></script>
     <script type="module" src="{{HOME_HREF}}navigation.js"></script>
     <script type="module" src="{{GUIDE_APP_HREF}}"></script>
   </body>

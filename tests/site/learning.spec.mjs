@@ -48,7 +48,7 @@ test("catalog filters, persists progress, copies and navigates", async ({ page }
   await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text) => { window.copiedText = text; } } }));
   await page.locator('#experiment-runtime\\.overview [data-copy]').click();
   expect(await page.evaluate(() => window.copiedText)).toContain("run runtime.overview");
-  await page.locator('#experiment-runtime\\.overview a').filter({ hasText: "阅读讲解" }).click();
+  await page.locator('#experiment-runtime\\.overview h3 a').click();
   await expect(page).toHaveURL(/LearnDotnetCSharp\/guide\/chapter-05\//);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });

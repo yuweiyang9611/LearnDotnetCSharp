@@ -1,51 +1,43 @@
 import { progress } from "./progress-store.js";
 import { initializeProgressUI } from "./progress-ui.js";
 import { copyText as copyToClipboard } from "./clipboard.js";
-import {
-  categories,
-  experiments,
-  learningStages,
-  repositoryUrl,
-  resources,
-} from "./catalog-data.js";
+import { categories, experiments, learningStages } from "./catalog-data.js";
 import { experimentGuideUrls } from "./guide-routes.js";
+import { tasks } from "./progress-catalog.js";
 
 document.documentElement.classList.add("home-js");
 
 const appProject = "src/LearnDotnetCSharp.App";
-const validExperimentIds = new Set(experiments.map(({ id }) => id));
+const command = (id) => `dotnet run --project ${appProject} -- run ${id}`;
 
 const elements = {
+  assessmentCount: document.querySelector("#assessment-count"),
   catalogCount: document.querySelector("#catalog-count"),
   catalogFilters: document.querySelector("#catalog-filters"),
-  continueAction: document.querySelector("#continue-action"),
+  continueLink: document.querySelector("#continue-learning"),
   emptyState: document.querySelector("#empty-state"),
   experimentGrid: document.querySelector("#experiment-grid"),
   filterSummary: document.querySelector("#filter-summary"),
+  nextCommand: document.querySelector("#next-lab-command"),
+  nextCopy: document.querySelector("#next-lab-copy"),
+  nextLink: document.querySelector("#next-lab-link"),
+  nextSummary: document.querySelector("#next-lab-summary"),
+  nextTitle: document.querySelector("#next-lab-title"),
   pathGrid: document.querySelector("#path-grid"),
   progressBar: document.querySelector("#progress-bar"),
   progressCount: document.querySelector("#progress-count"),
-  progressPercent: document.querySelector("#progress-percent"),
+  progressTrack: document.querySelector("#progress-track"),
   resetProgress: document.querySelector("#reset-progress"),
-  resourcesGrid: document.querySelector("#resources-grid"),
   search: document.querySelector("#catalog-search"),
   toast: document.querySelector("#toast"),
 };
 
+const rows = new Map(experiments.map(({ id }) => [id, document.getElementById(`experiment-${id}`)]));
 let completedIds = loadProgress();
 let activeCategories = null;
 let activeFilterLabel = "全部主题";
 let searchTerm = "";
 let toastTimer;
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
 
 function loadProgress() { return new Set(progress.completedIds()); }
 function saveProgress() { return progress.setExperiments([...completedIds]); }
@@ -57,48 +49,84 @@ function showToast(message) {
   toastTimer = window.setTimeout(() => elements.toast.classList.remove("is-visible"), 2200);
 }
 
-function getStageProgress(stage) {
-  const stageExperiments = experiments.filter(({ category }) => stage.categories.includes(category));
-  return {
-    completed: stageExperiments.filter(({ id }) => completedIds.has(id)).length,
-    total: stageExperiments.length,
-  };
+function verifiedChapters() {
+  const { assessments } = progress.snapshot();
+  return Object.entries(tasks).filter(([id, task]) => assessments[id]?.completed && assessments[id].revision === task.revision).length;
 }
 
-function renderLearningStages() {
-  elements.pathGrid.innerHTML = learningStages
-    .map((stage) => {
-      const progress = getStageProgress(stage);
-      const percent = progress.total === 0 ? 0 : Math.round((progress.completed / progress.total) * 100);
-      return `
-        <article class="path-card${percent === 100 ? " is-complete" : ""}">
-          <div class="path-card-topline">
-            <span class="step-number">${stage.number}</span>
-            <span class="stage-progress">${progress.completed}/${progress.total}</span>
-          </div>
-          <p>${escapeHtml(stage.label)}</p>
-          <h3>${escapeHtml(stage.title)}</h3>
-          <p class="path-description">${escapeHtml(stage.description)}</p>
-          <div class="mini-progress" aria-label="${escapeHtml(stage.label)}完成 ${percent}%">
-            <span style="width: ${percent}%"></span>
-          </div>
-          <button class="path-action" type="button" data-stage="${stage.number}">
-            查看本阶段 <span aria-hidden="true">→</span>
-          </button>
-        </article>`;
-    })
-    .join("");
+// Solid green reaches as far as the record; a row with no record keeps only the dashed line.
+function setRecord(row, fraction) {
+  row.style.setProperty("--nb-fraction", String(fraction));
+  if (fraction >= 1) row.dataset.record = "done";
+  else row.removeAttribute("data-record");
 }
 
-function renderFilters() {
-  const filterEntries = Object.entries(categories);
-  elements.catalogFilters.innerHTML = [
-    `<button class="filter-chip is-active" type="button" data-category="all" aria-pressed="true">全部 <span>${experiments.length}</span></button>`,
-    ...filterEntries.map(([key, category]) => {
-      const count = experiments.filter((experiment) => experiment.category === key).length;
-      return `<button class="filter-chip" type="button" data-category="${key}" aria-pressed="false">${escapeHtml(category.label)} <span>${count}</span></button>`;
-    }),
-  ].join("");
+function renderDesk(nextExperiment) {
+  const completed = completedIds.size;
+  const total = experiments.length;
+  const chapters = Object.keys(tasks).length;
+  elements.progressCount.textContent = `${completed} / ${total}`;
+  elements.assessmentCount.textContent = `${verifiedChapters()} / ${chapters}`;
+  elements.progressBar.style.transform = `scaleX(${completed / total})`;
+  elements.progressTrack.setAttribute("aria-valuenow", String(completed));
+
+  const reading = progress.snapshot().lastReading;
+  const link = elements.continueLink;
+  if (reading) {
+    link.href = reading.url;
+    // Older saves kept the heading's # anchor in the title.
+    link.textContent = `继续阅读：${reading.title.replace(/^#\s*/, "")}`;
+  } else if (completed > 0) {
+    const target = nextExperiment ?? experiments[0];
+    link.href = experimentGuideUrls[target.id];
+    link.textContent = nextExperiment ? `下一个实验：${target.title}` : "全部实验已完成，从头复习";
+  } else {
+    link.href = "./guide/preface/";
+    link.textContent = "从前言开始阅读";
+  }
+  link.classList.toggle("has-record", Boolean(reading) || completed > 0);
+
+  const lab = nextExperiment ?? experiments[0];
+  elements.nextTitle.textContent = !nextExperiment ? "全部实验已完成" : completed === 0 ? "先跑第一个实验" : "下一个实验";
+  elements.nextLink.href = experimentGuideUrls[lab.id];
+  elements.nextLink.textContent = lab.title;
+  elements.nextSummary.textContent = lab.summary;
+  elements.nextCommand.textContent = command(lab.id);
+  elements.nextCopy.dataset.globalCopy = command(lab.id);
+}
+
+function renderStages() {
+  for (const stage of learningStages) {
+    const row = elements.pathGrid.querySelector(`[data-stage-row="${stage.number}"]`);
+    if (!row) continue;
+    const members = experiments.filter(({ category }) => stage.categories.includes(category));
+    const done = members.filter(({ id }) => completedIds.has(id)).length;
+    setRecord(row, members.length ? done / members.length : 0);
+    const state = row.querySelector("[data-stage-state]");
+    state.textContent = done === members.length ? `${done} / ${members.length} 已完成` : `${done} / ${members.length} 个实验`;
+    state.classList.toggle("has-record", done > 0);
+  }
+}
+
+function renderExperiments(nextExperiment) {
+  const stoppedId = completedIds.size > 0 ? nextExperiment?.id : null;
+  for (const [id, row] of rows) {
+    const done = completedIds.has(id);
+    setRecord(row, done ? 1 : 0);
+    row.querySelector("[data-complete-id]").checked = done;
+    const stopped = id === stoppedId;
+    if (stopped) row.setAttribute("aria-current", "true");
+    else row.removeAttribute("aria-current");
+    row.querySelector(".nb-stopped").hidden = !stopped;
+  }
+}
+
+function render() {
+  const nextExperiment = experiments.find(({ id }) => !completedIds.has(id));
+  renderDesk(nextExperiment);
+  renderStages();
+  renderExperiments(nextExperiment);
+  elements.resetProgress.disabled = completedIds.size === 0;
 }
 
 function matchesFilters(experiment) {
@@ -108,86 +136,18 @@ function matchesFilters(experiment) {
   return categoryMatch && searchable.includes(searchTerm);
 }
 
-function renderCatalog() {
-  const visibleExperiments = experiments.filter(matchesFilters);
-  elements.catalogCount.textContent = String(visibleExperiments.length);
+function applyFilters() {
+  let visible = 0;
+  for (const experiment of experiments) {
+    const shown = matchesFilters(experiment);
+    rows.get(experiment.id).hidden = !shown;
+    visible += shown ? 1 : 0;
+  }
+  elements.catalogCount.textContent = String(visible);
   elements.filterSummary.textContent = searchTerm
     ? `${activeFilterLabel} · 搜索“${elements.search.value.trim()}”`
     : activeFilterLabel;
-  elements.emptyState.hidden = visibleExperiments.length !== 0;
-
-  elements.experimentGrid.innerHTML = visibleExperiments
-    .map((experiment) => {
-      const category = categories[experiment.category];
-      const completed = completedIds.has(experiment.id);
-      const command = `dotnet run --project ${appProject} -- run ${experiment.id}`;
-      const sourceUrl = `${repositoryUrl}/blob/main/${experiment.source}`;
-      return `
-        <article class="experiment-card${completed ? " is-complete" : ""}" id="experiment-${experiment.id}">
-          <div class="experiment-topline">
-            <span class="category-badge tone-${category.tone}">${escapeHtml(category.label)}</span>
-            <button
-              class="complete-toggle"
-              type="button"
-              data-complete-id="${experiment.id}"
-              aria-pressed="${completed}"
-              aria-label="${completed ? "取消完成" : "标记完成"}：${escapeHtml(experiment.title)}"
-            >
-              <span aria-hidden="true">${completed ? "✓" : ""}</span>
-              ${completed ? "已完成" : "标记完成"}
-            </button>
-          </div>
-          <code class="experiment-id">${experiment.id}</code>
-          <h3>${escapeHtml(experiment.title)}</h3>
-          <p>${escapeHtml(experiment.summary)}</p>
-          <div class="experiment-actions">
-            <a href="${experimentGuideUrls[experiment.id]}">阅读讲解 <span aria-hidden="true">→</span></a>
-            <a href="${sourceUrl}">查看源码 <span aria-hidden="true">↗</span></a>
-            <button type="button" data-copy="${escapeHtml(command)}">复制运行命令</button>
-          </div>
-        </article>`;
-    })
-    .join("");
-}
-
-function renderProgress() {
-  const completed = completedIds.size;
-  const percent = Math.round((completed / experiments.length) * 100);
-  elements.progressCount.textContent = `${completed} / ${experiments.length}`;
-  elements.progressPercent.textContent = `${percent}%`;
-  elements.progressBar.style.width = `${percent}%`;
-  elements.progressBar.parentElement.setAttribute("aria-valuenow", String(percent));
-
-  const nextExperiment = experiments.find(({ id }) => !completedIds.has(id));
-  if (nextExperiment) {
-    elements.continueAction.textContent = completed === 0 ? "从第一个实验开始" : "继续下一个实验";
-    elements.continueAction.dataset.experimentId = nextExperiment.id;
-  } else {
-    elements.continueAction.textContent = "全部完成，再看一遍";
-    elements.continueAction.dataset.experimentId = experiments[0].id;
-  }
-
-  elements.resetProgress.disabled = completed === 0;
-}
-
-function renderResources() {
-  elements.resourcesGrid.innerHTML = resources
-    .map(
-      (resource) => `
-        <a class="resource-card" href="${resource.href}"${resource.download ? " download" : ""}>
-          <span>${escapeHtml(resource.type)}</span>
-          <h3>${escapeHtml(resource.title)}</h3>
-          <p>${escapeHtml(resource.description)}</p>
-          <strong>${escapeHtml(resource.action)} <span aria-hidden="true">${resource.download ? "↓" : "→"}</span></strong>
-        </a>`,
-    )
-    .join("");
-}
-
-function renderAll() {
-  renderLearningStages();
-  renderCatalog();
-  renderProgress();
+  elements.emptyState.hidden = visible !== 0;
 }
 
 function setActiveCategories(categoryKeys, label, categoryKey = null) {
@@ -197,109 +157,82 @@ function setActiveCategories(categoryKeys, label, categoryKey = null) {
     const isActive = categoryKey
       ? categoryKey === button.dataset.category
       : activeCategories === null && button.dataset.category === "all";
-    button.classList.toggle("is-active", isActive);
     button.setAttribute("aria-pressed", String(isActive));
   });
-  renderCatalog();
+  applyFilters();
 }
 
-async function copyText(text, successMessage = "已复制运行命令") {
-  showToast(await copyToClipboard(text) ? successMessage : "复制失败，请手动选择命令复制");
+async function copyText(text, button) {
+  const copied = await copyToClipboard(text);
+  showToast(copied ? "已复制运行命令" : "复制失败，请手动选择命令复制");
+  if (copied && button) {
+    const original = button.textContent;
+    button.textContent = "已复制";
+    window.setTimeout(() => { button.textContent = original; }, 1600);
+  }
 }
 
 elements.catalogFilters.addEventListener("click", (event) => {
   const button = event.target.closest("[data-category]");
-  if (!button) {
-    return;
-  }
-
+  if (!button) return;
   const categoryKey = button.dataset.category;
-  if (categoryKey === "all") {
-    setActiveCategories(null, "全部主题", "all");
-    return;
-  }
-
-  setActiveCategories([categoryKey], categories[categoryKey].label, categoryKey);
+  if (categoryKey === "all") setActiveCategories(null, "全部主题", "all");
+  else setActiveCategories([categoryKey], categories[categoryKey].label, categoryKey);
 });
 
+// A stage title is a link to the catalog; with scripts it also narrows the catalog to that stage.
 elements.pathGrid.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-stage]");
-  if (!button) {
-    return;
-  }
-
-  const stage = learningStages.find(({ number }) => number === button.dataset.stage);
-  if (!stage) {
-    return;
-  }
-
+  const link = event.target.closest("[data-stage]");
+  const stage = link && learningStages.find(({ number }) => number === link.dataset.stage);
+  if (!stage) return;
   elements.search.value = "";
   searchTerm = "";
   setActiveCategories(stage.categories, `阶段 ${stage.number} · ${stage.label}`);
-  document.querySelector("#catalog").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 elements.search.addEventListener("input", () => {
   searchTerm = elements.search.value.trim().toLocaleLowerCase("zh-CN");
-  renderCatalog();
+  applyFilters();
+});
+
+elements.experimentGrid.addEventListener("change", (event) => {
+  const box = event.target.closest("[data-complete-id]");
+  if (!box) return;
+  if (box.checked) completedIds.add(box.dataset.completeId);
+  else completedIds.delete(box.dataset.completeId);
+  saveProgress();
+  render();
 });
 
 elements.experimentGrid.addEventListener("click", (event) => {
-  const completeButton = event.target.closest("[data-complete-id]");
-  if (completeButton) {
-    const id = completeButton.dataset.completeId;
-    if (completedIds.has(id)) {
-      completedIds.delete(id);
-    } else {
-      completedIds.add(id);
-    }
-    saveProgress();
-    renderAll();
-    requestAnimationFrame(() => {
-      const restoredButton = [...elements.experimentGrid.querySelectorAll("[data-complete-id]")]
-        .find((button) => button.dataset.completeId === id);
-      restoredButton?.focus();
-    });
-    return;
-  }
-
   const copyButton = event.target.closest("[data-copy]");
-  if (copyButton) {
-    copyText(copyButton.dataset.copy);
-  }
+  if (copyButton) copyText(copyButton.dataset.copy, copyButton);
 });
 
 document.addEventListener("click", (event) => {
   const copyButton = event.target.closest("[data-global-copy]");
-  if (copyButton) {
-    copyText(copyButton.dataset.globalCopy, "快速开始命令已复制");
-  }
+  if (copyButton) copyText(copyButton.dataset.globalCopy, copyButton);
 });
 
-elements.continueAction.addEventListener("click", () => {
-  const id = elements.continueAction.dataset.experimentId;
-  elements.search.value = "";
-  searchTerm = "";
-  setActiveCategories(null, "全部主题", "all");
-  requestAnimationFrame(() => {
-    document.querySelector(`#experiment-${CSS.escape(id)}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  });
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
+  const active = document.activeElement;
+  if (active instanceof HTMLElement && (active.matches("input, textarea, select") || active.isContentEditable)) return;
+  if (document.querySelector("dialog[open]")) return;
+  event.preventDefault();
+  elements.search.focus();
 });
 
 elements.resetProgress.addEventListener("click", () => {
-  if (!window.confirm("确认清空实验完成记录吗？章节笔记会保留。")) {
-    return;
-  }
-
+  if (!window.confirm("确认清空实验完成记录吗？章节笔记会保留。")) return;
   completedIds = new Set();
   const saved = saveProgress();
-  renderAll();
+  render();
   showToast(saved ? "实验完成记录已清空" : "清空操作尚未保存，请重试");
 });
 
-renderFilters();
-renderResources();
-renderAll();
+render();
+applyFilters();
 
 initializeProgressUI(document.querySelector("[data-learning-backup]"));
-window.addEventListener("learning-data-change", () => { completedIds = loadProgress(); renderAll(); });
+window.addEventListener("learning-data-change", () => { completedIds = loadProgress(); render(); });

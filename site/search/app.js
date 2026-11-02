@@ -101,12 +101,7 @@ function createResultCard(entry, tokens) {
   excerpt.className = "search-result-excerpt";
   appendHighlightedText(excerpt, excerptFor(entry, tokens), tokens);
 
-  const action = document.createElement("span");
-  action.className = "search-result-action";
-  action.textContent = "打开内容 →";
-  action.setAttribute("aria-hidden", "true");
-
-  article.append(meta, heading, excerpt, action);
+  article.append(heading, meta, excerpt);
   return article;
 }
 

@@ -1,67 +1,39 @@
-const mobileBreakpoint = window.matchMedia("(max-width: 820px)");
-const navigationHeaders = [...document.querySelectorAll(".site-header")]
-  .map((header, index) => {
-    const navigation = header.querySelector(":scope > nav[aria-label]");
-    if (!navigation) return null;
-
-    const navigationId = navigation.id || `site-navigation-${index + 1}`;
-    navigation.id = navigationId;
-
-    const toggle = document.createElement("button");
-    toggle.className = "navigation-toggle";
-    toggle.type = "button";
-    toggle.setAttribute("aria-controls", navigationId);
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute("aria-label", "打开导航菜单");
-
-    const icon = document.createElement("span");
-    icon.className = "navigation-toggle-icon";
-    icon.setAttribute("aria-hidden", "true");
-    const label = document.createElement("span");
-    label.textContent = "菜单";
-    toggle.append(icon, label);
-    navigation.before(toggle);
+// The running head collapses its links behind 菜单 below 56rem; the kit draws it, this wires it.
+const wideScreen = window.matchMedia("(min-width: 56.0625rem)");
+const heads = [...document.querySelectorAll(".nb-head")]
+  .map((head) => {
+    const toggle = head.querySelector(".nb-nav-toggle");
+    const navigation = head.querySelector(".nb-nav--collapsible");
+    if (!toggle || !navigation) return null;
 
     const setOpen = (open, restoreFocus = false) => {
-      header.classList.toggle("is-navigation-open", open);
+      navigation.classList.toggle("open", open);
       toggle.setAttribute("aria-expanded", String(open));
-      toggle.setAttribute("aria-label", open ? "关闭导航菜单" : "打开导航菜单");
+      toggle.textContent = open ? "收起" : "菜单";
       if (restoreFocus) toggle.focus();
     };
 
-    toggle.addEventListener("click", () => {
-      setOpen(toggle.getAttribute("aria-expanded") !== "true");
-    });
-
+    toggle.addEventListener("click", () => setOpen(toggle.getAttribute("aria-expanded") !== "true"));
     navigation.addEventListener("click", (event) => {
       if (event.target instanceof Element && event.target.closest("a")) setOpen(false);
     });
-
-    return { header, setOpen, toggle };
+    return { head, setOpen, toggle };
   })
   .filter(Boolean);
 
-if (navigationHeaders.length > 0) {
-  document.documentElement.classList.add("has-mobile-navigation");
+document.addEventListener("click", (event) => {
+  for (const { head, setOpen } of heads) {
+    if (!head.contains(event.target)) setOpen(false);
+  }
+});
 
-  document.addEventListener("click", (event) => {
-    for (const navigationHeader of navigationHeaders) {
-      if (!navigationHeader.header.contains(event.target)) navigationHeader.setOpen(false);
-    }
-  });
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  for (const { setOpen, toggle } of heads) {
+    if (toggle.getAttribute("aria-expanded") === "true") setOpen(false, true);
+  }
+});
 
-  document.addEventListener("keydown", (event) => {
-    if (event.key !== "Escape") return;
-    for (const navigationHeader of navigationHeaders) {
-      if (navigationHeader.toggle.getAttribute("aria-expanded") === "true") {
-        navigationHeader.setOpen(false, true);
-      }
-    }
-  });
-
-  mobileBreakpoint.addEventListener("change", ({ matches }) => {
-    if (!matches) {
-      for (const navigationHeader of navigationHeaders) navigationHeader.setOpen(false);
-    }
-  });
-}
+wideScreen.addEventListener("change", ({ matches }) => {
+  if (matches) for (const { setOpen } of heads) setOpen(false);
+});

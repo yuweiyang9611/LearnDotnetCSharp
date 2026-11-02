@@ -4,6 +4,7 @@ const legacyHeadingStorageKey = "learn-dotnet-csharp-guide-last-heading-v1";
 const routeMapElement = document.querySelector("#guide-route-map");
 const continueReading = document.querySelector("#continue-reading");
 const guideRoot = new URL("./", window.location.href);
+const unitRows = [...document.querySelectorAll("[data-unit-route]")];
 
 function readRouteMap() {
   try {
@@ -30,6 +31,16 @@ if (hashId && routeMap[hashId]) {
   window.location.replace(routeMap[hashId]);
 }
 
+// The unit the owner was last reading carries the stopped mark in the directory.
+function markStoppedUnit(pathname) {
+  for (const row of unitRows) {
+    const stopped = Boolean(pathname) && new URL(row.querySelector("a").href).pathname === pathname;
+    if (stopped) row.setAttribute("aria-current", "true");
+    else row.removeAttribute("aria-current");
+    row.querySelector(".nb-stopped").hidden = !stopped;
+  }
+}
+
 function updateContinueReading() {
   const stored = progress.snapshot().lastReading;
   let legacyHeading;
@@ -40,7 +51,11 @@ function updateContinueReading() {
   if (continueReading && storedUrl?.origin === window.location.origin &&
       storedUrl.pathname.startsWith(guideRoot.pathname) && storedUrl.pathname !== guideRoot.pathname) {
     continueReading.href = `${storedUrl.pathname}${storedUrl.hash}`;
-    continueReading.firstChild.textContent = "继续上次阅读 ";
+    continueReading.textContent = stored?.title ? `继续阅读：${stored.title.replace(/^#\s*/, "")}` : "继续上次阅读";
+    continueReading.classList.add("has-record");
+    markStoppedUnit(storedUrl.pathname);
+  } else {
+    markStoppedUnit("");
   }
 }
 updateContinueReading();
@@ -54,12 +69,16 @@ function updateAssessmentProgress() {
     const task = assessments[card.dataset.chapterTaskId];
     const isComplete = Boolean(task?.completed && task.revision === card.dataset.chapterTaskRevision);
     card.classList.toggle("is-task-complete", isComplete);
+    if (isComplete) card.dataset.record = "done";
+    else card.removeAttribute("data-record");
     const status = card.querySelector("[data-guide-task-status]");
     if (status) status.textContent = isComplete ? "已验收" : "待验收";
     completed += isComplete ? 1 : 0;
   }
   const summary = document.querySelector("#assessment-progress");
   if (summary) summary.textContent = `${completed} / ${cards.length} 章验收`;
+  document.querySelector("#assessment-bar")?.style.setProperty("transform", `scaleX(${cards.length ? completed / cards.length : 0})`);
+  document.querySelector("#assessment-track")?.setAttribute("aria-valuenow", String(completed));
 }
 
 updateAssessmentProgress();

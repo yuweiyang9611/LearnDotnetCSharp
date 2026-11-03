@@ -51,6 +51,8 @@
 .mobile-toc { display: none; }
 
 .chapter-hero { margin-bottom: 1.5rem; }
+/* A chapter opens with its route band: the band is the reading column's card head, not a card. */
+.chapter-hero .route-band--page { margin-bottom: 1rem; }
 .breadcrumbs { display: flex; flex-wrap: wrap; gap: 0 .375rem; color: var(--nb-ink-soft); font-size: .875rem; font-variant-numeric: tabular-nums; }
 .chapter-hero h1 { margin-top: .375rem; }
 .chapter-lead { margin-top: .5rem; color: var(--nb-ink-soft); }
@@ -207,36 +209,21 @@
 }
 .back-to-top.is-visible { visibility: visible; opacity: 1; }
 
-/* Book directory: one ruled row per reading unit; a verified chapter turns its stretch solid. */
-.guide-desk { grid-template-columns: minmax(0, 1fr) minmax(0, 26rem); grid-template-areas: "record side"; }
-.guide-desk-side { grid-area: side; padding-top: .5rem; }
-.guide-desk-side .desk-search { margin-top: 0; }
-.guide-desk-note { margin-top: .75rem; color: var(--nb-ink-soft); font-size: .875rem; }
+/* Book directory: a band per part in its route's hue, then one card per reading unit on the sheet. */
+.guide-desk { grid-template-columns: minmax(0, 1fr); max-width: var(--nb-measure); }
 .guide-part-group + .guide-part-group { margin-top: 1.75rem; }
-.guide-part-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 1rem; padding-bottom: .375rem; border-bottom: 1px solid var(--nb-rule-bold); }
-.guide-part-heading h3 { font-size: 1.0625rem; }
-.guide-part-heading span { color: var(--nb-ink-soft); font-size: .875rem; }
-.guide-unit-grid { margin: 0; padding: 0; list-style: none; }
-.guide-unit-card {
-  display: grid;
-  grid-template-columns: var(--col-key) var(--col-name) minmax(0, 1fr) 5rem;
-  gap: 0 var(--col-gap);
-  padding-block: .75rem;
-  border-bottom: 1px solid var(--nb-rule);
-}
-.guide-unit-number { grid-column: 1; grid-row: 1 / span 2; color: var(--nb-ink-soft); font-family: var(--nb-mono); font-size: .875rem; line-height: 1.75; }
-.guide-unit-card h4 { grid-column: 2; grid-row: 1; font-size: 1.0625rem; line-height: 1.5; }
-.guide-unit-card .nb-stopped { grid-column: 2; grid-row: 2; }
-.guide-unit-description { grid-column: 3; grid-row: 1 / span 2; color: var(--nb-ink-soft); font-size: .9375rem; line-height: 1.65; }
-.guide-task-status { grid-column: 4; grid-row: 1; color: var(--nb-ink-soft); font-size: .875rem; }
+.guide-unit-grid { margin: 1rem 0 0; padding: 0; list-style: none; }
+.guide-unit-number { color: var(--nb-ink-soft); font-family: var(--nb-mono); font-size: .875rem; }
+.guide-unit-card h4 { font-size: 1.0625rem; font-weight: 600; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
+.guide-unit-card h4 a { color: var(--nb-link); }
+.guide-unit-card .nb-stopped { color: var(--nb-hue); }
+.guide-unit-card[aria-current] { outline: 3px solid var(--nb-hue-fill); outline-offset: 2px; }
+.guide-unit-description { color: var(--nb-ink-soft); font-size: .9375rem; line-height: 1.65; }
+.guide-task-status { color: var(--nb-ink-soft); }
 .guide-unit-card[data-record="done"] .guide-task-status { color: var(--nb-done); font-weight: 600; }
 
-@media (max-width: 62rem) {
-  .guide-desk { grid-template-columns: minmax(0, 1fr); grid-template-areas: "record" "side"; }
-  .guide-unit-card { grid-template-columns: var(--col-key) minmax(0, 1fr) 5rem; }
-  .guide-unit-card h4, .guide-unit-card .nb-stopped, .guide-unit-description { grid-column: 2; grid-row: auto; }
-  .guide-unit-number { grid-row: 1 / span 3; }
-  .guide-task-status { grid-column: 3; grid-row: 1; }
+@media (min-width: 64rem) {
+  .guide-unit-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 56rem) {
@@ -253,9 +240,6 @@
   .chapter-pagination { grid-template-columns: minmax(0, 1fr); }
   .previous-unit, .next-unit, .chapter-directory-link { grid-column: 1; grid-row: auto; justify-self: start; text-align: left; }
   .next-unit { order: -1; }
-  .guide-unit-card { grid-template-columns: 3.75rem minmax(0, 1fr); }
-  .guide-unit-number { grid-row: 1 / span 4; }
-  .guide-task-status { grid-column: 2; grid-row: auto; }
 }
 
 @media print {

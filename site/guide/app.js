@@ -1,7 +1,22 @@
 import { progress } from "../progress-store.js";
 import { initializeProgressUI } from "../progress-ui.js";
 import { copyText } from "../clipboard.js";
+import { experiments, learningStages } from "../catalog-data.js";
 document.documentElement.classList.add("guide-js");
+
+// The band at the top of a chapter carries the labs-done share of the chapter's route.
+function renderRouteBand() {
+  const band = document.querySelector("[data-route-band]");
+  const stage = band && learningStages.find(({ number }) => number === band.dataset.routeBand);
+  if (!stage) return;
+  const members = experiments.filter(({ category }) => stage.categories.includes(category));
+  const completed = new Set(progress.completedIds());
+  const done = members.filter(({ id }) => completed.has(id)).length;
+  band.querySelector("[data-route-state]").textContent = done === members.length ? `${done} / ${members.length} 已完成` : `${done} / ${members.length} 实验`;
+  const bar = band.querySelector("[data-route-bar]");
+  bar.style.setProperty("--nb-fraction", String(members.length ? done / members.length : 0));
+  bar.setAttribute("aria-valuenow", String(done));
+}
 
 const tocLinks = [...document.querySelectorAll("[data-toc-id]")];
 const headings = [...document.querySelectorAll("[data-guide-heading]")];
@@ -238,6 +253,8 @@ window.addEventListener("resize", scheduleScrollUpdate);
 updateScrollState();
 initializeProgressUI(document.querySelector("[data-learning-backup]"));
 initializeAssessment();
+renderRouteBand();
+window.addEventListener("learning-data-change", renderRouteBand);
 
 if (window.location.hash) {
   try {

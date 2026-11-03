@@ -1,7 +1,7 @@
 import { test as base, expect } from "@playwright/test";
 import { tasks } from "../../artifacts/study-site/progress-catalog.js";
 
-// The lab notebook theme: record lines, the opening screen, the shared scheme control and Chinese typesetting.
+// The learning dashboard: masthead figures, the banner, route cards with rings, bands with bars, the shared scheme control and Chinese typesetting.
 const key = "learn-dotnet-csharp-learning-data-v1";
 const verified = (id) => ({ revision: tasks[id].revision, steps: Array(tasks[id].steps).fill(true),
   criteria: Array(tasks[id].criteria).fill(true), notes: "已运行并保存完整输出与解释。", completed: true });
@@ -27,14 +27,21 @@ async function seed(page, data = record) {
   await page.addInitScript(({ name, value }) => { if (localStorage.getItem(name) === null) localStorage.setItem(name, JSON.stringify(value)); }, { name: key, value: data });
 }
 
-test("an opening screen with no record shows no tick, stopped label or solid line", async ({ page }) => {
+test("an opening screen with no record shows zero figures, no stopped card and every ring at 0%", async ({ page }) => {
   await page.goto("./");
   await expect(page.locator("#continue-learning")).toHaveText("从前言开始阅读");
   await expect(page.locator("#continue-learning")).not.toHaveClass(/has-record/);
-  await expect(page.locator(".nb-entry[aria-current]")).toHaveCount(0);
+  await expect(page.locator("#resume-go")).toHaveText("开始阅读");
+  await expect(page.locator("#stat-done")).toHaveText("0");
+  await expect(page.locator("#stat-reading")).toHaveText("还没有");
+  await expect(page.locator("[aria-current]:not(a)")).toHaveCount(0);
   await expect(page.locator(".nb-stopped:visible")).toHaveCount(0);
   await expect(page.locator("[data-record=done]")).toHaveCount(0);
-  expect(await page.locator("#progress-bar").evaluate((bar) => getComputedStyle(bar).transform)).toMatch(/matrix\(0, 0, 0, 1, 0, 0\)|none/);
+  expect(await page.locator("#progress-bar").evaluate((bar) => getComputedStyle(bar).width)).toBe("0px");
+  await expect(page.locator(".path-card")).toHaveCount(8);
+  for (const ring of await page.locator(".path-card .nb-ring").all()) await expect(ring).toHaveAttribute("aria-label", "完成 0%");
+  // Route heads cycle four hues; red is kept for wrong.
+  expect(await page.locator(".path-card .nb-card-head").evaluateAll((heads) => new Set(heads.map((head) => getComputedStyle(head).backgroundColor)).size)).toBe(4);
   await expect(page.locator("#next-lab-command")).toHaveText("dotnet run --project src/LearnDotnetCSharp.App -- run runtime.overview");
 });
 
@@ -45,8 +52,12 @@ test("the opening screen continues from the record and marks one stopped row", a
   await expect(link).toHaveText("继续阅读：19.2 一个贯穿四层的例子");
   await expect(link).toHaveAttribute("href", /^guide\/chapter-19\/#/);
   await expect(link).toHaveClass(/has-record/);
+  await expect(page.locator("#resume-go")).toHaveText("继续学习");
+  await expect(page.locator("#resume-go")).toHaveAttribute("href", /^guide\/chapter-19\/#/);
   await expect(page.locator("#progress-count")).toHaveText("2 / 53");
   await expect(page.locator("#assessment-count")).toHaveText("1 / 30");
+  await expect(page.locator("#stat-done")).toHaveText("2");
+  await expect(page.locator("#stat-reading")).toHaveText("第 19 章");
   await expect(page.locator(".experiment-card[data-record=done]")).toHaveCount(2);
   const stopped = page.locator(".experiment-card[aria-current]");
   await expect(stopped).toHaveCount(1);
@@ -55,18 +66,45 @@ test("the opening screen continues from the record and marks one stopped row", a
   await expect(page.locator("#next-lab-title")).toHaveText("下一个实验");
   await expect(page.locator("#next-lab-command")).toContainText("run runtime.collectible-plugin");
   expect(await page.locator('[data-stage-row="01"]').evaluate((row) => row.style.getPropertyValue("--nb-fraction"))).toBe(String(2 / 3));
+  await expect(page.locator('[data-stage-row="01"] .nb-ring')).toHaveAttribute("aria-label", "完成 67%");
+  await expect(page.locator('[data-stage-row="01"] [data-stage-state]')).toHaveText("2 / 3 实验");
+  await expect(page.locator('[data-stage-row="01"] [data-stage-next]')).toHaveText("下一个：可回收插件与卫星资源");
+  await expect(page.locator('[data-catalog-group="01"] [data-group-state]')).toHaveText("2 / 3 实验");
+  await expect(page.locator('[data-catalog-group="01"] [data-group-bar]')).toHaveAttribute("aria-valuenow", "2");
   await page.locator('[data-complete-id="runtime.collectible-plugin"]').check();
   await expect(page.locator('[data-stage-row="01"]')).toHaveAttribute("data-record", "done");
   await expect(page.locator('[data-stage-row="01"] [data-stage-state]')).toHaveText("3 / 3 已完成");
+  await expect(page.locator('[data-stage-row="01"] .nb-ring')).toHaveAttribute("aria-label", "完成 100%");
+  // Narrowing the catalog hides the routes with no matching lab, band and all.
+  await page.locator('[data-category="runtime"]').click();
+  await expect(page.locator(".catalog-group:visible")).toHaveCount(1);
+  await expect(page.locator('[data-category="runtime"]')).toHaveAttribute("aria-pressed", "true");
+});
+
+test("a chapter opens with its route band and the route's lab record", async ({ page }) => {
+  await seed(page);
+  await page.goto("guide/chapter-05/");
+  const band = page.locator("[data-route-band]");
+  await expect(band).toHaveAttribute("data-route", "01");
+  await expect(band).toContainText("第 01 条路线 · 运行时直觉");
+  await expect(band.locator("[data-route-state]")).toHaveText("2 / 3 实验");
+  await expect(band.locator("[data-route-bar]")).toHaveAttribute("aria-valuenow", "2");
+  expect(await band.locator("[data-route-bar] > span").evaluate((bar) => getComputedStyle(bar).width)).not.toBe("0px");
 });
 
 test("the guide directory marks the stopped unit and verified chapters", async ({ page }) => {
   await seed(page);
   await page.goto("guide/");
   await expect(page.locator("#continue-reading")).toHaveText("继续阅读：19.2 一个贯穿四层的例子");
+  await expect(page.locator("#guide-resume-go")).toHaveText("继续阅读");
   await expect(page.locator(".guide-unit-card[aria-current]")).toHaveAttribute("data-unit-route", "guide/chapter-19/");
+  await expect(page.locator(".guide-unit-card[aria-current] .nb-stopped")).toBeVisible();
   await expect(page.locator('[data-chapter-task-id="chapter-01"]')).toHaveAttribute("data-record", "done");
   await expect(page.locator("#assessment-progress")).toHaveText("1 / 30 章验收");
+  await expect(page.locator("#assessment-track")).toHaveAttribute("aria-valuenow", "1");
+  await expect(page.locator("#guide-stat-verified")).toHaveText("1");
+  await expect(page.locator("#guide-stat-reading")).toHaveText("第 19 章");
+  await expect(page.locator('.guide-part-group:has([data-chapter-task-id="chapter-01"]) [data-part-state]')).toHaveText("1 / 4 章已验收");
 });
 
 test("resource pages keep the reading position of the book", async ({ page }) => {

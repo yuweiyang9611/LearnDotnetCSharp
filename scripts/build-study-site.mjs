@@ -187,41 +187,78 @@ function experimentCommand(id) {
   return `dotnet run --project src/LearnDotnetCSharp.App -- run ${id}`;
 }
 
+// Every category belongs to exactly one route, so a route's labs are the labs of its categories.
+function stageOfCategory(category) {
+  const stage = learningStages.find(({ categories: keys }) => keys.includes(category));
+  if (!stage) throw new Error(`Category '${category}' belongs to no learning stage.`);
+  return stage;
+}
+
+function stageEyebrow(stage) {
+  return `第 ${stage.number} 条路线 · ${stage.label}`;
+}
+
 // The homepage is complete without JavaScript; app.js only adds the reader's record and the filters.
 function renderStaticHomepage(experimentGuideUrls) {
+  const stageMembers = (stage) => experiments.filter(({ category }) => stage.categories.includes(category));
+  // Route cards: the head in the route's hue (styles.css maps data-route to a hue), a ring for the record.
   const pathHtml = learningStages.map((stage) => {
-    const total = experiments.filter(({ category }) => stage.categories.includes(category)).length;
-    const categoryLabels = stage.categories.map((key) => categories[key].label).join("、");
+    const members = stageMembers(stage);
     return `
-          <li class="path-card nb-entry" data-stage-row="${escapeHtml(stage.number)}">
-            <span class="row-key">${escapeHtml(stage.number)}</span>
-            <h3><a href="#catalog" data-stage="${escapeHtml(stage.number)}">${escapeHtml(stage.title)}</a></h3>
-            <p class="row-sub">${escapeHtml(stage.label)}</p>
-            <p class="row-note">${escapeHtml(stage.description)}<span class="row-tags">${escapeHtml(categoryLabels)}</span></p>
-            <p class="row-state" data-stage-state>0 / ${total} 个实验</p>
+          <li class="path-card nb-card" data-stage-row="${escapeHtml(stage.number)}" data-route="${escapeHtml(stage.number)}">
+            <div class="nb-card-head">
+              <div>
+                <p class="nb-card-eyebrow">${escapeHtml(stageEyebrow(stage))}</p>
+                <h3><a href="#catalog" data-stage="${escapeHtml(stage.number)}">${escapeHtml(stage.title)}</a></h3>
+              </div>
+              <div class="nb-ring" data-stage-ring role="img" aria-label="完成 0%"><span>0%</span></div>
+            </div>
+            <div class="nb-card-body">
+              <p class="row-note">${escapeHtml(stage.description)}</p>
+              <div class="nb-card-meta"><span class="row-state" data-stage-state>0 / ${members.length} 实验</span><span class="row-next" data-stage-next>下一个：${escapeHtml(members[0].title)}</span></div>
+            </div>
           </li>`;
   }).join("");
+  // Filter chips: 全部 fills ink when pressed, a category fills with its route's hue.
   const filtersHtml = [
-    `<button class="filter-button" type="button" data-category="all" aria-pressed="true">全部 <span>${experiments.length}</span></button>`,
+    `<button class="filter-button nb-chip" type="button" data-category="all" data-hue="ink" aria-pressed="true">全部 <span class="nb-chip-count">${experiments.length}</span></button>`,
     ...Object.entries(categories).map(([key, category]) => {
       const count = experiments.filter((experiment) => experiment.category === key).length;
-      return `<button class="filter-button" type="button" data-category="${escapeHtml(key)}" aria-pressed="false">${escapeHtml(category.label)} <span>${count}</span></button>`;
+      return `<button class="filter-button nb-chip" type="button" data-category="${escapeHtml(key)}" data-route="${escapeHtml(stageOfCategory(key).number)}" aria-pressed="false">${escapeHtml(category.label)} <span class="nb-chip-count">${count}</span></button>`;
     }),
   ].join("");
-  const experimentsHtml = experiments.map((experiment) => {
+  const experimentCard = (experiment) => {
     const category = categories[experiment.category];
     const sourceUrl = `${repositoryUrl}/blob/main/${experiment.source}`;
     return `
-          <article class="experiment-card nb-entry" id="experiment-${escapeHtml(experiment.id)}" data-experiment-id="${escapeHtml(experiment.id)}">
-            <span class="row-key">${escapeHtml(category.label)}</span>
-            <h3><a href="${escapeHtml(experimentGuideUrls[experiment.id])}">${escapeHtml(experiment.title)}</a></h3>
-            <p class="nb-stopped" hidden>停在这里</p>
-            <p class="row-note">${escapeHtml(experiment.summary)}<code class="experiment-id">${escapeHtml(experiment.id)}</code></p>
-            <div class="row-state">
-              <label class="complete-toggle"><input type="checkbox" data-complete-id="${escapeHtml(experiment.id)}" aria-label="已完成：${escapeHtml(experiment.title)}" /><span>已完成</span></label>
-              <span class="experiment-actions"><button class="text-action" type="button" data-copy="${escapeHtml(experimentCommand(experiment.id))}">复制命令</button><a class="source-link" href="${escapeHtml(sourceUrl)}">源码</a></span>
+            <article class="experiment-card nb-card" id="experiment-${escapeHtml(experiment.id)}" data-experiment-id="${escapeHtml(experiment.id)}">
+              <div class="nb-card-body">
+                <p class="row-key">${escapeHtml(category.label)} · <code class="experiment-id">${escapeHtml(experiment.id)}</code></p>
+                <h3><a href="${escapeHtml(experimentGuideUrls[experiment.id])}">${escapeHtml(experiment.title)}</a></h3>
+                <p class="nb-stopped" hidden>停在这里</p>
+                <p class="row-note">${escapeHtml(experiment.summary)}</p>
+                <div class="nb-card-meta row-state">
+                  <label class="complete-toggle"><input type="checkbox" data-complete-id="${escapeHtml(experiment.id)}" aria-label="已完成：${escapeHtml(experiment.title)}" /><span>已完成</span></label>
+                  <span class="experiment-actions"><button class="text-action" type="button" data-copy="${escapeHtml(experimentCommand(experiment.id))}">复制命令</button><a class="source-link" href="${escapeHtml(sourceUrl)}">源码</a></span>
+                </div>
+              </div>
+            </article>`;
+  };
+  // The catalog is grouped by route: a band in the route's hue with its progress bar, then the labs as cards.
+  const experimentsHtml = learningStages.map((stage) => {
+    const members = stageMembers(stage);
+    return `
+          <section class="catalog-group" data-catalog-group="${escapeHtml(stage.number)}" data-route="${escapeHtml(stage.number)}" aria-labelledby="catalog-group-${escapeHtml(stage.number)}">
+            <div class="route-band">
+              <div class="route-band-copy">
+                <p class="route-band-eyebrow">${escapeHtml(stageEyebrow(stage))}</p>
+                <h3 id="catalog-group-${escapeHtml(stage.number)}">${escapeHtml(stage.title)}</h3>
+              </div>
+              <div class="route-band-progress"><span data-group-state>0 / ${members.length} 实验</span><div class="nb-bar nb-bar--on-fill" data-group-bar role="progressbar" aria-label="${escapeHtml(stage.label)}实验进度" aria-valuemin="0" aria-valuemax="${members.length}" aria-valuenow="0"><span></span></div></div>
             </div>
-          </article>`;
+            <div class="nb-grid catalog-grid">${members.map(experimentCard).join("")}
+            </div>
+          </section>`;
   }).join("");
   const resourcesHtml = resources.map((resource) => `
           <li class="resource-card row">
@@ -591,6 +628,30 @@ for (const experiment of experiments) {
   if (!anchorRoutes.has(anchor)) throw new Error(`No chapter route contains experiment '${experiment.id}'.`);
 }
 
+// Each reading unit sits on one route: the route of its labs, or the route of the unit before it
+// when it has none, so the preface opens route 01 and an appendix stays on route 08.
+const stagesByUnitRoute = new Map();
+for (const experiment of experiments) {
+  const unitRoute = anchorRoutes.get(`experiment-${experiment.id.replaceAll(".", "-")}`);
+  const stage = stageOfCategory(experiment.category);
+  const current = stagesByUnitRoute.get(unitRoute);
+  if (!current || stage.number > current.number) stagesByUnitRoute.set(unitRoute, stage);
+}
+const stageByUnitRoute = new Map();
+let carriedStage = learningStages[0];
+for (const unit of units) {
+  carriedStage = stagesByUnitRoute.get(unit.route) ?? carriedStage;
+  stageByUnitRoute.set(unit.route, carriedStage);
+}
+
+function renderRouteBand(stage) {
+  const total = experiments.filter(({ category }) => stage.categories.includes(category)).length;
+  return `<div class="route-band route-band--page" data-route="${escapeHtml(stage.number)}" data-route-band="${escapeHtml(stage.number)}">
+            <p class="route-band-eyebrow">${escapeHtml(stageEyebrow(stage))}</p>
+            <div class="route-band-progress"><span data-route-state>0 / ${total} 实验</span><div class="nb-bar nb-bar--on-fill" data-route-bar role="progressbar" aria-label="${escapeHtml(stage.label)}实验进度" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="0"><span></span></div></div>
+          </div>`;
+}
+
 const bookTitle = renderedGuide.metadata.title ?? ".NET 10 与 C# 14 高级特性学习指导";
 const bookSubtitle = renderedGuide.metadata.subtitle ?? "以 53 个可运行实验为主线";
 const bookDate = renderedGuide.metadata.date ?? "持续更新";
@@ -638,6 +699,7 @@ for (let index = 0; index < units.length; index += 1) {
     POSITION_LABEL: escapeHtml(positionLabel),
     PREVIOUS_LINK_HTML: paginationLink(unit, units[index - 1], "previous"),
     READING_ROUTE: escapeHtml(unit.route),
+    ROUTE_BAND_HTML: renderRouteBand(stageByUnitRoute.get(unit.route)),
     SEARCH_HREF: relativeDirectoryHref(unit.route, "search/"),
     SHARED_CSS_HREF: relativeFileHref(unit.route, "styles.css"),
     TOC_HTML: tocHtml,
@@ -697,12 +759,19 @@ for (const unit of units) {
   group.push(unit);
   groupedUnits.set(unit.partTitle, group);
 }
+// The directory: a band per part in the route's hue of its first unit, then one card per reading unit.
 const unitDirectoryHtml = [...groupedUnits.entries()].map(([partTitle, partUnits]) => {
   const groupHeadingId = partHeadingIdByTitle.get(partTitle) ?? `part-${partUnits[0].route.replaceAll("/", "-")}`;
+  const stage = stageByUnitRoute.get(partUnits[0].route);
+  const chapterCount = partUnits.filter(({ kind }) => kind === "chapter").length;
+  const bandState = chapterCount ? `<span data-part-state>0 / ${chapterCount} 章已验收</span>` : `<span>${partUnits.length} 个阅读单元</span>`;
   return `
-  <section class="guide-part-group" aria-labelledby="${escapeHtml(groupHeadingId)}">
-    <div class="guide-part-heading"><h3 id="${escapeHtml(groupHeadingId)}">${escapeHtml(partTitle)}</h3><span>${partUnits.length} 个阅读单元</span></div>
-    <ol class="guide-unit-grid">
+  <section class="guide-part-group" data-route="${escapeHtml(stage.number)}" aria-labelledby="${escapeHtml(groupHeadingId)}">
+    <div class="route-band guide-part-heading">
+      <div class="route-band-copy"><p class="route-band-eyebrow">${escapeHtml(stageEyebrow(stage))}</p><h3 id="${escapeHtml(groupHeadingId)}">${escapeHtml(partTitle)}</h3></div>
+      <div class="route-band-progress">${bandState}${chapterCount ? `<div class="nb-bar nb-bar--on-fill" data-part-bar role="progressbar" aria-label="${escapeHtml(partTitle)}验收进度" aria-valuemin="0" aria-valuemax="${chapterCount}" aria-valuenow="0"><span></span></div>` : ""}</div>
+    </div>
+    <ol class="guide-unit-grid nb-grid">
       ${partUnits.map((unit) => {
         const chapterTask = unit.kind === "chapter" ? chapterTasks.find(({ chapter }) => chapter === unit.number) : null;
         const taskId = chapterTask ? `chapter-${String(unit.number).padStart(2, "0")}` : "";
@@ -712,9 +781,9 @@ const unitDirectoryHtml = [...groupedUnits.entries()].map(([partTitle, partUnits
         // the raw opening text carries table debris and loose spacing.
         const note = chapterTask
           ? chapterTask.objective
-          : unit.headings.slice(1).map(({ text }) => text.replace(/^[\d.]+\s*/, "")).join("、");
+          : unit.headings.slice(1, 4).map(({ text }) => text.replace(/^[\d.]+\s*/, "")).join("、");
         const title = unit.title.replace(/^\d+\.\s*/, "").replace(/^附录\s+[A-D]：/, "");
-        return `<li class="guide-unit-card nb-entry"${taskId ? ` data-chapter-task-id="${taskId}" data-chapter-task-revision="${taskRevision}"` : ""} data-unit-route="${escapeHtml(unit.route)}"><span class="guide-unit-number">${escapeHtml(unit.label)}</span><h4><a href="${escapeHtml(relativeDirectoryHref("guide/", unit.route))}">${escapeHtml(title)}</a></h4><p class="nb-stopped" hidden>停在这里</p>${note ? `<p class="guide-unit-description">${escapeHtml(note)}</p>` : ""}${taskStatus}</li>`;
+        return `<li class="guide-unit-card nb-card"${taskId ? ` data-chapter-task-id="${taskId}" data-chapter-task-revision="${taskRevision}"` : ""} data-unit-route="${escapeHtml(unit.route)}"><div class="nb-card-body"><span class="guide-unit-number">${escapeHtml(unit.label)}</span><h4><a href="${escapeHtml(relativeDirectoryHref("guide/", unit.route))}">${escapeHtml(title)}</a></h4><p class="nb-stopped" hidden>停在这里</p>${note ? `<p class="guide-unit-description">${escapeHtml(note)}</p>` : ""}<div class="nb-card-meta"><span>${escapeHtml(unit.kind === "chapter" ? `第 ${unit.label} 章` : unit.label)}</span>${taskStatus}</div></div></li>`;
       }).join("\n")}
     </ol>
   </section>`;
@@ -812,7 +881,7 @@ const layerHtml = applyTemplate(layerTemplate, {
   LAYER_ASSEMBLY_HTML: escapeHtml(layerArtifacts.stages.assembly),
   LAYER_CIL_HTML: escapeHtml(layerArtifacts.stages.cil),
   LAYER_FOCUS_CONTROLS_HTML: layerArtifacts.focuses.map((focus, index) => (
-    `<button class="filter-button" type="button" data-focus="${escapeHtml(focus.id)}" aria-pressed="${index === 0}">${escapeHtml(focus.label)}</button>`
+    `<button class="filter-button nb-chip" type="button" data-focus="${escapeHtml(focus.id)}" aria-pressed="${index === 0}">${escapeHtml(focus.label)}</button>`
   )).join(""),
   LAYER_FOCUS_SUMMARY: escapeHtml(initialFocus.explanation),
   LAYER_HASH: escapeHtml(`源码 ${layerArtifacts.sourceSha256.slice(0, 12)} · PE ${layerArtifacts.peSha256.slice(0, 12)}`),

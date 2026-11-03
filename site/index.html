@@ -58,26 +58,31 @@
     </noscript>
 
     <main class="page" id="main">
-      <section class="desk" aria-labelledby="hero-title">
-        <div class="desk-record">
+      <div class="masthead">
+        <div>
           <h1 id="hero-title">.NET 10 与 C# 14 高级特性实验室</h1>
-          <a class="continue-learning" id="continue-learning" href="./guide/preface/">从前言开始阅读</a>
-          <div class="record-panel">
-            <div class="record-track" id="progress-track" role="progressbar" aria-label="实验完成进度" aria-valuemin="0" aria-valuemax="53" aria-valuenow="0"><span id="progress-bar"></span></div>
-            <p class="record-copy"><strong id="progress-count">0 / 53</strong> 个实验已完成 · <span id="assessment-count">0 / 30</span> 章已验收</p>
+          <p class="masthead-note">30 章教材、八条路线、53 个可运行实验。每一条路线都记着你停在哪，下次打开接着做。</p>
+        </div>
+        <div class="stats" role="group" aria-label="学习概况">
+          <p class="nb-stat" data-hue="green"><b id="stat-done">0</b><span>个实验已完成</span></p>
+          <p class="nb-stat" data-hue="cyan"><b id="assessment-count">0 / 30</b><span>章已验收</span></p>
+          <p class="nb-stat" data-hue="blue"><b id="stat-reading">还没有</b><span>上次阅读</span></p>
+        </div>
+      </div>
+
+      <section class="resume nb-banner" aria-labelledby="resume-label">
+        <div class="resume-copy">
+          <p class="nb-banner-eyebrow" id="resume-label">接着做</p>
+          <a class="continue-learning nb-banner-title" id="continue-learning" href="./guide/preface/">从前言开始阅读</a>
+          <div class="record-panel nb-banner-note">
+            <div class="record-track nb-bar nb-bar--on-fill" id="progress-track" role="progressbar" aria-label="实验完成进度" aria-valuemin="0" aria-valuemax="53" aria-valuenow="0"><span id="progress-bar"></span></div>
+            <p class="record-copy"><strong id="progress-count">0 / 53</strong> 实验</p>
           </div>
         </div>
+        <a class="nb-button nb-button--solid resume-go" id="resume-go" href="./guide/preface/">开始阅读</a>
+      </section>
 
-        <form class="desk-search" action="./search/" method="get" role="search" aria-labelledby="desk-search-title">
-          <h2 class="field-label" id="desk-search-title">搜索教材、资料与实验</h2>
-          <div class="desk-search-row">
-            <label class="sr-only" for="desk-search-input">关键词</label>
-            <input class="nb-input" id="desk-search-input" name="q" type="search" autocomplete="off" placeholder="例如：ValueTask、lowering 元数据" />
-            <button class="nb-button" type="submit">搜索</button>
-          </div>
-          <p class="field-note">也可以打开<a href="./guide/">教材目录</a>或<a href="./downloads/LearnDotnetCSharp-Study-Guide.pdf" download>下载 PDF</a>。</p>
-        </form>
-
+      <section class="desk" aria-label="先跑一个实验，或搜索全站">
         <aside class="next-lab" aria-labelledby="next-lab-title">
           <div class="next-lab-head">
             <h2 class="field-label" id="next-lab-title">先跑第一个实验</h2>
@@ -88,20 +93,30 @@
           <pre class="command-row" tabindex="0"><code id="next-lab-command">{{NEXT_LAB_COMMAND}}</code></pre>
           <p class="next-lab-note">在仓库根目录运行。实验需在本地进行，真实网络端点只绑定 loopback。</p>
         </aside>
+
+        <form class="desk-search" action="./search/" method="get" role="search" aria-labelledby="desk-search-title">
+          <h2 class="field-label" id="desk-search-title">搜索教材、资料与实验</h2>
+          <div class="desk-search-row">
+            <label class="sr-only" for="desk-search-input">关键词</label>
+            <input class="nb-input" id="desk-search-input" name="q" type="search" autocomplete="off" placeholder="例如：ValueTask、lowering 元数据" />
+            <button class="nb-button" type="submit">搜索</button>
+          </div>
+          <p class="field-note">也可以打开<a href="./guide/">教材目录</a>或<a href="./downloads/LearnDotnetCSharp-Study-Guide.pdf" download>下载 PDF</a>。</p>
+        </form>
       </section>
 
       <section class="path-section" id="path" aria-labelledby="path-title">
         <div class="section-head">
-          <h2 id="path-title">学习路线</h2>
-          <p>八个阶段由浅入深，每一步都对应可运行的代码与明确的观察点。点阶段名只看这一阶段的实验。</p>
+          <h2 id="path-title">八条路线</h2>
+          <p>由浅入深，每一条都对应可运行的实验与明确的观察点。点路线名只看这一条路线的实验。</p>
         </div>
-        <ol class="rows path-list" id="path-grid">{{STATIC_LEARNING_PATH_HTML}}</ol>
+        <ol class="nb-grid path-list" id="path-grid">{{STATIC_LEARNING_PATH_HTML}}</ol>
       </section>
 
       <section class="catalog-section" id="catalog" aria-labelledby="catalog-title">
         <div class="section-head">
           <h2 id="catalog-title">53 个实验</h2>
-          <p>按主题筛选或搜索全部实验。完成状态只保存在当前浏览器，不会上传任何数据。</p>
+          <p>按主题筛选或搜索全部实验，按路线分组。完成状态只保存在当前浏览器，不会上传任何数据。</p>
         </div>
 
         <div class="catalog-tools">

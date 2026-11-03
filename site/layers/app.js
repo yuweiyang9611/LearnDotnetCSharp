@@ -76,7 +76,7 @@ function wirePayload(data) {
   controls.replaceChildren(...data.focuses.map((focus, index) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = "filter-button";
+    button.className = "filter-button nb-chip";
     button.dataset.focus = focus.id;
     button.setAttribute("aria-pressed", String(index === 0));
     button.textContent = focus.label;

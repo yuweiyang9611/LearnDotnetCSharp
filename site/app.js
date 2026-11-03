@@ -28,9 +28,13 @@ const elements = {
   progressCount: document.querySelector("#progress-count"),
   progressTrack: document.querySelector("#progress-track"),
   resetProgress: document.querySelector("#reset-progress"),
+  resumeGo: document.querySelector("#resume-go"),
   search: document.querySelector("#catalog-search"),
+  statDone: document.querySelector("#stat-done"),
+  statReading: document.querySelector("#stat-reading"),
   toast: document.querySelector("#toast"),
 };
+const groups = new Map([...document.querySelectorAll("[data-catalog-group]")].map((group) => [group.dataset.catalogGroup, group]));
 
 const rows = new Map(experiments.map(({ id }) => [id, document.getElementById(`experiment-${id}`)]));
 let completedIds = loadProgress();
@@ -54,11 +58,26 @@ function verifiedChapters() {
   return Object.entries(tasks).filter(([id, task]) => assessments[id]?.completed && assessments[id].revision === task.revision).length;
 }
 
-// Solid green reaches as far as the record; a row with no record keeps only the dashed line.
+// The record reaches as far as the fraction: a ring, a bar or a card with no record stays at zero.
 function setRecord(row, fraction) {
   row.style.setProperty("--nb-fraction", String(fraction));
   if (fraction >= 1) row.dataset.record = "done";
   else row.removeAttribute("data-record");
+}
+
+function setBar(bar, done, total) {
+  if (!bar) return;
+  bar.style.setProperty("--nb-fraction", String(total ? done / total : 0));
+  bar.setAttribute("aria-valuenow", String(done));
+}
+
+// The last reading as a short figure: 第 19 章, 前言 or 附录 A.
+function readingFigure(reading) {
+  const match = reading?.url.match(/^guide\/(preface|chapter-(\d+)|appendix-([a-d]))\//);
+  if (!match) return "还没有";
+  if (match[2]) return `第 ${Number.parseInt(match[2], 10)} 章`;
+  if (match[3]) return `附录 ${match[3].toUpperCase()}`;
+  return "前言";
 }
 
 function renderDesk(nextExperiment) {
@@ -67,10 +86,11 @@ function renderDesk(nextExperiment) {
   const chapters = Object.keys(tasks).length;
   elements.progressCount.textContent = `${completed} / ${total}`;
   elements.assessmentCount.textContent = `${verifiedChapters()} / ${chapters}`;
-  elements.progressBar.style.transform = `scaleX(${completed / total})`;
-  elements.progressTrack.setAttribute("aria-valuenow", String(completed));
+  elements.statDone.textContent = String(completed);
+  setBar(elements.progressTrack, completed, total);
 
   const reading = progress.snapshot().lastReading;
+  elements.statReading.textContent = readingFigure(reading);
   const link = elements.continueLink;
   if (reading) {
     link.href = reading.url;
@@ -84,7 +104,10 @@ function renderDesk(nextExperiment) {
     link.href = "./guide/preface/";
     link.textContent = "从前言开始阅读";
   }
-  link.classList.toggle("has-record", Boolean(reading) || completed > 0);
+  const hasRecord = Boolean(reading) || completed > 0;
+  link.classList.toggle("has-record", hasRecord);
+  elements.resumeGo.href = link.getAttribute("href");
+  elements.resumeGo.textContent = hasRecord ? "继续学习" : "开始阅读";
 
   const lab = nextExperiment ?? experiments[0];
   elements.nextTitle.textContent = !nextExperiment ? "全部实验已完成" : completed === 0 ? "先跑第一个实验" : "下一个实验";
@@ -101,10 +124,24 @@ function renderStages() {
     if (!row) continue;
     const members = experiments.filter(({ category }) => stage.categories.includes(category));
     const done = members.filter(({ id }) => completedIds.has(id)).length;
-    setRecord(row, members.length ? done / members.length : 0);
+    const fraction = members.length ? done / members.length : 0;
+    setRecord(row, fraction);
+    const ring = row.querySelector("[data-stage-ring]");
+    ring.style.setProperty("--nb-fraction", String(fraction));
+    ring.setAttribute("aria-label", `完成 ${Math.round(fraction * 100)}%`);
+    ring.querySelector("span").textContent = `${Math.round(fraction * 100)}%`;
     const state = row.querySelector("[data-stage-state]");
-    state.textContent = done === members.length ? `${done} / ${members.length} 已完成` : `${done} / ${members.length} 个实验`;
+    const stateText = done === members.length ? `${done} / ${members.length} 已完成` : `${done} / ${members.length} 实验`;
+    state.textContent = stateText;
     state.classList.toggle("has-record", done > 0);
+    const next = members.find(({ id }) => !completedIds.has(id));
+    row.querySelector("[data-stage-next]").textContent = next ? `下一个：${next.title}` : "这条路线已走完";
+    // The catalog band of the same route carries the same figure as a bar.
+    const group = groups.get(stage.number);
+    if (!group) continue;
+    setRecord(group, fraction);
+    group.querySelector("[data-group-state]").textContent = stateText;
+    setBar(group.querySelector("[data-group-bar]"), done, members.length);
   }
 }
 
@@ -142,6 +179,9 @@ function applyFilters() {
     const shown = matchesFilters(experiment);
     rows.get(experiment.id).hidden = !shown;
     visible += shown ? 1 : 0;
+  }
+  for (const group of groups.values()) {
+    group.hidden = !group.querySelector(".experiment-card:not([hidden])");
   }
   elements.catalogCount.textContent = String(visible);
   elements.filterSummary.textContent = searchTerm

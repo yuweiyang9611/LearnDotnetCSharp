@@ -3,6 +3,7 @@ import { initializeProgressUI } from "../progress-ui.js";
 const legacyHeadingStorageKey = "learn-dotnet-csharp-guide-last-heading-v1";
 const routeMapElement = document.querySelector("#guide-route-map");
 const continueReading = document.querySelector("#continue-reading");
+const resumeGo = document.querySelector("#guide-resume-go");
 const guideRoot = new URL("./", window.location.href);
 const unitRows = [...document.querySelectorAll("[data-unit-route]")];
 
@@ -33,12 +34,16 @@ if (hashId && routeMap[hashId]) {
 
 // The unit the owner was last reading carries the stopped mark in the directory.
 function markStoppedUnit(pathname) {
+  let figure = "还没有";
   for (const row of unitRows) {
     const stopped = Boolean(pathname) && new URL(row.querySelector("a").href).pathname === pathname;
     if (stopped) row.setAttribute("aria-current", "true");
     else row.removeAttribute("aria-current");
     row.querySelector(".nb-stopped").hidden = !stopped;
+    if (stopped) figure = row.querySelector(".nb-card-meta > span")?.textContent ?? figure;
   }
+  const stat = document.querySelector("#guide-stat-reading");
+  if (stat) stat.textContent = figure;
 }
 
 function updateContinueReading() {
@@ -56,6 +61,10 @@ function updateContinueReading() {
     markStoppedUnit(storedUrl.pathname);
   } else {
     markStoppedUnit("");
+  }
+  if (resumeGo && continueReading) {
+    resumeGo.href = continueReading.getAttribute("href");
+    resumeGo.textContent = continueReading.classList.contains("has-record") ? "继续阅读" : "开始阅读";
   }
 }
 updateContinueReading();
@@ -77,8 +86,22 @@ function updateAssessmentProgress() {
   }
   const summary = document.querySelector("#assessment-progress");
   if (summary) summary.textContent = `${completed} / ${cards.length} 章验收`;
-  document.querySelector("#assessment-bar")?.style.setProperty("transform", `scaleX(${cards.length ? completed / cards.length : 0})`);
+  document.querySelector("#assessment-track")?.style.setProperty("--nb-fraction", String(cards.length ? completed / cards.length : 0));
   document.querySelector("#assessment-track")?.setAttribute("aria-valuenow", String(completed));
+  const verifiedStat = document.querySelector("#guide-stat-verified");
+  if (verifiedStat) verifiedStat.textContent = String(completed);
+  const doneStat = document.querySelector("#guide-stat-done");
+  if (doneStat) doneStat.textContent = String(progress.completedIds().length);
+  // Each part's band carries the verified share of its chapters.
+  for (const part of document.querySelectorAll(".guide-part-group")) {
+    const chapters = [...part.querySelectorAll("[data-chapter-task-id]")];
+    if (chapters.length === 0) continue;
+    const done = chapters.filter((card) => card.dataset.record === "done").length;
+    part.querySelector("[data-part-state]").textContent = `${done} / ${chapters.length} 章已验收`;
+    const bar = part.querySelector("[data-part-bar]");
+    bar.style.setProperty("--nb-fraction", String(done / chapters.length));
+    bar.setAttribute("aria-valuenow", String(done));
+  }
 }
 
 updateAssessmentProgress();

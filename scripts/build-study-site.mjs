@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { access, copyFile, cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, join, posix, resolve, sep } from "node:path";
@@ -22,6 +23,18 @@ const guideSourceRelative = "docs/advanced-dotnet-csharp-study-guide.md";
 const guideSource = resolve(repositoryRoot, guideSourceRelative);
 const templatesDirectory = resolve(repositoryRoot, "scripts", "templates");
 const siteOrigin = "https://yuweiyang9611.github.io/LearnDotnetCSharp/";
+
+// Source read in place: the folders a reader can learn from are copied into the site at this revision,
+// as plain text under assets/source/, so the panel on a page never drifts from the repository.
+const sourceBundleRoots = ["src", "native", "python", "docs", "tests"];
+const sourceBundleExtensions = new Set([
+  ".c", ".cmd", ".cpp", ".cs", ".csproj", ".editorconfig", ".fs", ".fsproj", ".h", ".hpp", ".json", ".md", ".mjs", ".props",
+  ".ps1", ".psd1", ".py", ".resx", ".sh", ".sln", ".slnx", ".targets", ".txt", ".vb", ".vbproj", ".xml", ".yaml", ".yml",
+]);
+const sourceBundleExcludedDirectories = new Set(["bin", "obj", "node_modules", "TestResults", ".git", "__pycache__", ".venv", ".docs-venv"]);
+const sourceBundleSizeCap = 256 * 1024;
+const sourceBundleRoute = "assets/source/";
+const sourcePageFile = "source.html";
 
 const contentDocuments = [
   {
@@ -84,6 +97,111 @@ const expectedGuideStructure = {
 
 function countMatches(value, pattern) {
   return [...value.matchAll(pattern)].length;
+}
+
+function repositoryRevision() {
+  const fromCi = process.env.GITHUB_SHA ?? "";
+  if (/^[0-9a-f]{40}$/i.test(fromCi)) return fromCi.toLowerCase();
+  try {
+    return execFileSync("git", ["-C", repositoryRoot, "rev-parse", "HEAD"], { encoding: "utf8" }).trim().toLowerCase();
+  } catch {
+    return "main";
+  }
+}
+
+async function collectSourceBundle() {
+  const files = [];
+  async function walk(directory, relativeDirectory) {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name, "en"))) {
+      const relative = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        // Case-sensitive: an Output folder in the source tree is code, the repository's output/ is not.
+        if (sourceBundleExcludedDirectories.has(entry.name)) continue;
+        await walk(join(directory, entry.name), relative);
+        continue;
+      }
+      if (!entry.isFile() || !sourceBundleExtensions.has(extname(entry.name).toLowerCase())) continue;
+      const info = await stat(join(directory, entry.name));
+      if (info.size > sourceBundleSizeCap) continue;
+      const text = (await readFile(join(directory, entry.name), "utf8")).replaceAll("\r\n", "\n");
+      let lines = countMatches(text, /\n/g);
+      if (text.length > 0 && !text.endsWith("\n")) lines += 1;
+      files.push({ bytes: Buffer.byteLength(text, "utf8"), lines, path: relative, text });
+    }
+  }
+  for (const root of sourceBundleRoots) {
+    try {
+      await access(resolve(repositoryRoot, root));
+    } catch {
+      continue;
+    }
+    await walk(resolve(repositoryRoot, root), root);
+  }
+  files.sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
+  return { byPath: new Map(files.map((file) => [file.path, file])), files };
+}
+
+const sourceBundle = await collectSourceBundle();
+const sourceRevision = repositoryRevision();
+const sourceBlobBase = `${repositoryUrl}/blob/${sourceRevision}/`;
+
+function bundledDirectoryHasFiles(directory) {
+  const prefix = `${directory.replace(/\/+$/, "")}/`;
+  return sourceBundle.files.some(({ path }) => path.startsWith(prefix));
+}
+
+// A link to a bundled file opens the site's source page (keeping a #L5-L9 range); a folder opens its listing.
+function createSourceHrefResolver(currentRoute) {
+  const pageHref = relativeFileHref(currentRoute, sourcePageFile);
+  return (repositoryPath, fragment = "") => {
+    const path = repositoryPath.replace(/\/+$/, "");
+    if (sourceBundle.byPath.has(path)) {
+      const range = /^#L\d+(?:-L?\d+)?$/.test(fragment) ? fragment : "";
+      return `${pageHref}?path=${encodeURIComponent(path)}${range}`;
+    }
+    if (bundledDirectoryHasFiles(path)) return `${pageHref}?dir=${encodeURIComponent(path)}`;
+    return null;
+  };
+}
+
+function sourceBlobUrl(path) {
+  return sourceBlobBase + path.split("/").map(encodeURIComponent).join("/");
+}
+
+// The lab panel as the build writes it: the kit's .nb-code with its tabs and line count, a <noscript> GitHub link
+// in the view, and the files for lab-source.js to load. The script replaces the children with the live panel.
+function renderLabPanel(experimentId, paths, currentRoute) {
+  const files = paths.map((path) => {
+    const file = sourceBundle.byPath.get(path);
+    if (!file) throw new Error(`Lab '${experimentId}' names a file outside the source bundle: ${path}`);
+    return file;
+  });
+  const tabs = files.map((file, index) => `<span class="nb-code-tab" role="tab" aria-selected="${index === 0}" title="${escapeHtml(file.path)}">${escapeHtml(posix.basename(file.path))}</span>`).join("");
+  const noScriptLinks = files.map((file) => `<a href="${escapeHtml(sourceBlobUrl(file.path))}">${escapeHtml(file.path)}</a>`).join("、");
+  return `<div class="nb-code lab-source" id="source-${escapeHtml(experimentId.replaceAll(".", "-"))}" data-source-panel data-source-base="${escapeHtml(relativeDirectoryHref(currentRoute, sourceBundleRoute))}" data-source-page="${escapeHtml(relativeFileHref(currentRoute, sourcePageFile))}" data-blob-base="${escapeHtml(sourceBlobBase)}" data-source-files="${escapeHtml(JSON.stringify(files.map(({ path }) => ({ path }))))}" aria-label="${escapeHtml(experimentId)} 的源码"><div class="nb-code-tabs" role="tablist">${tabs}<span class="nb-code-note">${files[0].lines} 行</span></div><pre class="nb-code-view"><code><noscript>看代码需要 JavaScript。源文件在 GitHub：${noScriptLinks}。</noscript></code></pre></div>`;
+}
+
+// Each lab heading in a chapter is followed by its 源码 paragraph; the panel with those files goes under it.
+function injectLabPanels(articleHtml, unit, labs) {
+  let html = articleHtml;
+  for (const experiment of labs) {
+    const anchor = `experiment-${experiment.id.replaceAll(".", "-")}`;
+    const headingIndex = html.indexOf(`id="${anchor}"`);
+    if (headingIndex === -1) throw new Error(`Chapter '${unit.route}' has no heading for lab '${experiment.id}'.`);
+    const nextHeading = html.indexOf("<h", html.indexOf("</h", headingIndex));
+    const sectionEnd = nextHeading === -1 ? html.length : nextHeading;
+    const paragraph = html.slice(headingIndex, sectionEnd).match(/<p>源码：.*?<\/p>/s);
+    if (!paragraph) throw new Error(`Lab '${experiment.id}' has no 源码 paragraph under its heading.`);
+    const linked = [...paragraph[0].matchAll(/href="[^"]*source\.html\?path=([^"#]+)"/g)].map((match) => decodeURIComponent(match[1]));
+    if (!linked.includes(experiment.source)) {
+      throw new Error(`Lab '${experiment.id}' must link its catalog source ${experiment.source} in its 源码 paragraph; found ${linked.join(", ") || "none"}.`);
+    }
+    const paths = [experiment.source, ...linked.filter((path) => path !== experiment.source)];
+    const insertAt = headingIndex + paragraph.index + paragraph[0].length;
+    html = `${html.slice(0, insertAt)}\n${renderLabPanel(experiment.id, paths, unit.route)}${html.slice(insertAt)}`;
+  }
+  return html;
 }
 
 function applyTemplate(template, tokens) {
@@ -229,7 +347,8 @@ function renderStaticHomepage(experimentGuideUrls) {
   ].join("");
   const experimentCard = (experiment) => {
     const category = categories[experiment.category];
-    const sourceUrl = `${repositoryUrl}/blob/main/${experiment.source}`;
+    const sourceUrl = createSourceHrefResolver("")(experiment.source);
+    if (!sourceUrl) throw new Error(`Lab '${experiment.id}' source ${experiment.source} is not in the source bundle.`);
     return `
             <article class="experiment-card nb-card" id="experiment-${escapeHtml(experiment.id)}" data-experiment-id="${escapeHtml(experiment.id)}">
               <div class="nb-card-body">
@@ -669,7 +788,10 @@ for (let index = 0; index < units.length; index += 1) {
     headingOffset: unit.kind === "chapter" ? -1 : 0,
     repositoryUrl,
     resolveHref: createHrefResolver(guideSourceRelative, unit.route, anchorRoutes),
+    sourceHref: createSourceHrefResolver(unit.route),
   });
+  const unitLabs = experiments.filter(({ id }) => anchorRoutes.get(`experiment-${id.replaceAll(".", "-")}`) === unit.route);
+  rendered.articleHtml = injectLabPanels(rendered.articleHtml, unit, unitLabs);
   const pageHeading = unit.headings[0];
   const tocHtml = [
     `<a class="toc-link toc-level-1" href="#${escapeHtml(pageHeading.id)}" data-toc-id="${escapeHtml(pageHeading.id)}">${escapeHtml(unit.title)}</a>`,
@@ -809,6 +931,7 @@ for (const document of contentDocuments) {
   const fullRender = renderStudyGuide(markdown, {
     repositoryUrl,
     resolveHref: createHrefResolver(document.source, document.route, anchorRoutes),
+    sourceHref: createSourceHrefResolver(document.route),
   });
   await validateMarkdownLinks(sourcePath, fullRender.sourceLinks);
   const actual = {
@@ -833,6 +956,7 @@ for (const document of contentDocuments) {
     headingOffset: 0,
     repositoryUrl,
     resolveHref: createHrefResolver(document.source, document.route, anchorRoutes),
+    sourceHref: createSourceHrefResolver(document.route),
   });
   const pageHeading = fullRender.headings[0];
   const tocHtml = [
@@ -999,6 +1123,32 @@ await writeFile(resolve(outputDirectory, "index.html"), homepageHtml, "utf8");
 await writeFile(resolve(outputDirectory, "layers", "index.html"), layerHtml, "utf8");
 await writeFile(resolve(outputDirectory, "guide", "index.html"), guideIndexHtml, "utf8");
 
+// Source read in place: the bundle as plain text plus its index.
+const sourceBundleDirectory = resolve(outputDirectory, ...sourceBundleRoute.split("/").filter(Boolean));
+for (const file of sourceBundle.files) {
+  const destination = resolve(sourceBundleDirectory, `${file.path}.txt`);
+  await mkdir(dirname(destination), { recursive: true });
+  await writeFile(destination, file.text, "utf8");
+}
+await writeFile(
+  resolve(sourceBundleDirectory, "index.json"),
+  `${JSON.stringify({
+    blobBase: sourceBlobBase,
+    files: sourceBundle.files.map(({ bytes, lines, path }) => ({ bytes, lines, path })),
+    repository: repositoryUrl,
+    revision: sourceRevision,
+    version: 1,
+  })}\n`,
+  "utf8",
+);
+for (const experiment of experiments) {
+  if (!sourceBundle.byPath.has(experiment.source)) throw new Error(`Lab '${experiment.id}' source is not bundled: ${experiment.source}`);
+}
+const sourceBundleBytes = sourceBundle.files.reduce((total, { bytes }) => total + bytes, 0);
+if (sourceBundle.files.length < 80 || sourceBundleBytes > 8 * 1024 * 1024) {
+  throw new Error(`The source bundle should carry the learning folders within a few MB: ${sourceBundle.files.length} files, ${sourceBundleBytes} bytes.`);
+}
+
 for (const { html, unit } of renderedUnitPages) {
   const destination = resolve(outputDirectory, ...unit.route.split("/").filter(Boolean), "index.html");
   await mkdir(dirname(destination), { recursive: true });
@@ -1059,6 +1209,14 @@ for (const staticFile of staticFiles) {
     if (/<(?:iframe|embed|object)[^>]+\.pdf/i.test(content) || /rel=["']preload["'][^>]+\.pdf/i.test(content)) {
       throw new Error(`HTML page embeds or preloads the PDF: ${staticFile}.`);
     }
+    // Source read in place: nothing outside <noscript> may send the reader to GitHub for a file the site carries.
+    const scripted = content.replace(/<noscript>[\s\S]*?<\/noscript>/g, "");
+    for (const match of scripted.matchAll(/href=["']https:\/\/github\.com\/[^"']+\/(?:blob|tree)\/[^/"']+\/([^"'#?]+)/g)) {
+      const path = decodeURIComponent(match[1]).replace(/\/+$/, "");
+      if (sourceBundle.byPath.has(path) || bundledDirectoryHasFiles(path)) {
+        throw new Error(`Page sends the reader to GitHub for a bundled file: ${staticFile} -> ${path}`);
+      }
+    }
     for (const match of content.matchAll(/(?:href|src)=["']([^"']+)["']/gi)) {
       const url = match[1];
       if (/^(?:https?:|mailto:|data:|#)/i.test(url)) continue;
@@ -1093,5 +1251,5 @@ for (const staticFile of staticFiles) {
 }
 
 console.log(
-  `Built ${experiments.length} experiments, ${chapters.length} chapters, ${units.length} reading units, ${contentDocuments.length} resource pages, and ${searchEntries.length} search entries into ${outputDirectory}`,
+  `Built ${experiments.length} experiments, ${chapters.length} chapters, ${units.length} reading units, ${contentDocuments.length} resource pages, ${searchEntries.length} search entries, and ${sourceBundle.files.length} bundled source files (${Math.round(sourceBundleBytes / 1024)} KB at ${sourceRevision.slice(0, 7)}) into ${outputDirectory}`,
 );

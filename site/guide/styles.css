@@ -247,3 +247,10 @@
   .guide-shell { display: block; padding: 0; }
   .heading-anchor { display: none; }
 }
+
+/* Source read in place: the lab panel under its 源码 line. The kit colours it; the page only places it and
+   keeps its own inline-code style out of the code paper. */
+.lab-source { margin: .75rem 0 1.5rem; }
+.guide-content .nb-code code { padding: 0; border-radius: 0; background: none; color: inherit; }
+.guide-content .nb-code-view a { color: var(--nb-code-blue); }
+.guide-content .nb-code-actions a { word-break: keep-all; }

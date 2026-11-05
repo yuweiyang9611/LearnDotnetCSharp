@@ -17,6 +17,7 @@ const contentTypes = new Map([
   [".png", "image/png"],
   [".svg", "image/svg+xml"],
   [".pdf", "application/pdf"],
+  [".txt", "text/plain; charset=utf-8"],
 ]);
 
 const server = createServer(async (request, response) => {

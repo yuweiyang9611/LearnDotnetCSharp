@@ -15,8 +15,10 @@ on:
       - scripts/templates/**
       - output/pdf/LearnDotnetCSharp-Study-Guide.pdf
       - global.json
-      - src/LearnDotnetCSharp.App/**
-      - src/LearnDotnetCSharp.Capstones/**
+      - src/**
+      - native/**
+      - python/**
+      - tests/**
       - tests/site/**
       - playwright.config.mjs
       - package.json

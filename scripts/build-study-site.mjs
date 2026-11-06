@@ -5,6 +5,8 @@ import { dirname, extname, join, posix, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { categories, experiments, learningStages, repositoryUrl, resources } from "../site/catalog-data.js";
 import { chapterTasks } from "../site/chapter-tasks.js";
+import { chapterQuizzes } from "../site/chapter-quiz.js";
+import { localOnly } from "../site/lab-availability.js";
 import {
   escapeHtml,
   markdownToPlainText,
@@ -35,6 +37,24 @@ const sourceBundleExcludedDirectories = new Set(["bin", "obj", "node_modules", "
 const sourceBundleSizeCap = 256 * 1024;
 const sourceBundleRoute = "assets/source/";
 const sourcePageFile = "source.html";
+
+// Run in the browser: the Roslyn + .NET WebAssembly runtime staged by `npm run build:runtime` is copied to
+// assets/runtime/ (generated, never committed). A lab compiles as its panel files plus these Infrastructure
+// files; the entry is written by lab-runner.js. The build refuses to proceed without the runtime.
+const runtimeStage = resolve(repositoryRoot, "artifacts", "browser-runtime");
+const runtimeRoute = "assets/runtime/";
+const labSupportFiles = [
+  "src/LearnDotnetCSharp.App/Infrastructure/DemoAssert.cs",
+  "src/LearnDotnetCSharp.App/Infrastructure/DemoCatalog.cs",
+  "src/LearnDotnetCSharp.App/Infrastructure/DemoContext.cs",
+  "src/LearnDotnetCSharp.App/Infrastructure/DemoMetadata.cs",
+  "src/LearnDotnetCSharp.App/Infrastructure/DemoResult.cs",
+  "src/LearnDotnetCSharp.App/Infrastructure/DemoRunner.cs",
+  "src/LearnDotnetCSharp.App/Infrastructure/FaultPlan.cs",
+  "src/LearnDotnetCSharp.App/Infrastructure/IDemo.cs",
+  "src/LearnDotnetCSharp.App/Infrastructure/WorkspaceLocator.cs",
+];
+const lessonSteps = [["read", "读"], ["code", "看代码"], ["run", "跑"], ["quiz", "自测"], ["note", "记一笔"]];
 
 const contentDocuments = [
   {
@@ -169,9 +189,21 @@ function sourceBlobUrl(path) {
   return sourceBlobBase + path.split("/").map(encodeURIComponent).join("/");
 }
 
+// The demo's full type name, read from its file: the entry constructs it by name.
+function demoTypeName(experiment) {
+  const text = sourceBundle.byPath.get(experiment.source)?.text ?? "";
+  const namespace = text.match(/^namespace\s+([\w.]+);/m)?.[1];
+  const className = text.match(/\bclass\s+(\w+)\s*(?:\([^)]*\))?\s*:\s*[^{]*\bIDemo\b/)?.[1];
+  if (!namespace || !className) throw new Error(`Lab '${experiment.id}' has no file-scoped namespace and IDemo class in ${experiment.source}.`);
+  return `${namespace}.${className}`;
+}
+
 // The lab panel as the build writes it: the kit's .nb-code with its tabs and line count, a <noscript> GitHub link
 // in the view, and the files for lab-source.js to load. The script replaces the children with the live panel.
-function renderLabPanel(experimentId, paths, currentRoute) {
+// A lab that runs in the browser carries its type name and support files; one that cannot carries the reason,
+// and its 需要本机 line with the local command is written here so it reads without script.
+function renderLabPanel(experiment, paths, currentRoute) {
+  const experimentId = experiment.id;
   const files = paths.map((path) => {
     const file = sourceBundle.byPath.get(path);
     if (!file) throw new Error(`Lab '${experimentId}' names a file outside the source bundle: ${path}`);
@@ -179,7 +211,63 @@ function renderLabPanel(experimentId, paths, currentRoute) {
   });
   const tabs = files.map((file, index) => `<span class="nb-code-tab" role="tab" aria-selected="${index === 0}" title="${escapeHtml(file.path)}">${escapeHtml(posix.basename(file.path))}</span>`).join("");
   const noScriptLinks = files.map((file) => `<a href="${escapeHtml(sourceBlobUrl(file.path))}">${escapeHtml(file.path)}</a>`).join("、");
-  return `<div class="nb-code lab-source" id="source-${escapeHtml(experimentId.replaceAll(".", "-"))}" data-source-panel data-source-base="${escapeHtml(relativeDirectoryHref(currentRoute, sourceBundleRoute))}" data-source-page="${escapeHtml(relativeFileHref(currentRoute, sourcePageFile))}" data-blob-base="${escapeHtml(sourceBlobBase)}" data-source-files="${escapeHtml(JSON.stringify(files.map(({ path }) => ({ path }))))}" aria-label="${escapeHtml(experimentId)} 的源码"><div class="nb-code-tabs" role="tablist">${tabs}<span class="nb-code-note">${files[0].lines} 行</span></div><pre class="nb-code-view"><code><noscript>看代码需要 JavaScript。源文件在 GitHub：${noScriptLinks}。</noscript></code></pre></div>`;
+  const reason = localOnly[experimentId];
+  const command = experimentCommand(experimentId);
+  const runAttributes = reason
+    ? ` data-local-only="${escapeHtml(reason)}" data-run-command="${escapeHtml(command)}"`
+    : ` data-run-type="${escapeHtml(demoTypeName(experiment))}" data-run-support="${escapeHtml(JSON.stringify(labSupportFiles))}"`;
+  const localNote = reason
+    ? `<div class="nb-code-actions lab-local"><p class="lab-local-note"><strong>需要本机</strong>：${escapeHtml(reason)}</p><div class="assessment-command lab-local-command"><code tabindex="0">${escapeHtml(command)}</code><button class="text-action" type="button" data-copy-lab-command="${escapeHtml(experimentId)}">复制命令</button></div></div>`
+    : "";
+  return `<div class="nb-code lab-source" id="source-${escapeHtml(experimentId.replaceAll(".", "-"))}" data-source-panel data-lab-id="${escapeHtml(experimentId)}"${runAttributes} data-source-base="${escapeHtml(relativeDirectoryHref(currentRoute, sourceBundleRoute))}" data-source-page="${escapeHtml(relativeFileHref(currentRoute, sourcePageFile))}" data-blob-base="${escapeHtml(sourceBlobBase)}" data-source-files="${escapeHtml(JSON.stringify(files.map(({ path }) => ({ path }))))}" aria-label="${escapeHtml(experimentId)} 的源码"><div class="nb-code-tabs" role="tablist">${tabs}<span class="nb-code-note">${files[0].lines} 行</span></div><pre class="nb-code-view"><code><noscript>看代码需要 JavaScript。源文件在 GitHub：${noScriptLinks}。</noscript></code></pre>${localNote}</div>`;
+}
+
+// The loop band at the top of a chapter: five steps in the order the reader takes them, each a link to the
+// section that does it. Without script every step is pending; guide/app.js sets the states from the record.
+function renderLessonSteps(unit, labs, quiz) {
+  if (unit.kind !== "chapter") return "";
+  const chapterId = `chapter-${String(unit.number).padStart(2, "0")}`;
+  const firstLab = labs[0] ? `#source-${labs[0].id.replaceAll(".", "-")}` : "";
+  const anchors = { read: `#${unit.headings[0].id}`, code: firstLab, run: firstLab, quiz: `#${chapterId}-quiz`, note: `#${chapterId}-notes` };
+  const counts = { quiz: quiz ? `${quiz.questions.length} 题` : "" };
+  const items = lessonSteps.map(([step, label]) => {
+    const text = anchors[step] ? `<a href="${escapeHtml(anchors[step])}">${label}</a>` : `<span>${label}</span>`;
+    return `<li data-step="${step}" data-state="pending">${text}<span class="nb-steps-count"${counts[step] ? "" : " hidden"}>${escapeHtml(counts[step] ?? "")}</span></li>`;
+  }).join("");
+  return `<ol class="nb-steps lesson-steps" id="lesson-steps" data-lesson-steps="${chapterId}" aria-label="本章的五步">${items}</ol>`;
+}
+
+function chapterQuizRevision(quiz) {
+  return createHash("sha256").update(JSON.stringify(quiz.questions)).digest("hex").slice(0, 16);
+}
+
+// The chapter's self-test: three questions from the chapter text, written as a form that reads without
+// script; guide/app.js checks the answers and records a pass with the revision.
+function renderChapterQuiz(quiz, unit) {
+  if (!quiz || unit.kind !== "chapter") return "";
+  const quizId = `chapter-${String(quiz.chapter).padStart(2, "0")}`;
+  const questions = quiz.questions.map((question, index) => {
+    const options = question.options.map((option, optionIndex) => `
+        <label class="quiz-option"><input type="radio" name="${quizId}-q${index + 1}" value="${optionIndex}" /><span>${escapeHtml(option)}</span></label>`).join("");
+    return `
+      <li class="quiz-question nb-entry" data-quiz-question data-quiz-answer="${question.answer}">
+        <fieldset><legend>${escapeHtml(question.prompt)}</legend><div class="quiz-options">${options}</div></fieldset>
+        <p class="quiz-feedback" data-quiz-feedback role="status" hidden></p>
+      </li>`;
+  }).join("");
+  return `
+  <section class="chapter-quiz" id="${quizId}-quiz" data-chapter-quiz data-quiz-id="${quizId}" data-quiz-revision="${chapterQuizRevision(quiz)}" aria-labelledby="${quizId}-quiz-title">
+    <header class="assessment-heading">
+      <h2 id="${quizId}-quiz-title">本章自测</h2>
+      <span class="assessment-state" data-quiz-state>未作答</span>
+    </header>
+    <p class="assessment-objective">${quiz.questions.length} 道题都答对才算通过，答错可以再来；通过记录只保存在当前浏览器。</p>
+    <form data-quiz-form>
+      <ol class="quiz-list">${questions}
+      </ol>
+      <div class="assessment-footer"><p data-quiz-status role="status" aria-live="polite">选好每一题的答案后提交。</p><button class="nb-button nb-button--solid" type="submit">提交答案</button></div>
+    </form>
+  </section>`;
 }
 
 // Each lab heading in a chapter is followed by its 源码 paragraph; the panel with those files goes under it.
@@ -199,7 +287,7 @@ function injectLabPanels(articleHtml, unit, labs) {
     }
     const paths = [experiment.source, ...linked.filter((path) => path !== experiment.source)];
     const insertAt = headingIndex + paragraph.index + paragraph[0].length;
-    html = `${html.slice(0, insertAt)}\n${renderLabPanel(experiment.id, paths, unit.route)}${html.slice(insertAt)}`;
+    html = `${html.slice(0, insertAt)}\n${renderLabPanel(experiment, paths, unit.route)}${html.slice(insertAt)}`;
   }
   return html;
 }
@@ -296,7 +384,7 @@ function renderChapterAssessment(task, unit) {
     <section class="assessment-list"><h3>完成步骤</h3><ol class="assessment-checklist">${checklist(task.steps, "step")}</ol></section>
     <section class="assessment-list"><h3>通过标准</h3><ul class="assessment-checklist criteria-list">${checklist(task.criteria, "criterion")}</ul></section>
     <details class="assessment-evidence-guide"><summary>需要保留的证据</summary><ul>${task.evidence.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></details>
-    <label class="assessment-notes"><span>证据记录</span><textarea class="nb-input" data-assessment-notes rows="5" maxlength="2400" placeholder="记录关键输出、修改位置与解释；内容只保存在当前浏览器。"></textarea></label>
+    <label class="assessment-notes" for="${taskId}-notes"><span>证据记录</span><textarea class="nb-input" id="${taskId}-notes" data-assessment-notes rows="5" maxlength="2400" placeholder="记录关键输出、修改位置与解释；内容只保存在当前浏览器。"></textarea></label>
     <div class="assessment-footer"><p data-assessment-status role="status" aria-live="polite">完成步骤、核对标准并填写证据记录后即可验收。</p><button class="nb-button nb-button--solid" type="button" data-assessment-complete disabled>标记为已验收</button></div>
   </section>`;
 }
@@ -723,6 +811,49 @@ if (units.length !== 35 || chapters.length !== 30 || units.filter(({ kind }) => 
   throw new Error(`Expected 35 reading units (30 chapters), found ${units.length} units (${chapters.length} chapters).`);
 }
 
+// The self-test: three questions per chapter, 90 in all, each with one correct option among at least three.
+if (chapterQuizzes.length !== chapters.length || chapterQuizzes.some((quiz, index) => quiz.chapter !== index + 1)) {
+  throw new Error(`Chapter quizzes must cover chapters 1-${chapters.length} exactly once.`);
+}
+for (const quiz of chapterQuizzes) {
+  if (quiz.questions.length !== 3) throw new Error(`Chapter ${quiz.chapter} must have exactly 3 quiz questions, found ${quiz.questions.length}.`);
+  for (const question of quiz.questions) {
+    if (!question.prompt?.trim() || !question.explanation?.trim()) throw new Error(`Chapter ${quiz.chapter} has a quiz question without a prompt or explanation.`);
+    if (!Array.isArray(question.options) || question.options.length < 3 || new Set(question.options).size !== question.options.length) {
+      throw new Error(`Chapter ${quiz.chapter} quiz question '${question.prompt}' needs at least three distinct options.`);
+    }
+    if (!Number.isInteger(question.answer) || question.answer < 0 || question.answer >= question.options.length) {
+      throw new Error(`Chapter ${quiz.chapter} quiz question '${question.prompt}' has an answer outside its options.`);
+    }
+  }
+}
+if (chapterQuizzes.reduce((total, { questions }) => total + questions.length, 0) !== 90) throw new Error("Expected 90 quiz questions.");
+
+// Run in the browser: the runtime must be staged, every lab is either runnable or listed with a reason,
+// and the files a run compiles alongside the lab are in the bundle.
+for (const id of Object.keys(localOnly)) {
+  if (!uniqueIds.has(id)) throw new Error(`lab-availability.js names an unknown lab: ${id}`);
+  if (!String(localOnly[id]).trim()) throw new Error(`lab-availability.js gives no reason for ${id}.`);
+}
+for (const path of labSupportFiles) {
+  if (!sourceBundle.byPath.has(path)) throw new Error(`Lab support file is not in the source bundle: ${path}`);
+}
+for (const experiment of experiments) {
+  if (!localOnly[experiment.id]) demoTypeName(experiment);
+}
+const runtimeManifestPath = resolve(runtimeStage, "refs", "manifest.json");
+try {
+  await access(resolve(runtimeStage, "_framework", "dotnet.js"));
+  await access(runtimeManifestPath);
+} catch {
+  throw new Error(`The browser runtime is not staged in ${runtimeStage}. Run 'npm run build:runtime' first (needs the .NET SDK pinned in tools/BrowserRuntime/global.json with the wasm-tools and wasm-experimental workloads).`);
+}
+const runtimeManifest = JSON.parse(await readFile(runtimeManifestPath, "utf8"));
+if (!Array.isArray(runtimeManifest) || runtimeManifest.length < 20 || !runtimeManifest.includes("System.Runtime.dll")) {
+  throw new Error("The browser runtime's reference manifest is incomplete.");
+}
+for (const name of runtimeManifest) await access(resolve(runtimeStage, "refs", name));
+
 const assignedHeadingIds = units.flatMap(({ headings }) => headings.map(({ id }) => id));
 if (assignedHeadingIds.length !== 105 || new Set(assignedHeadingIds).size !== assignedHeadingIds.length) {
   throw new Error(`Guide splitting lost or duplicated headings: assigned ${assignedHeadingIds.length}, unique ${new Set(assignedHeadingIds).size}.`);
@@ -792,6 +923,7 @@ for (let index = 0; index < units.length; index += 1) {
   });
   const unitLabs = experiments.filter(({ id }) => anchorRoutes.get(`experiment-${id.replaceAll(".", "-")}`) === unit.route);
   rendered.articleHtml = injectLabPanels(rendered.articleHtml, unit, unitLabs);
+  const chapterQuiz = unit.kind === "chapter" ? chapterQuizzes.find(({ chapter }) => chapter === unit.number) : null;
   const pageHeading = unit.headings[0];
   const tocHtml = [
     `<a class="toc-link toc-level-1" href="#${escapeHtml(pageHeading.id)}" data-toc-id="${escapeHtml(pageHeading.id)}">${escapeHtml(unit.title)}</a>`,
@@ -813,6 +945,8 @@ for (let index = 0; index < units.length; index += 1) {
     HOME_HREF: relativeDirectoryHref(unit.route, ""),
     LAYERS_HREF: relativeDirectoryHref(unit.route, "layers/"),
     LEARNING_PATH_HREF: relativeDirectoryHref(unit.route, "learning-path/"),
+    LESSON_STEPS_HTML: renderLessonSteps(unit, unitLabs, chapterQuiz),
+    QUIZ_HTML: renderChapterQuiz(chapterQuiz, unit),
     NEXT_LINK_HTML: paginationLink(unit, units[index + 1], "next"),
     PAGE_HEADING_ID: escapeHtml(pageHeading.id),
     PAGE_TITLE: escapeHtml(unit.title),
@@ -829,6 +963,14 @@ for (let index = 0; index < units.length; index += 1) {
   if (countMatches(html, /<h1(?:\s|>)/g) !== 1) throw new Error(`Guide unit '${unit.route}' must contain exactly one H1.`);
   if (/(?:href|src)=["']\/(?!\/)/i.test(html)) throw new Error(`Guide unit '${unit.route}' contains a root-relative URL.`);
   if (/<(?:iframe|embed|object)[^>]+\.pdf/i.test(html)) throw new Error(`Guide unit '${unit.route}' embeds a PDF.`);
+  if (unit.kind === "chapter") {
+    // One band of five steps, one quiz of three questions, and a panel per lab that either runs or says 需要本机.
+    if (countMatches(html, /<ol class="nb-steps lesson-steps"/g) !== 1 || countMatches(html, /<li data-step="/g) !== 5) throw new Error(`Chapter '${unit.route}' must carry one five-step band.`);
+    if (countMatches(html, /data-quiz-question/g) !== 3) throw new Error(`Chapter '${unit.route}' must carry three quiz questions.`);
+    const runnable = countMatches(html, /data-run-type="/g);
+    const local = countMatches(html, /data-local-only="/g);
+    if (runnable + local !== unitLabs.length || countMatches(html, /需要本机<\/strong>/g) !== local) throw new Error(`Chapter '${unit.route}' panels do not match its ${unitLabs.length} labs.`);
+  }
   renderedUnitPages.push({ html, rendered, unit });
 }
 
@@ -1181,8 +1323,27 @@ await writeFile(
 const progressTasks = Object.fromEntries(chapterTasks.map((task) => [
   `chapter-${String(task.chapter).padStart(2, "0")}`, { revision: chapterTaskRevision(task), steps: task.steps.length, criteria: task.criteria.length },
 ]));
+const progressQuizzes = Object.fromEntries(chapterQuizzes.map((quiz) => [
+  `chapter-${String(quiz.chapter).padStart(2, "0")}`, { revision: chapterQuizRevision(quiz), questions: quiz.questions.length },
+]));
+// The shape of every chapter for the loop band and the index's continue reading: its labs and its quiz.
+const progressChapters = chapters.map((unit) => {
+  const id = `chapter-${String(unit.number).padStart(2, "0")}`;
+  return {
+    id,
+    number: unit.number,
+    route: unit.route,
+    title: unit.title,
+    heading: unit.headings[0].id,
+    labs: experiments.filter(({ id: labId }) => anchorRoutes.get(`experiment-${labId.replaceAll(".", "-")}`) === unit.route).map(({ id: labId }) => labId),
+    quiz: progressQuizzes[id] ?? null,
+  };
+});
 await writeFile(resolve(outputDirectory, "progress-catalog.js"),
-  `export const tasks = ${JSON.stringify(progressTasks)};\nexport const guideRoutes = ${JSON.stringify(units.map(({ route }) => route))};\n`, "utf8");
+  `export const tasks = ${JSON.stringify(progressTasks)};\nexport const guideRoutes = ${JSON.stringify(units.map(({ route }) => route))};\nexport const quizzes = ${JSON.stringify(progressQuizzes)};\nexport const chapters = ${JSON.stringify(progressChapters)};\nexport const localOnly = ${JSON.stringify(localOnly)};\n`, "utf8");
+
+// The browser runtime, staged by build:runtime, served next to the source bundle.
+await cp(runtimeStage, resolve(outputDirectory, ...runtimeRoute.split("/").filter(Boolean)), { recursive: true });
 await writeFile(resolve(outputDirectory, "guide-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 await writeFile(resolve(outputDirectory, "search-index.json"), `${JSON.stringify({ entries: searchEntries, version: 1 }, null, 2)}\n`, "utf8");
 await writeFile(resolve(outputDirectory, ".nojekyll"), "", "utf8");
@@ -1200,7 +1361,10 @@ for (const entry of searchEntries) {
   await access(targetPath);
 }
 
-const staticFiles = await findStaticFiles(outputDirectory, new Set([".css", ".html", ".js"]));
+const runtimeDirectory = resolve(outputDirectory, ...runtimeRoute.split("/").filter(Boolean));
+const staticFiles = (await findStaticFiles(outputDirectory, new Set([".css", ".html", ".js"])))
+  // The published .NET loader is generated vendor code with its own dynamic imports; it is not the site's to lint.
+  .filter((staticFile) => !staticFile.startsWith(`${runtimeDirectory}${sep}`));
 for (const staticFile of staticFiles) {
   const content = await readFile(staticFile, "utf8");
   if (extname(staticFile) === ".html") {
@@ -1250,6 +1414,7 @@ for (const staticFile of staticFiles) {
   }
 }
 
+const runnableLabs = experiments.length - Object.keys(localOnly).length;
 console.log(
-  `Built ${experiments.length} experiments, ${chapters.length} chapters, ${units.length} reading units, ${contentDocuments.length} resource pages, ${searchEntries.length} search entries, and ${sourceBundle.files.length} bundled source files (${Math.round(sourceBundleBytes / 1024)} KB at ${sourceRevision.slice(0, 7)}) into ${outputDirectory}`,
+  `Built ${experiments.length} experiments (${runnableLabs} run in the browser, ${Object.keys(localOnly).length} 需要本机), ${chapters.length} chapters, ${units.length} reading units, ${contentDocuments.length} resource pages, ${searchEntries.length} search entries, and ${sourceBundle.files.length} bundled source files (${Math.round(sourceBundleBytes / 1024)} KB at ${sourceRevision.slice(0, 7)}) into ${outputDirectory}`,
 );

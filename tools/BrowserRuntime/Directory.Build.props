@@ -1,0 +1,12 @@
+<Project>
+  <!-- The browser runtime is a vendored copy of the design-patterns site's Roslyn + .NET WebAssembly host.
+       It takes the repository's framework, language and nullable settings, but not the warnings-as-errors
+       and analyzer gates: those are tuned for the teaching code, and Roslyn's own package trips them. -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <PropertyGroup>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <AnalysisMode>None</AnalysisMode>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+</Project>

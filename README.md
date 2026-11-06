@@ -119,11 +119,19 @@ CLI 命令：
 ```powershell
 npm ci
 npx playwright install chromium
+dotnet workload install wasm-tools wasm-experimental
+npm run build:runtime
 node scripts/build-study-site.mjs
 npm run test:site
 ```
 
-当前包含 24 个浏览器用例，覆盖搜索、导航、复制、验收、迁移、合并和保存失败。CI 与 Pages 发布前均运行浏览器测试；失败截图和 trace 位于 `artifacts/playwright-results`，HTML 报告位于 `artifacts/playwright-report`。
+当前包含 31 个浏览器用例，覆盖搜索、导航、复制、验收、迁移、合并、保存失败、浏览器内运行、自测与五步带。CI 与 Pages 发布前均运行浏览器测试；失败截图和 trace 位于 `artifacts/playwright-results`，HTML 报告位于 `artifacts/playwright-report`。
+
+## 在浏览器里跑实验与五步带
+
+章节页上每个实验的源码面板带“运行”按钮：`tools/BrowserRuntime/` 是从设计模式站点移植的 Roslyn + .NET 10 WebAssembly 运行时副本（引擎扩展为一次编译多个命名文件，并等待返回 `Task<string[]>` 的入口），`npm run build:runtime` 把它发布到 `artifacts/browser-runtime/`，站点构建再复制到 `assets/runtime/`（约 47 MB，生成产物，不入库；缺少时构建会明确失败）。第一次点击“运行”会加载运行时，面板依次显示“加载运行时 / 编译 / 执行”，超时分别为 60 秒、30 秒和 5 秒。一次运行把面板里的实验文件（可改一改再跑）、它的同组文件和 `Infrastructure/` 下的文件一起编译，入口构造 Demo 并等待 `RunAsync`。不能在浏览器里跑的实验（原生互操作、文件、网络、线程、进程、Kestrel、EF Core、Roslyn 包等）列在 `site/lab-availability.js`，面板显示“需要本机”和原有的 `dotnet run` 命令；这份清单来自 `npm run survey:labs` 在本地构建上逐个运行全部 53 个实验的结果。
+
+每个章节页顶部有一条五步带（读、看代码、跑、自测、记一笔），状态只从学习记录读出：打开过章节（或阅读位置已到达该章）、点过源码面板的标签、浏览器运行完成或复制过本机命令、本章三道自测题全对、证据记录非空。教材目录的“接着做”指向最早有“停在这里”一步的章节。记录仍是 `learn-dotnet-csharp-learning-data-v1`，版本 1 新增 `visited`、`sourceViews`、`runs`、`quizzes` 四个字段，旧记录原样可读。
 
 数据管线通过 `IPipelineStateStore` 支持 JSON 教学快照和 SQLite 增量事务。两个综合实验使用 SQLite，保留 JSON v1 文件兼容性，不自动迁移。`MaxUncommittedRecords` 默认 64：有效帧和死信均占用额度，连续 checkpoint 成功持久化后才归还。NDJSON 在验收时显式导出；同一状态文件仅支持一个管线拥有者，业务处理器仍须幂等。
 

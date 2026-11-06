@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:runtime": "node scripts/build-browser-runtime.mjs",
     "build:site": "node scripts/build-study-site.mjs",
+    "survey:labs": "node scripts/survey-browser-labs.mjs",
     "test:site": "playwright test"
   },
   "devDependencies": {

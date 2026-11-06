@@ -44,6 +44,7 @@
           {{ROUTE_BAND_HTML}}
           <nav class="breadcrumbs" aria-label="面包屑"><a href="{{GUIDE_HREF}}">在线教材</a><span aria-hidden="true">/</span><span>{{PART_TITLE}}</span><span aria-hidden="true">/</span><span>{{POSITION_LABEL}}</span></nav>
           <h1 id="{{PAGE_HEADING_ID}}" data-guide-heading>{{PAGE_TITLE}}</h1>
+          {{LESSON_STEPS_HTML}}
         </header>
         <details class="mobile-toc">
           <summary>本章目录</summary>
@@ -52,6 +53,7 @@
           <nav class="guide-toc">{{TOC_HTML}}</nav>
         </details>
         <div class="guide-content" id="guide-content">{{ARTICLE_HTML}}</div>
+        {{QUIZ_HTML}}
         {{ASSESSMENT_HTML}}
         <section class="guide-records" data-learning-backup aria-label="学习数据备份"></section>
         <nav class="chapter-pagination" aria-label="前后阅读单元">
@@ -67,6 +69,7 @@
     <div class="toast guide-toast" id="guide-toast" role="status" aria-live="polite"></div>
     <script src="{{HOME_HREF}}code-colors.js" defer></script>
     <script src="{{HOME_HREF}}source-panel.js" defer></script>
+    <script src="{{HOME_HREF}}lab-runner.js" defer></script>
     <script src="{{HOME_HREF}}lab-source.js" defer></script>
     <script type="module" src="{{HOME_HREF}}navigation.js"></script>
     <script type="module" src="{{GUIDE_APP_HREF}}"></script>

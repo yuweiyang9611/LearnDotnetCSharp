@@ -1,5 +1,7 @@
 import { progress } from "../progress-store.js";
 import { initializeProgressUI } from "../progress-ui.js";
+import { chapters } from "../progress-catalog.js";
+import { continueTarget, stepAnchor, stepLabels } from "../lesson-loop.js";
 const legacyHeadingStorageKey = "learn-dotnet-csharp-guide-last-heading-v1";
 const routeMapElement = document.querySelector("#guide-route-map");
 const continueReading = document.querySelector("#continue-reading");
@@ -32,40 +34,59 @@ if (hashId && routeMap[hashId]) {
   window.location.replace(routeMap[hashId]);
 }
 
-// The unit the owner was last reading carries the stopped mark in the directory.
+// The chapter to continue on carries the stopped mark in the directory.
 function markStoppedUnit(pathname) {
-  let figure = "还没有";
   for (const row of unitRows) {
     const stopped = Boolean(pathname) && new URL(row.querySelector("a").href).pathname === pathname;
     if (stopped) row.setAttribute("aria-current", "true");
     else row.removeAttribute("aria-current");
     row.querySelector(".nb-stopped").hidden = !stopped;
-    if (stopped) figure = row.querySelector(".nb-card-meta > span")?.textContent ?? figure;
   }
-  const stat = document.querySelector("#guide-stat-reading");
-  if (stat) stat.textContent = figure;
 }
 
+// Whether the reader has any record at all: with none, the banner offers the preface as the static page does.
+function hasRecord(data) {
+  return Boolean(data.lastReading) || data.experiments.length > 0 || Object.keys(data.assessments).length > 0 ||
+    data.visited.length > 0 || data.sourceViews.length > 0 || Object.keys(data.runs).length > 0 || Object.keys(data.quizzes).length > 0;
+}
+
+// 接着做: the earliest chapter whose band has a 停在这里 step, read with the same rule as the band itself.
+// A legacy heading key from the oldest site version still counts as a record of where the reader was.
 function updateContinueReading() {
-  const stored = progress.snapshot().lastReading;
+  const data = progress.snapshot();
   let legacyHeading;
   try { legacyHeading = localStorage.getItem(legacyHeadingStorageKey); } catch { /* Optional legacy fallback. */ }
   const legacyUrl = legacyHeading && routeMap[legacyHeading];
-  const storedUrl = stored?.url ? new URL(stored.url, new URL("../", import.meta.url))
-    : legacyUrl ? new URL(legacyUrl, guideRoot) : null;
-  if (continueReading && storedUrl?.origin === window.location.origin &&
-      storedUrl.pathname.startsWith(guideRoot.pathname) && storedUrl.pathname !== guideRoot.pathname) {
-    continueReading.href = `${storedUrl.pathname}${storedUrl.hash}`;
-    continueReading.textContent = stored?.title ? `继续阅读：${stored.title.replace(/^#\s*/, "")}` : "继续上次阅读";
+  const target = hasRecord(data) || legacyUrl ? continueTarget(data, chapters) : null;
+  if (continueReading && target) {
+    const route = new URL(`../${target.chapter.route}`, new URL("./", import.meta.url));
+    continueReading.href = `${route.pathname}${stepAnchor(target.chapter, target.step)}`;
+    continueReading.textContent = `第 ${target.chapter.number} 章 · ${stepLabels[target.step]}`;
     continueReading.classList.add("has-record");
-    markStoppedUnit(storedUrl.pathname);
+    markStoppedUnit(route.pathname);
+  } else if (continueReading && (hasRecord(data) || legacyUrl)) {
+    continueReading.href = "./preface/";
+    continueReading.textContent = "每一章的五步都完成了，从头复习";
+    continueReading.classList.add("has-record");
+    markStoppedUnit("");
   } else {
     markStoppedUnit("");
   }
+  const stat = document.querySelector("#guide-stat-reading");
+  if (stat) stat.textContent = readingFigure(data.lastReading);
   if (resumeGo && continueReading) {
     resumeGo.href = continueReading.getAttribute("href");
-    resumeGo.textContent = continueReading.classList.contains("has-record") ? "继续阅读" : "开始阅读";
+    resumeGo.textContent = continueReading.classList.contains("has-record") ? "继续学习" : "开始阅读";
   }
+}
+
+// The last reading as a short figure: 第 19 章, 前言 or 附录 A.
+function readingFigure(reading) {
+  const match = reading?.url.match(/^guide\/(preface|chapter-(\d+)|appendix-([a-d]))\//);
+  if (!match) return "还没有";
+  if (match[2]) return `第 ${Number.parseInt(match[2], 10)} 章`;
+  if (match[3]) return `附录 ${match[3].toUpperCase()}`;
+  return "前言";
 }
 updateContinueReading();
 window.addEventListener("learning-data-change", updateContinueReading);

@@ -95,9 +95,12 @@ test("a chapter opens with its route band and the route's lab record", async ({ 
 test("the guide directory marks the stopped unit and verified chapters", async ({ page }) => {
   await seed(page);
   await page.goto("guide/");
-  await expect(page.locator("#continue-reading")).toHaveText("继续阅读：19.2 一个贯穿四层的例子");
-  await expect(page.locator("#guide-resume-go")).toHaveText("继续阅读");
-  await expect(page.locator(".guide-unit-card[aria-current]")).toHaveAttribute("data-unit-route", "guide/chapter-19/");
+  // 接着做 reads the loop band's rule: chapter 1 is read (the reading reached chapter 19) and has no lab,
+  // so its first open step is the self-test; that chapter carries the stopped mark.
+  await expect(page.locator("#continue-reading")).toHaveText("第 1 章 · 自测");
+  await expect(page.locator("#continue-reading")).toHaveAttribute("href", /guide\/chapter-01\/#chapter-01-quiz$/);
+  await expect(page.locator("#guide-resume-go")).toHaveText("继续学习");
+  await expect(page.locator(".guide-unit-card[aria-current]")).toHaveAttribute("data-unit-route", "guide/chapter-01/");
   await expect(page.locator(".guide-unit-card[aria-current] .nb-stopped")).toBeVisible();
   await expect(page.locator('[data-chapter-task-id="chapter-01"]')).toHaveAttribute("data-record", "done");
   await expect(page.locator("#assessment-progress")).toHaveText("1 / 30 章验收");

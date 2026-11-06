@@ -1,15 +1,39 @@
 import { experiments } from "./catalog-data.js";
-import { tasks, guideRoutes } from "./progress-catalog.js";
+import { tasks, guideRoutes, quizzes } from "./progress-catalog.js";
 
 export const storageKey = "learn-dotnet-csharp-learning-data-v1";
 export const backupFormat = "LearnDotnetCSharp.learning-backup";
 export const maximumBackupBytes = 5 * 1024 * 1024;
 const root = new URL("./", import.meta.url);
 const knownExperiments = new Set(experiments.map(({ id }) => id));
-const empty = () => ({ version: 1, experiments: [], assessments: {}, copies: [], lastReading: null });
+// Version 1 with additive fields: visited (routes opened), sourceViews (labs whose panel tab was clicked),
+// runs (labs run in the browser or whose command was copied) and quizzes (chapter self-tests passed) were added
+// for the loop band; a record written before them loads as before, and the home site keeps reading the old fields.
+const empty = () => ({ version: 1, experiments: [], assessments: {}, copies: [], lastReading: null, visited: [], sourceViews: [], runs: {}, quizzes: {} });
 const object = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const safeId = (id) => typeof id === "string" && /^[a-zA-Z0-9._-]{1,160}$/.test(id) && !["__proto__", "constructor", "prototype"].includes(id);
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+const isoDate = (value) => typeof value === "string" && /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(value);
+const runModes = new Set(["browser", "local"]);
+
+// The loop fields are read leniently: a malformed entry is dropped, never a reason to refuse the record.
+function loopFields(value) {
+  const visited = Array.isArray(value.visited) ? [...new Set(value.visited.filter((route) => guideRoutes.includes(route)))].sort() : [];
+  const sourceViews = Array.isArray(value.sourceViews) ? [...new Set(value.sourceViews.filter(safeId))].sort() : [];
+  const runs = {};
+  if (object(value.runs)) {
+    for (const [id, run] of Object.entries(value.runs)) {
+      if (safeId(id) && object(run) && isoDate(run.ranAt) && runModes.has(run.mode)) runs[id] = { ranAt: run.ranAt, mode: run.mode };
+    }
+  }
+  const quizzes = {};
+  if (object(value.quizzes)) {
+    for (const [id, quiz] of Object.entries(value.quizzes)) {
+      if (safeId(id) && object(quiz) && typeof quiz.revision === "string" && isoDate(quiz.passedAt)) quizzes[id] = { revision: quiz.revision, passedAt: quiz.passedAt };
+    }
+  }
+  return { visited, sourceViews, runs, quizzes };
+}
 
 export function readingPosition(value) {
   if (!object(value) || typeof value.url !== "string" || typeof value.title !== "string") return null;
@@ -60,6 +84,7 @@ export function normalizeData(value) {
     addCopy(data, copy.taskId, copy.record);
   }
   data.lastReading = readingPosition(value.lastReading);
+  Object.assign(data, loopFields(value));
   return data;
 }
 
@@ -84,6 +109,17 @@ export function mergeData(local, incoming) {
   }
   for (const copy of imported.copies) addCopy(merged, copy.taskId, copy.record);
   merged.lastReading ??= imported.lastReading;
+  // The loop fields take the union: a step done anywhere stays done, the earlier of two dates wins.
+  merged.visited = [...new Set([...merged.visited, ...imported.visited])].sort();
+  merged.sourceViews = [...new Set([...merged.sourceViews, ...imported.sourceViews])].sort();
+  for (const [id, run] of Object.entries(imported.runs)) {
+    if (!merged.runs[id] || run.ranAt < merged.runs[id].ranAt) merged.runs[id] = run;
+  }
+  for (const [id, quiz] of Object.entries(imported.quizzes)) {
+    const existing = merged.quizzes[id];
+    const current = quizzes[id]?.revision;
+    if (!existing || (current && quiz.revision === current && existing.revision !== current)) merged.quizzes[id] = quiz;
+  }
   return merged;
 }
 
@@ -166,6 +202,35 @@ export const progress = {
     return persist();
   },
   setReading(value) { refresh(); memory.lastReading = readingPosition(value); return persist(); },
+  // The loop band's records. Each is idempotent: a step already done is not written again.
+  markVisited(route) {
+    refresh();
+    if (!guideRoutes.includes(route) || memory.visited.includes(route)) return !dirty;
+    memory.visited = [...memory.visited, route].sort();
+    return persist();
+  },
+  markSourceView(id) {
+    refresh();
+    if (!safeId(id) || memory.sourceViews.includes(id)) return !dirty;
+    memory.sourceViews = [...memory.sourceViews, id].sort();
+    return persist();
+  },
+  markRun(id, mode) {
+    refresh();
+    if (!safeId(id) || !runModes.has(mode) || memory.runs[id]) return !dirty;
+    memory.runs[id] = { ranAt: new Date().toISOString(), mode };
+    return persist();
+  },
+  setQuizPassed(id, revision) {
+    refresh();
+    if (!safeId(id) || typeof revision !== "string" || memory.quizzes[id]?.revision === revision) return !dirty;
+    memory.quizzes[id] = { revision, passedAt: new Date().toISOString() };
+    return persist();
+  },
+  quiz(id, revision) {
+    const record = memory.quizzes[id];
+    return record?.revision === revision ? structuredClone(record) : null;
+  },
   retry() { return persist(); },
   merge(incoming) { refresh(); memory = mergeData(memory, incoming); return persist(); },
   backup() { return { format: backupFormat, version: 1, exportedAt: new Date().toISOString(), data: this.snapshot() }; },

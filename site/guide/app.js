@@ -2,7 +2,35 @@ import { progress } from "../progress-store.js";
 import { initializeProgressUI } from "../progress-ui.js";
 import { copyText } from "../clipboard.js";
 import { experiments, learningStages } from "../catalog-data.js";
+import { chapters } from "../progress-catalog.js";
+import { chapterSteps } from "../lesson-loop.js";
 document.documentElement.classList.add("guide-js");
+
+// The loop band: five steps read from the record, never from a tick on the band itself. The chapter's shape
+// (its labs, its quiz) comes from the generated catalog; the states follow lesson-loop.js.
+const stepsBand = document.querySelector("[data-lesson-steps]");
+const bandChapter = stepsBand ? chapters.find(({ id }) => id === stepsBand.dataset.lessonSteps) : null;
+
+function renderLessonSteps() {
+  if (!stepsBand || !bandChapter) return;
+  for (const { step, state, count } of chapterSteps(progress.snapshot(), bandChapter)) {
+    const item = stepsBand.querySelector(`[data-step="${step}"]`);
+    if (!item) continue;
+    item.setAttribute("data-state", state);
+    const counter = item.querySelector(".nb-steps-count");
+    if (counter && (step === "code" || step === "run")) {
+      counter.textContent = count;
+      counter.hidden = !count;
+    }
+  }
+}
+
+// What the reader did on the page: a panel tab clicked, a run finished, a command copied (lab-source.js).
+document.addEventListener("lesson-step", ({ detail }) => {
+  if (!detail?.id) return;
+  if (detail.step === "code") progress.markSourceView(detail.id);
+  if (detail.step === "run") progress.markRun(detail.id, detail.mode === "local" ? "local" : "browser");
+});
 
 // The band at the top of a chapter carries the labs-done share of the chapter's route.
 function renderRouteBand() {
@@ -161,6 +189,59 @@ function initializeAssessment() {
   renderAssessmentState();
 }
 
+// The chapter's self-test: every question answered, all correct once records the pass with the revision.
+function initializeQuiz() {
+  const section = document.querySelector("[data-chapter-quiz]");
+  if (!section) return;
+  const quizId = section.dataset.quizId;
+  const revision = section.dataset.quizRevision;
+  const form = section.querySelector("[data-quiz-form]");
+  const questions = [...section.querySelectorAll("[data-quiz-question]")];
+  const stateLabel = section.querySelector("[data-quiz-state]");
+  const status = section.querySelector("[data-quiz-status]");
+  const submit = form.querySelector('button[type="submit"]');
+
+  function renderQuizState() {
+    const passed = progress.quiz(quizId, revision);
+    section.classList.toggle("is-passed", Boolean(passed));
+    if (passed) section.dataset.record = "done";
+    else section.removeAttribute("data-record");
+    stateLabel.textContent = passed ? `已通过 · ${passed.passedAt.slice(0, 10)}` : "未作答";
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    let correct = 0;
+    let answered = 0;
+    questions.forEach((question, index) => {
+      const chosen = data.get(`${quizId}-q${index + 1}`);
+      const feedback = question.querySelector("[data-quiz-feedback]");
+      if (chosen === null) { feedback.hidden = true; question.removeAttribute("data-result"); return; }
+      answered += 1;
+      const right = chosen === question.dataset.quizAnswer;
+      correct += right ? 1 : 0;
+      question.dataset.result = right ? "right" : "wrong";
+      feedback.hidden = false;
+      feedback.textContent = right ? "答对了。" : "再想想：这一题答错了。";
+    });
+    if (answered < questions.length) {
+      status.textContent = `还有 ${questions.length - answered} 题没有选答案。`;
+      return;
+    }
+    if (correct === questions.length) {
+      const saved = progress.setQuizPassed(quizId, revision);
+      status.textContent = saved ? `${correct} / ${questions.length} 全对，本章自测通过。` : "全对，但尚未保存：可重试保存或导出备份。";
+      submit.textContent = "再做一次";
+    } else {
+      status.textContent = `${correct} / ${questions.length} 答对。改一改答错的题再提交。`;
+    }
+    renderQuizState();
+  });
+  window.addEventListener("learning-data-change", renderQuizState);
+  renderQuizState();
+}
+
 document.addEventListener("click", async (event) => {
   const taskCommandButton = event.target.closest("[data-copy-task-command]");
   if (taskCommandButton) {
@@ -253,8 +334,12 @@ window.addEventListener("resize", scheduleScrollUpdate);
 updateScrollState();
 initializeProgressUI(document.querySelector("[data-learning-backup]"));
 initializeAssessment();
+initializeQuiz();
 renderRouteBand();
-window.addEventListener("learning-data-change", renderRouteBand);
+// Opening a chapter is reading it: the visit is the band's first step.
+if (isBookUnit) progress.markVisited(document.body.dataset.readingRoute ?? "");
+renderLessonSteps();
+window.addEventListener("learning-data-change", () => { renderRouteBand(); renderLessonSteps(); });
 
 if (window.location.hash) {
   try {

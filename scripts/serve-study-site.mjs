@@ -18,6 +18,11 @@ const contentTypes = new Map([
   [".svg", "image/svg+xml"],
   [".pdf", "application/pdf"],
   [".txt", "text/plain; charset=utf-8"],
+  // The browser runtime: dotnet.js streams .wasm only under its own media type; the rest is bytes.
+  [".wasm", "application/wasm"],
+  [".dll", "application/octet-stream"],
+  [".dat", "application/octet-stream"],
+  [".mjs", "text/javascript; charset=utf-8"],
 ]);
 
 const server = createServer(async (request, response) => {

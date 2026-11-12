@@ -13,10 +13,10 @@ export const chapterQuizzes = Object.freeze(
           explanation: "两种环境的共同验收条件是 Failed = 0 且 Timeout = 0；当前平台不支持的能力必须显式显示为 Skipped，不能把未执行的能力算作成功。",
         },
         {
-          prompt: "global.json 把 SDK 锁定为 10.0.301 并允许滚动，这意味着什么？",
-          options: ["只能使用 10.0.301 这一个版本", "可以在同一策略下滚动到合适的新 feature band", "任何 .NET 版本都可以构建本仓库"],
+          prompt: "仓库不锁定 SDK 版本。用比 .NET 10 更新的 SDK 构建时，什么保持不变？",
+          options: ["什么都不固定，目标框架和语言版本都跟着 SDK 升级", "目标框架 net10.0 和 C# 14，它们固定在项目文件中", "SDK 版本，global.json 仍会把它拉回 10.0"],
           answer: 1,
-          explanation: "基线写明 SDK 10.0.301，允许在同一策略下滚动到合适的新 feature band；定位问题时第一步就是确认实际选中的 SDK 与 global.json 一致。",
+          explanation: "仓库不锁定 SDK，由本机安装的最新 SDK 负责构建；目标框架 net10.0 和 C# 14 固定在项目文件中，不随 SDK 变化。global.json 现在只选择测试运行器，运行实验和测试仍需要 .NET 10 运行时。",
         },
         {
           prompt: "HTTP/3 实验在缺少平台 QUIC 能力时内部报告了 SKIPPED，这说明什么？",

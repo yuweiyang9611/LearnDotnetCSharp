@@ -846,7 +846,7 @@ try {
   await access(resolve(runtimeStage, "_framework", "dotnet.js"));
   await access(runtimeManifestPath);
 } catch {
-  throw new Error(`The browser runtime is not staged in ${runtimeStage}. Run 'npm run build:runtime' first (needs the .NET SDK pinned in tools/BrowserRuntime/global.json with the wasm-tools and wasm-experimental workloads).`);
+  throw new Error(`The browser runtime is not staged in ${runtimeStage}. Run 'npm run build:runtime' first (needs a .NET SDK, 10 or later, with the WebAssembly workloads: wasm-tools and wasm-experimental on a .NET 10 SDK, wasm-tools-net10 and wasm-experimental-net10 on a newer one).`);
 }
 const runtimeManifest = JSON.parse(await readFile(runtimeManifestPath, "utf8"));
 if (!Array.isArray(runtimeManifest) || runtimeManifest.length < 20 || !runtimeManifest.includes("System.Runtime.dll")) {

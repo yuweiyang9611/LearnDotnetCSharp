@@ -38,7 +38,9 @@ concurrency:
 jobs:
   build:
     name: Build site artifact
-    runs-on: ubuntu-latest
+    # ubuntu-latest now resolves to Ubuntu 26.04, where Playwright 1.58.2 cannot install its browser
+    # dependencies. Go back to ubuntu-latest once @playwright/test is on a version that supports it.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     steps:

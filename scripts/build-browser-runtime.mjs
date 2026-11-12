@@ -15,10 +15,10 @@ const runtimeStage = resolve(repositoryRoot, "artifacts", "browser-runtime");
 const dotnet = process.env.LEARN_DOTNET_WASM_DOTNET || "dotnet";
 
 function run(args) {
-  // dotnet reads global.json from the working directory, so the vendored pin applies.
+  // No SDK version is pinned: dotnet picks the newest installed SDK, and the project files fix net10.0.
   const result = spawnSync(dotnet, args, { cwd: project, stdio: "inherit" });
   if (result.status !== 0) {
-    throw new Error(`'${dotnet} ${args.join(" ")}' failed. Install the SDK pinned in tools/BrowserRuntime/global.json plus the wasm-tools and wasm-experimental workloads (dotnet workload install wasm-tools wasm-experimental).`);
+    throw new Error(`'${dotnet} ${args.join(" ")}' failed. Install a .NET SDK (10 or later) and its WebAssembly workloads: 'dotnet workload install wasm-tools wasm-experimental' on a .NET 10 SDK, 'dotnet workload install wasm-tools-net10 wasm-experimental-net10' on a newer one.`);
   }
 }
 

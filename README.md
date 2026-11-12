@@ -33,9 +33,10 @@ Linux、macOS 或 Git Bash 使用 `./scripts/enable-git-hooks.sh "YOUR_ID+YOUR_U
 
 ## 环境基准
 
-- SDK：`10.0.301`（`global.json` 允许在同一 major/minor 下向较新的 feature band 滚动）
-- TFM：`net10.0`
-- C#：`14.0`
+- SDK：不锁定版本，安装 .NET SDK 10 或更高版本即可，由本机安装的最新 SDK 负责构建（`global.json` 只用来选择测试运行器）
+- TFM：`net10.0`（固定在项目文件中，不随 SDK 变化）
+- C#：`14.0`（固定在项目文件中）
+- 运行时：.NET 10（含 ASP.NET Core）；只装了更新的 SDK 时需要另行安装
 - Nullable：启用
 - .NET analyzers：启用，警告视为错误
 - NuGet：`Microsoft.EntityFrameworkCore.Sqlite 10.0.9`；原生 SQLite bundle 显式锁定到已修复审计问题的 `SQLitePCLRaw.bundle_e_sqlite3 3.0.3`
@@ -124,6 +125,8 @@ npm run build:runtime
 node scripts/build-study-site.mjs
 npm run test:site
 ```
+
+`wasm-tools wasm-experimental` 是 .NET 10 SDK 下的 workload 名称；本机 SDK 更新时，改为 `dotnet workload install wasm-tools-net10 wasm-experimental-net10`。
 
 当前包含 31 个浏览器用例，覆盖搜索、导航、复制、验收、迁移、合并、保存失败、浏览器内运行、自测与五步带。CI 与 Pages 发布前均运行浏览器测试；失败截图和 trace 位于 `artifacts/playwright-results`，HTML 报告位于 `artifacts/playwright-report`。
 
@@ -275,6 +278,6 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-category projects
 
 详细课程见 [docs/advanced-dotnet-csharp-study-guide.md](docs/advanced-dotnet-csharp-study-guide.md)，完整章节映射见 [docs/pdf-topic-map.md](docs/pdf-topic-map.md)，推荐顺序见 [docs/learning-path.md](docs/learning-path.md)，互操作边界见 [docs/interop-boundaries.md](docs/interop-boundaries.md)，外部资料见 [docs/references.md](docs/references.md)；它们都会在 GitHub Pages 构建时转换为站内可搜索页面。
 
-Roslyn 示例直接引用所选 SDK 的编译器程序集，因此能离线构建且版本与 `global.json` 一致；这依赖 SDK 的 `RoslynTargetsPath` 布局，项目在构建前会显式验证文件是否存在。Linux/macOS 的系统 P/Invoke 分支已按平台隔离；仓库自带的 C/C++ 动态库当前只配置并验证了 Windows x64 MSVC 构建，其他平台会明确跳过。
+Roslyn 示例直接引用执行构建的 SDK 自带的编译器程序集，因此能离线构建；仓库不锁定 SDK，编译器 API 的版本随实际使用的 SDK 而定，示例自己用 `LanguageVersion.CSharp14` 固定语言版本。这依赖 SDK 的 `RoslynTargetsPath` 布局，项目在构建前会显式验证文件是否存在。Linux/macOS 的系统 P/Invoke 分支已按平台隔离；仓库自带的 C/C++ 动态库当前只配置并验证了 Windows x64 MSVC 构建，其他平台会明确跳过。
 
 HTTP/2/3 实验使用进程内自签名证书且只信任本次生成证书的 SHA-256 指纹，不修改系统证书库。HTTP/3 需要平台 QUIC/MsQuic；不支持时实验仍会验证 HTTP/2，并把 HTTP/3 明确报告为 `SKIPPED`。需要 Kestrel 详细日志时可在运行前设置 `LEARN_DOTNET_HTTP_TRACE=1`。

@@ -32,8 +32,11 @@
 
   <ItemGroup>
     <!--
-      Roslyn ships with the selected .NET SDK. Referencing it from MSBuildToolsPath keeps this
-      learning project offline and guarantees that its compiler API matches global.json.
+      Roslyn ships with every .NET SDK. Referencing the compiler assemblies under RoslynTargetsPath
+      keeps this learning project offline. No SDK version is pinned, so the compiler API is that of
+      the SDK that runs the build (the newest one installed); the demos fix the language themselves
+      with LanguageVersion.CSharp14. Those assemblies must still load on net10.0, which holds for
+      the .NET 10 SDK and for 11.0.100 (its compiler is built against .NET 10).
     -->
     <Reference Include="Microsoft.CodeAnalysis">
       <HintPath>$(RoslynTargetsPath)\bincore\Microsoft.CodeAnalysis.dll</HintPath>

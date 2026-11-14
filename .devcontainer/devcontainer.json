@@ -1,6 +1,6 @@
 {
-  "name": "LearnDotnetCSharp (.NET 10 + Python 3.11)",
-  "image": "mcr.microsoft.com/devcontainers/dotnet:10.0-noble",
+  "name": "LearnDotnetCSharp (.NET 11 + Python 3.11)",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:11.0-resolute",
   "features": {
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.11",

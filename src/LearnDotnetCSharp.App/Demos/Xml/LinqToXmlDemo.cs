@@ -26,7 +26,7 @@ public sealed class LinqToXmlDemo : IDemo
                 learning + "catalog",
                 new XAttribute(XNamespace.Xmlns + "m", metadata),
                 new XAttribute(metadata + "version", 1),
-                CreateCourse(learning, "csharp", "C# 14", 8, ["language", "compiler"]),
+                CreateCourse(learning, "csharp", "C# 15", 8, ["language", "compiler"]),
                 CreateCourse(learning, "linq", "LINQ", 6, ["query", "xml"]),
                 CreateCourse(learning, "io", "I/O", 5, ["stream", "pipeline"])));
 
@@ -60,7 +60,7 @@ public sealed class LinqToXmlDemo : IDemo
         context.WriteProperty("tag counts", string.Join(", ", tagCounts.Select(pair => $"{pair.Key}={pair.Value}")));
         context.WriteLine(document.ToString(SaveOptions.DisableFormatting));
 
-        DemoAssert.SequenceEqual(["C# 14", "LINQ"], advancedCourses, "LINQ to XML 查询应按课时降序筛选课程");
+        DemoAssert.SequenceEqual(["C# 15", "LINQ"], advancedCourses, "LINQ to XML 查询应按课时降序筛选课程");
         DemoAssert.Equal(7, (int)linqCourse.Element(learning + "hours")!, "SetElementValue 应更新目标元素");
         DemoAssert.Equal(4, document.Root.Elements(learning + "course").Count(), "修改后的文档应包含四门课程");
         DemoAssert.True(annotation == new SourceLocation("pdf", 10), "XObject 注解应保留对象侧元数据且不污染 XML");

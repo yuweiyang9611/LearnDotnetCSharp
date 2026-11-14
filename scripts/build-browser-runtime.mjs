@@ -8,17 +8,17 @@ import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const project = resolve(repositoryRoot, "tools", "BrowserRuntime", "BrowserExercises");
-const output = resolve(project, "bin", "Release", "net10.0");
+const output = resolve(project, "bin", "Release", "net11.0");
 const framework = resolve(output, "publish", "wwwroot", "_framework");
 const compilerReferences = resolve(output, "compiler-refs");
 const runtimeStage = resolve(repositoryRoot, "artifacts", "browser-runtime");
 const dotnet = process.env.LEARN_DOTNET_WASM_DOTNET || "dotnet";
 
 function run(args) {
-  // No SDK version is pinned: dotnet picks the newest installed SDK, and the project files fix net10.0.
+  // No SDK version is pinned: dotnet picks the newest installed SDK, and the project files fix net11.0.
   const result = spawnSync(dotnet, args, { cwd: project, stdio: "inherit" });
   if (result.status !== 0) {
-    throw new Error(`'${dotnet} ${args.join(" ")}' failed. Install a .NET SDK (10 or later) and its WebAssembly workloads: 'dotnet workload install wasm-tools wasm-experimental' on a .NET 10 SDK, 'dotnet workload install wasm-tools-net10 wasm-experimental-net10' on a newer one.`);
+    throw new Error(`'${dotnet} ${args.join(" ")}' failed. Install a .NET SDK (11 or later) and its WebAssembly workloads: 'dotnet workload install wasm-tools wasm-experimental' on a .NET 11 SDK, 'dotnet workload install wasm-tools-net11 wasm-experimental-net11' on a newer one.`);
   }
 }
 

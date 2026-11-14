@@ -9,10 +9,10 @@ public sealed class EfCoreSqliteProviderDemo : IDemo
     public DemoMetadata Metadata { get; } = new(
         "linq.efcore-sqlite-provider",
         "linq",
-        "EF Core 10 与 SQLite：真实 IQueryable 提供程序",
+        "EF Core 11 与 SQLite：真实 IQueryable 提供程序",
         "把表达式树交给 EF Core 翻译成参数化 SQL，演示 .NET 10 LeftJoin、异步物化、跟踪边界以及显式切换到 LINQ to Objects。",
         [8, 9],
-        ["EF Core 10", "SQLite", "IQueryable", "expression tree", "SQL translation", "LeftJoin", "AsEnumerable"]);
+        ["EF Core 11", "SQLite", "IQueryable", "expression tree", "SQL translation", "LeftJoin", "AsEnumerable"]);
 
     public async ValueTask RunAsync(DemoContext context, CancellationToken cancellationToken)
     {
@@ -78,7 +78,7 @@ public sealed class EfCoreSqliteProviderDemo : IDemo
             sql.Contains("LEFT JOIN", StringComparison.OrdinalIgnoreCase) &&
             sql.Contains("ORDER BY", StringComparison.OrdinalIgnoreCase) &&
             sql.Contains(".param set", StringComparison.OrdinalIgnoreCase),
-            "EF Core 10 应把 LeftJoin 和排序翻译到 SQLite SQL");
+            "EF Core 11 应把 LeftJoin 和排序翻译到 SQLite SQL");
         DemoAssert.True(
             rows.Any(row => row.Category == "runtime" && row.Course == "<none>"),
             "左连接应保留没有课程的 runtime 分类");
@@ -95,7 +95,7 @@ public sealed class EfCoreSqliteProviderDemo : IDemo
             new CourseCategory { Id = 2, Name = "runtime" },
             new CourseCategory { Id = 3, Name = "interop" });
         database.Courses.AddRange(
-            new LearningCourse { Id = 1, CategoryId = 1, Title = "C# 14", DurationHours = 3 },
+            new LearningCourse { Id = 1, CategoryId = 1, Title = "C# 15", DurationHours = 3 },
             new LearningCourse { Id = 2, CategoryId = 1, Title = "Async Streams", DurationHours = 5 },
             new LearningCourse { Id = 3, CategoryId = 3, Title = "Native Interop", DurationHours = 4 });
         await database.SaveChangesAsync(cancellationToken).ConfigureAwait(false);

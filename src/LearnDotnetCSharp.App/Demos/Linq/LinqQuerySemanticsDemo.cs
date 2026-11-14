@@ -24,7 +24,7 @@ public sealed class LinqQuerySemanticsDemo : IDemo
         };
         var products = new List<QueryProduct>
         {
-            new(1, "C# 14", 1, 80m),
+            new(1, "C# 15", 1, 80m),
             new(2, "LINQ", 1, 60m),
             new(3, "GC", 2, 40m),
         };
@@ -90,13 +90,13 @@ public sealed class LinqQuerySemanticsDemo : IDemo
         context.WriteProperty("translated shape result", string.Join(", ", queryableResult));
         context.WriteLine("  AsQueryable 在这里仍由 LINQ to Objects 执行；数据库 provider 会翻译同一类表达式树。外部 provider 不一定支持所有 .NET 方法。");
 
-        DemoAssert.SequenceEqual(["C# 14", "LINQ", "HTTP/3"], firstEnumeration, "延迟查询应看到首次枚举前加入的元素");
+        DemoAssert.SequenceEqual(["C# 15", "LINQ", "HTTP/3"], firstEnumeration, "延迟查询应看到首次枚举前加入的元素");
         DemoAssert.True(predicateEvaluations == 4 && materializedSnapshot.Length == 3, "每次枚举才执行委托，物化结果应成为独立快照");
         DemoAssert.True(queryRows.Length == 3 && queryRows[0].Category == "language", "查询语法应完成 join、let、filter 和排序");
         DemoAssert.True(
             summaries.Single(summary => summary.Name == "runtime").Count == 3,
             "相关子查询应按分类统计三个 runtime 产品");
-        DemoAssert.SequenceEqual(["C# 14", "HTTP/3"], queryableResult, "表达式树查询应由当前 provider 正确执行");
+        DemoAssert.SequenceEqual(["C# 15", "HTTP/3"], queryableResult, "表达式树查询应由当前 provider 正确执行");
 
         return ValueTask.CompletedTask;
     }

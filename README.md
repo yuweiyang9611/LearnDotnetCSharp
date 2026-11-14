@@ -1,6 +1,6 @@
 # LearnDotnetCSharp
 
-这是一个以 **.NET 10** 和 **C# 14** 为基准、包含 53 个可运行实验的高级特性实验室。项目参考《C# 8.0 核心技术指南》的目录组织知识范围，但示例使用当前运行时和语言写法，不复刻书中的旧代码。
+这是一个以 **.NET 11** 和 **C# 15** 为基准、包含 53 个可运行实验的高级特性实验室。项目参考《C# 8.0 核心技术指南》的目录组织知识范围，但示例使用当前运行时和语言写法，不复刻书中的旧代码。
 
 > **在线学习站：** [yuweiyang9611.github.io/LearnDotnetCSharp](https://yuweiyang9611.github.io/LearnDotnetCSharp/)
 >
@@ -33,13 +33,13 @@ Linux、macOS 或 Git Bash 使用 `./scripts/enable-git-hooks.sh "YOUR_ID+YOUR_U
 
 ## 环境基准
 
-- SDK：不锁定版本，安装 .NET SDK 10 或更高版本即可，由本机安装的最新 SDK 负责构建（`global.json` 只用来选择测试运行器）
-- TFM：`net10.0`（固定在项目文件中，不随 SDK 变化）
+- SDK：不锁定版本，安装 .NET SDK 11 或更高版本即可，由本机安装的最新 SDK 负责构建（`global.json` 只用来选择测试运行器）
+- TFM：`net11.0`（固定在项目文件中，不随 SDK 变化）
 - C#：`14.0`（固定在项目文件中）
-- 运行时：.NET 10（含 ASP.NET Core）；只装了更新的 SDK 时需要另行安装
+- 运行时：.NET 11（含 ASP.NET Core）；只装了更新的 SDK 时需要另行安装
 - Nullable：启用
 - .NET analyzers：启用，警告视为错误
-- NuGet：`Microsoft.EntityFrameworkCore.Sqlite 10.0.9`；原生 SQLite bundle 显式锁定到已修复审计问题的 `SQLitePCLRaw.bundle_e_sqlite3 3.0.3`
+- NuGet：`Microsoft.EntityFrameworkCore.Sqlite 11.0.0`；原生 SQLite bundle 显式锁定到已修复审计问题的 `SQLitePCLRaw.bundle_e_sqlite3 3.0.5`
 - F# 使用 SDK 自带的 `FSharp.Core`
 - Python：Python 3 + 工作区 `.venv`，只使用标准库
 - 文档：独立 `.docs-venv` + 固定版本的 ReportLab/PyPDF；生成 PDF 时自动嵌入中文与等宽字体
@@ -49,7 +49,7 @@ Linux、macOS 或 Git Bash 使用 `./scripts/enable-git-hooks.sh "YOUR_ID+YOUR_U
 
 ### Codespaces / Dev Container
 
-[在 GitHub Codespaces 中打开](https://codespaces.new/yuweiyang9611/LearnDotnetCSharp?quickstart=1)，即可获得预配置的 .NET 10、Python 3.11 和 Node.js 24 环境。容器首次创建时会自动生成工作区 `.venv` 并还原解决方案；在本机使用 VS Code 时，也可以安装 Dev Containers 扩展后选择 **Reopen in Container**。
+[在 GitHub Codespaces 中打开](https://codespaces.new/yuweiyang9611/LearnDotnetCSharp?quickstart=1)，即可获得预配置的 .NET 11、Python 3.11 和 Node.js 24 环境。容器首次创建时会自动生成工作区 `.venv` 并还原解决方案；在本机使用 VS Code 时，也可以安装 Dev Containers 扩展后选择 **Reopen in Container**。
 
 初始化完成后，可以直接执行跨平台验证并预览学习站：
 
@@ -109,7 +109,7 @@ CLI 命令：
 
 `self-test` 不再把平台分支中的提前返回误记为成功。子进程退出码 `0` 表示 `Passed`，`77` 表示 `Skipped`，`124` 保留给 `Timeout`；失败或超时会保留该实验有界的标准输出和标准错误摘要，并让整体命令失败。超时后运行器会终止整个子进程树，因此死锁、忽略取消或污染进程级状态的实验不会阻塞后续项目。
 
-正式测试项目使用 .NET 10 的 Microsoft.Testing.Platform，当前包含 45 个测试，既覆盖目录/运行器基础设施，也直接验证可恢复管线、SQLite 幂等、插件路由和 Python worker 池。GitHub Actions 会在 Windows 与 Linux 上执行还原、Release 构建、格式检查、测试和完整 `self-test`，并在 Pull Request 中重新生成 PDF 与四层代码制品、检查前端 JavaScript 语法、构建静态站及验收关键产物；Windows 同时验证仓库自带的 C/C++ DLL，Linux 通过可用性契约测试和自检确认这些 Windows 专有实验明确报告 `Skipped`。Pages 发布任务也会先从当前提交的 Markdown 与 C# 源码重新生成 PDF、HTML 和 JIT 快照并核对站内副本，避免在线内容来自不同版本。
+正式测试项目使用 .NET 11 的 Microsoft.Testing.Platform，当前包含 45 个测试，既覆盖目录/运行器基础设施，也直接验证可恢复管线、SQLite 幂等、插件路由和 Python worker 池。GitHub Actions 会在 Windows 与 Linux 上执行还原、Release 构建、格式检查、测试和完整 `self-test`，并在 Pull Request 中重新生成 PDF 与四层代码制品、检查前端 JavaScript 语法、构建静态站及验收关键产物；Windows 同时验证仓库自带的 C/C++ DLL，Linux 通过可用性契约测试和自检确认这些 Windows 专有实验明确报告 `Skipped`。Pages 发布任务也会先从当前提交的 Markdown 与 C# 源码重新生成 PDF、HTML 和 JIT 快照并核对站内副本，避免在线内容来自不同版本。
 
 ## 学习备份与浏览器验证
 
@@ -126,13 +126,13 @@ node scripts/build-study-site.mjs
 npm run test:site
 ```
 
-`wasm-tools wasm-experimental` 是 .NET 10 SDK 下的 workload 名称；本机 SDK 更新时，改为 `dotnet workload install wasm-tools-net10 wasm-experimental-net10`。
+`wasm-tools wasm-experimental` 是 .NET 11 SDK 下的 workload 名称；本机 SDK 更新时，改为 `dotnet workload install wasm-tools-net11 wasm-experimental-net11`。
 
 当前包含 31 个浏览器用例，覆盖搜索、导航、复制、验收、迁移、合并、保存失败、浏览器内运行、自测与五步带。CI 与 Pages 发布前均运行浏览器测试；失败截图和 trace 位于 `artifacts/playwright-results`，HTML 报告位于 `artifacts/playwright-report`。
 
 ## 在浏览器里跑实验与五步带
 
-章节页上每个实验的源码面板带“运行”按钮：`tools/BrowserRuntime/` 是从设计模式站点移植的 Roslyn + .NET 10 WebAssembly 运行时副本（引擎扩展为一次编译多个命名文件，并等待返回 `Task<string[]>` 的入口），`npm run build:runtime` 把它发布到 `artifacts/browser-runtime/`，站点构建再复制到 `assets/runtime/`（约 47 MB，生成产物，不入库；缺少时构建会明确失败）。第一次点击“运行”会加载运行时，面板依次显示“加载运行时 / 编译 / 执行”，超时分别为 60 秒、30 秒和 5 秒。一次运行把面板里的实验文件（可改一改再跑）、它的同组文件和 `Infrastructure/` 下的文件一起编译，入口构造 Demo 并等待 `RunAsync`。不能在浏览器里跑的实验（原生互操作、文件、网络、线程、进程、Kestrel、EF Core、Roslyn 包等）列在 `site/lab-availability.js`，面板显示“需要本机”和原有的 `dotnet run` 命令；这份清单来自 `npm run survey:labs` 在本地构建上逐个运行全部 53 个实验的结果。
+章节页上每个实验的源码面板带“运行”按钮：`tools/BrowserRuntime/` 是从设计模式站点移植的 Roslyn + .NET 11 WebAssembly 运行时副本（引擎扩展为一次编译多个命名文件，并等待返回 `Task<string[]>` 的入口），`npm run build:runtime` 把它发布到 `artifacts/browser-runtime/`，站点构建再复制到 `assets/runtime/`（约 47 MB，生成产物，不入库；缺少时构建会明确失败）。第一次点击“运行”会加载运行时，面板依次显示“加载运行时 / 编译 / 执行”，超时分别为 60 秒、30 秒和 5 秒。一次运行把面板里的实验文件（可改一改再跑）、它的同组文件和 `Infrastructure/` 下的文件一起编译，入口构造 Demo 并等待 `RunAsync`。不能在浏览器里跑的实验（原生互操作、文件、网络、线程、进程、Kestrel、EF Core、Roslyn 包等）列在 `site/lab-availability.js`，面板显示“需要本机”和原有的 `dotnet run` 命令；这份清单来自 `npm run survey:labs` 在本地构建上逐个运行全部 53 个实验的结果。
 
 每个章节页顶部有一条五步带（读、看代码、跑、自测、记一笔），状态只从学习记录读出：打开过章节（或阅读位置已到达该章）、点过源码面板的标签、浏览器运行完成或复制过本机命令、本章三道自测题全对、证据记录非空。教材目录的“接着做”指向最早有“停在这里”一步的章节。记录仍是 `learn-dotnet-csharp-learning-data-v1`，版本 1 新增 `visited`、`sourceViews`、`runs`、`quizzes` 四个字段，旧记录原样可读。
 
@@ -228,7 +228,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-category projects
 | `collections.core-custom-buffer` | 队列/栈/优先队列/集合/冻结字典，以及自定义 `IReadOnlyList<T>` 环形缓冲区 |
 | `linq.query-semantics` | 查询语法、延迟执行、物化快照、相关子查询与 `IQueryable` 表达式树 |
 | `linq.operators` | LINQ 操作族、.NET 10 `LeftJoin`/`RightJoin`、`CountBy`/`AggregateBy` |
-| `linq.efcore-sqlite-provider` | EF Core 10、SQLite、真实表达式树翻译、参数化 SQL 与客户端边界 |
+| `linq.efcore-sqlite-provider` | EF Core 11、SQLite、真实表达式树翻译、参数化 SQL 与客户端边界 |
 | `xml.linq` | LINQ to XML 函数式构造、命名空间、查询、修改与对象注解 |
 | `serialization.xml-json` | 异步 `XmlWriter`/`XmlReader`、源生成 JSON 和严格输入约束 |
 | `serialization.contract-versioning` | XmlSerializer 显式形状、JSON 多态判别器、扩展数据和版本兼容 |
@@ -278,6 +278,6 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-category projects
 
 详细课程见 [docs/advanced-dotnet-csharp-study-guide.md](docs/advanced-dotnet-csharp-study-guide.md)，完整章节映射见 [docs/pdf-topic-map.md](docs/pdf-topic-map.md)，推荐顺序见 [docs/learning-path.md](docs/learning-path.md)，互操作边界见 [docs/interop-boundaries.md](docs/interop-boundaries.md)，外部资料见 [docs/references.md](docs/references.md)；它们都会在 GitHub Pages 构建时转换为站内可搜索页面。
 
-Roslyn 示例直接引用执行构建的 SDK 自带的编译器程序集，因此能离线构建；仓库不锁定 SDK，编译器 API 的版本随实际使用的 SDK 而定，示例自己用 `LanguageVersion.CSharp14` 固定语言版本。这依赖 SDK 的 `RoslynTargetsPath` 布局，项目在构建前会显式验证文件是否存在。Linux/macOS 的系统 P/Invoke 分支已按平台隔离；仓库自带的 C/C++ 动态库当前只配置并验证了 Windows x64 MSVC 构建，其他平台会明确跳过。
+Roslyn 示例直接引用执行构建的 SDK 自带的编译器程序集，因此能离线构建；仓库不锁定 SDK，编译器 API 的版本随实际使用的 SDK 而定，示例自己用 `LanguageVersion.CSharp15` 固定语言版本。这依赖 SDK 的 `RoslynTargetsPath` 布局，项目在构建前会显式验证文件是否存在。Linux/macOS 的系统 P/Invoke 分支已按平台隔离；仓库自带的 C/C++ 动态库当前只配置并验证了 Windows x64 MSVC 构建，其他平台会明确跳过。
 
 HTTP/2/3 实验使用进程内自签名证书且只信任本次生成证书的 SHA-256 指纹，不修改系统证书库。HTTP/3 需要平台 QUIC/MsQuic；不支持时实验仍会验证 HTTP/2，并把 HTTP/3 明确报告为 `SKIPPED`。需要 Kestrel 详细日志时可在运行前设置 `LEARN_DOTNET_HTTP_TRACE=1`。

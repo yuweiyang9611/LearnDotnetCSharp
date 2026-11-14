@@ -25,9 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
-    <!-- EF Core 10.0.9 allows a newer SQLitePCLRaw bundle; pin the audited 3.x native runtime. -->
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
+    <!-- EF Core 11.0.0 needs SQLitePCLRaw 3.0.5 or later; pin that audited 3.x native runtime. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -35,8 +35,8 @@
       Roslyn ships with every .NET SDK. Referencing the compiler assemblies under RoslynTargetsPath
       keeps this learning project offline. No SDK version is pinned, so the compiler API is that of
       the SDK that runs the build (the newest one installed); the demos fix the language themselves
-      with LanguageVersion.CSharp14. Those assemblies must still load on net10.0, which holds for
-      the .NET 10 SDK and for 11.0.100 (its compiler is built against .NET 10).
+      with LanguageVersion.CSharp15. Those assemblies must still load on net11.0, which holds for
+      11.0.100 (its compiler is built against .NET 10).
     -->
     <Reference Include="Microsoft.CodeAnalysis">
       <HintPath>$(RoslynTargetsPath)\bincore\Microsoft.CodeAnalysis.dll</HintPath>

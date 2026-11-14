@@ -16,7 +16,7 @@ export const chapterTasks = Object.freeze(
       objective: "确认 SDK、目标框架、语言版本和平台能力，并建立不把跳过项误判为成功的基线。",
       command: "dotnet run --project .\\src\\LearnDotnetCSharp.App -- self-test",
       steps: [
-        "运行 dotnet --info，确认实际选中的 SDK 不低于 .NET 10，并且列出了 .NET 10 运行时。",
+        "运行 dotnet --info，确认实际选中的 SDK 不低于 .NET 11，并且列出了 .NET 11 运行时。",
         "还原并构建 LearnDotnetCSharp.slnx，记录配置和目标框架。",
         "运行正式测试，确认当前测试总数和失败数。",
         "运行 self-test，按 Passed、Skipped、Failed、Timeout 四类保存汇总。",
@@ -28,7 +28,7 @@ export const chapterTasks = Object.freeze(
         "Skipped 项及其平台原因列表。",
       ],
       criteria: [
-        "实际 SDK 为 .NET 10 或更高版本，项目以 net10.0 和 C# 14 构建。",
+        "实际 SDK 为 .NET 11 或更高版本，项目以 net11.0 和 C# 15 构建。",
         "正式测试通过，self-test 的 Failed 与 Timeout 均为 0。",
         "当前平台不支持的能力明确显示为 Skipped，记录中没有将其改写成成功。",
       ],
@@ -118,7 +118,7 @@ export const chapterTasks = Object.freeze(
       evidence: [
         "Debug/Release 输出对照及必然相同项列表。",
         "TargetFramework、LangVersion 的文件位置和取值，以及 global.json 不含 sdk 节、SDK 取本机最新版本的依据。",
-        "对“C# 14 功能可在所有 .NET 10 部署模型使用”的反例说明。",
+        "对“C# 15 功能可在所有 .NET 11 部署模型使用”的反例说明。",
       ],
       criteria: [
         "没有把 FrameworkDescription 或 Environment.Version 当作语言版本。",
@@ -145,7 +145,7 @@ export const chapterTasks = Object.freeze(
       ],
       criteria: [
         "null 接收者路径不计算赋值右侧，非 null 路径恰好按源码语义计算。",
-        "项目继续以 C# 14 构建且原实验断言通过。",
+        "项目继续以 C# 15 构建且原实验断言通过。",
         "解释明确区分调用语法与 extension member 的静态调度本质。",
       ],
       sourceAnchor: "6-c-14-正式语言特性",

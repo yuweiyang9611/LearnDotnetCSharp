@@ -13,10 +13,10 @@ export const chapterQuizzes = Object.freeze(
           explanation: "两种环境的共同验收条件是 Failed = 0 且 Timeout = 0；当前平台不支持的能力必须显式显示为 Skipped，不能把未执行的能力算作成功。",
         },
         {
-          prompt: "仓库不锁定 SDK 版本。用比 .NET 10 更新的 SDK 构建时，什么保持不变？",
-          options: ["什么都不固定，目标框架和语言版本都跟着 SDK 升级", "目标框架 net10.0 和 C# 14，它们固定在项目文件中", "SDK 版本，global.json 仍会把它拉回 10.0"],
+          prompt: "仓库不锁定 SDK 版本。用比 .NET 11 更新的 SDK 构建时，什么保持不变？",
+          options: ["什么都不固定，目标框架和语言版本都跟着 SDK 升级", "目标框架 net11.0 和 C# 15，它们固定在项目文件中", "SDK 版本，global.json 仍会把它拉回 11.0"],
           answer: 1,
-          explanation: "仓库不锁定 SDK，由本机安装的最新 SDK 负责构建；目标框架 net10.0 和 C# 14 固定在项目文件中，不随 SDK 变化。global.json 现在只选择测试运行器，运行实验和测试仍需要 .NET 10 运行时。",
+          explanation: "仓库不锁定 SDK，由本机安装的最新 SDK 负责构建；目标框架 net11.0 和 C# 15 固定在项目文件中，不随 SDK 变化。global.json 现在只选择测试运行器，运行实验和测试仍需要 .NET 11 运行时。",
         },
         {
           prompt: "HTTP/3 实验在缺少平台 QUIC 能力时内部报告了 SKIPPED，这说明什么？",
@@ -102,7 +102,7 @@ export const chapterQuizzes = Object.freeze(
           prompt: "FrameworkDescription 与 Environment.Version 描述的是什么？",
           options: ["C# 语言版本", "运行环境，而不是语言版本", "编译时使用的 reference assemblies 版本"],
           answer: 1,
-          explanation: "它们描述运行环境；语言版本由 LangVersion 决定，编译时的绑定用的是 net10.0 reference assemblies。",
+          explanation: "它们描述运行环境；语言版本由 LangVersion 决定，编译时的绑定用的是 net11.0 reference assemblies。",
         },
         {
           prompt: "RuntimeFeature.IsDynamicCodeSupported 决定什么能力是否可用？",

@@ -26,7 +26,7 @@ public sealed class ContractVersioningDemo : IDemo
             Version = 2,
             Courses =
             [
-                new XmlCourse { Id = "csharp", Title = "C# 14", Hours = 8 },
+                new XmlCourse { Id = "csharp", Title = "C# 15", Hours = 8 },
                 new XmlCourse { Id = "crypto", Title = "Cryptography", Hours = 6 },
             ],
         };
@@ -90,7 +90,7 @@ public sealed class ContractVersioningDemo : IDemo
             envelope.ExtensionData?.ContainsKey("futureFlag") == true && reserialized.Contains("futureFlag", StringComparison.Ordinal),
             "扩展数据应保留当前模型尚不认识的未来字段");
 
-        context.WriteLine("  BinaryFormatter/ISerializable 旧二进制格式不在 .NET 10 中复活；迁移时应选择有边界、可审计且能限制输入的格式。");
+        context.WriteLine("  BinaryFormatter/ISerializable 旧二进制格式不在 .NET 11 中复活；迁移时应选择有边界、可审计且能限制输入的格式。");
         return ValueTask.CompletedTask;
     }
 }

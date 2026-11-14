@@ -64,7 +64,7 @@ public sealed class PluginHostTests
             Path.AltDirectorySeparatorChar));
         var configuration = frameworkDirectory.Parent?.Name
             ?? throw new InvalidOperationException("Could not determine the test build configuration.");
-        var path = Path.Combine(root, "src", projectName, "bin", configuration, "net10.0", assemblyName);
+        var path = Path.Combine(root, "src", projectName, "bin", configuration, "net11.0", assemblyName);
         Assert.IsTrue(File.Exists(path), $"Expected the built plug-in at '{path}'.");
         return path;
     }

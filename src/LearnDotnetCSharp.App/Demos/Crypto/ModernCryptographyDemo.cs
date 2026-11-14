@@ -20,7 +20,7 @@ public sealed class ModernCryptographyDemo : IDemo
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var message = Encoding.UTF8.GetBytes("C# 14 / .NET 10 密码学边界");
+        var message = Encoding.UTF8.GetBytes("C# 15 / .NET 11 密码学边界");
         var digest = SHA256.HashData(message);
         var hmacKey = RandomNumberGenerator.GetBytes(32);
         var authenticationCode = HMACSHA256.HashData(hmacKey, message);

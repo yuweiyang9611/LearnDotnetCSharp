@@ -192,7 +192,7 @@ export const experiments = [
   {
     id: "linq.efcore-sqlite-provider",
     category: "linq",
-    title: "EF Core 10 与 SQLite",
+    title: "EF Core 11 与 SQLite",
     summary: "观察真实查询提供程序如何翻译表达式树和参数化 SQL。",
     source: "src/LearnDotnetCSharp.App/Demos/Linq/EfCoreSqliteProviderDemo.cs",
   },
@@ -474,7 +474,7 @@ export const resources = [
   },
   {
     type: "主教材",
-    title: ".NET 10 与 C# 14 高级特性学习指导",
+    title: ".NET 11 与 C# 15 高级特性学习指导",
     description: "站内阅读 30 章正文、目录深链、代码示例、修改练习与结业验收。",
     href: "./guide/",
     action: "开始站内阅读",
@@ -497,7 +497,7 @@ export const resources = [
   {
     type: "知识映射",
     title: "原 PDF 27 章到现代示例",
-    description: "把原 PDF 主题映射到当前 30 章教材与 53 个 .NET 10 / C# 14 实验。",
+    description: "把原 PDF 主题映射到当前 30 章教材与 53 个 .NET 11 / C# 15 实验。",
     href: "./topic-map/",
     action: "查看映射",
   },

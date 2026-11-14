@@ -846,7 +846,7 @@ try {
   await access(resolve(runtimeStage, "_framework", "dotnet.js"));
   await access(runtimeManifestPath);
 } catch {
-  throw new Error(`The browser runtime is not staged in ${runtimeStage}. Run 'npm run build:runtime' first (needs a .NET SDK, 10 or later, with the WebAssembly workloads: wasm-tools and wasm-experimental on a .NET 10 SDK, wasm-tools-net10 and wasm-experimental-net10 on a newer one).`);
+  throw new Error(`The browser runtime is not staged in ${runtimeStage}. Run 'npm run build:runtime' first (needs a .NET SDK, 11 or later, with the WebAssembly workloads: wasm-tools and wasm-experimental on a .NET 11 SDK, wasm-tools-net11 and wasm-experimental-net11 on a newer one).`);
 }
 const runtimeManifest = JSON.parse(await readFile(runtimeManifestPath, "utf8"));
 if (!Array.isArray(runtimeManifest) || runtimeManifest.length < 20 || !runtimeManifest.includes("System.Runtime.dll")) {
@@ -902,7 +902,7 @@ function renderRouteBand(stage) {
           </div>`;
 }
 
-const bookTitle = renderedGuide.metadata.title ?? ".NET 10 与 C# 14 高级特性学习指导";
+const bookTitle = renderedGuide.metadata.title ?? ".NET 11 与 C# 15 高级特性学习指导";
 const bookSubtitle = renderedGuide.metadata.subtitle ?? "以 53 个可运行实验为主线";
 const bookDate = renderedGuide.metadata.date ?? "持续更新";
 const renderedUnitPages = [];

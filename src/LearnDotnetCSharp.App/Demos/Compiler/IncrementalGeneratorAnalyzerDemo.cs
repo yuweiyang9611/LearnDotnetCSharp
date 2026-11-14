@@ -38,7 +38,7 @@ public sealed class IncrementalGeneratorAnalyzerDemo : IDemo
 
     public async ValueTask RunAsync(DemoContext context, CancellationToken cancellationToken)
     {
-        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp14);
+        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp15);
         var syntaxTree = CSharpSyntaxTree.ParseText(
             SampleSource,
             parseOptions,

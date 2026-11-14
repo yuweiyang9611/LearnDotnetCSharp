@@ -1,6 +1,6 @@
 # PDF 目录与现代示例映射
 
-本表依据所提供 PDF 的目录页整理。它用于确定学习范围，不复制书中正文。书的基准是 C# 8 / 早期 .NET Core；本项目把相同主题更新到 .NET 10 / C# 14，并以 53 个可运行实验完成验证。
+本表依据所提供 PDF 的目录页整理。它用于确定学习范围，不复制书中正文。书的基准是 C# 8 / 早期 .NET Core；本项目把相同主题更新到 .NET 11 / C# 15，并以 53 个可运行实验完成验证。
 
 | PDF 章节 | 原目录主题 | 本项目中的现代落点 | 覆盖策略 |
 |---:|---|---|---|
@@ -8,7 +8,7 @@
 | 2 | C# 语言基础 | CLI 与所有示例 | 作为前置知识，不重复基础语法教程 |
 | 3 | 在 C# 中创建类型 | `language` | record、值/引用语义、接口、型变、泛型约束、静态抽象成员、自定义值类型及其运算符契约 |
 | 4 | C# 的高级特性 | `language` / `compiler` | C# 14、模式、委托/事件/迭代器、Attribute、Span、unsafe，以及 `using`/`foreach`/async 的 lowering 观察 |
-| 5 | 框架概述 | `runtime` | .NET 10 运行时与程序集边界 |
+| 5 | 框架概述 | `runtime` | .NET 11 运行时与程序集边界 |
 | 6 | 框架基础 | `framework` | Unicode、全球化、格式化/解析、时间/时区、数值、枚举、Guid、比较器 |
 | 7 | 集合 | `collections` / `concurrency` | 顺序/优先级/集合/字典选择、自定义集合契约与并发集合 |
 | 8 | LINQ 查询 | `linq` | 查询语法、延迟执行、物化、子查询、表达式树，以及 EF Core/SQLite 的真实 provider 翻译 |
@@ -74,7 +74,7 @@
 
 ## 与原书基准的关键差异
 
-- `.NET Core` 已统一为现代 `.NET`；目标框架为 `net10.0`。
+- `.NET Core` 已统一为现代 `.NET`；目标框架为 `net11.0`。
 - C# 14 增加 extension members、`field`、null-conditional assignment、unbound generic `nameof`、更多 Span 转换、partial constructor/event 等语言能力。
 - 异步示例以取消、超时、异步流和结构化生命周期为中心，不使用已过时的 EAP/APM 模式。
 - 网络示例使用 `HttpClient`、Kestrel、DNS、TCP/UDP、WebSocket 与 `SslStream`，HTTP/2/3 以精确版本策略验证；真实网络端点全部在进程内 loopback，流式客户端完成边界使用可控分段 `HttpContent` 验证。

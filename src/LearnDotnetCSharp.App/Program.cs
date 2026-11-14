@@ -615,7 +615,7 @@ internal static class Program
 
     private static void PrintHelp(DemoContext context)
     {
-        context.WriteLine("LearnDotnetCSharp - .NET 10 / C# 14 高级特性实验室");
+        context.WriteLine("LearnDotnetCSharp - .NET 11 / C# 15 高级特性实验室");
         context.WriteLine();
         context.WriteLine("命令：");
         context.WriteLine("  list [category]         列出全部示例或指定分类");

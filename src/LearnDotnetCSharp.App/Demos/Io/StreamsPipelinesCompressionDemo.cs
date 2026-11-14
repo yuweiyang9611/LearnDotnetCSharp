@@ -22,7 +22,7 @@ public sealed class StreamsPipelinesCompressionDemo : IDemo
         var directory = Path.Combine(Path.GetTempPath(), "LearnDotnetCSharp", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, "records.txt");
-        string[] expectedLines = ["C# 14", "LINQ", "HTTP/2", "HTTP/3", "管道-I/O"];
+        string[] expectedLines = ["C# 15", "LINQ", "HTTP/2", "HTTP/3", "管道-I/O"];
         var payload = Encoding.UTF8.GetBytes(string.Join('\n', expectedLines) + "\n");
 
         try

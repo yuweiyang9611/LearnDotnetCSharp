@@ -43,7 +43,7 @@ public sealed class RandomAccessMemoryMapDemo : IDemo
 
             var header = new byte[sizeof(int)];
             BinaryPrimitives.WriteInt32LittleEndian(header, 2026);
-            var message = Encoding.UTF8.GetBytes("C# 14 random access");
+            var message = Encoding.UTF8.GetBytes("C# 15 random access");
             await Task.WhenAll(
                     RandomAccess.WriteAsync(handle, header, fileOffset: 0, cancellationToken).AsTask(),
                     RandomAccess.WriteAsync(handle, message, fileOffset: 1024, cancellationToken).AsTask())
@@ -89,7 +89,7 @@ public sealed class RandomAccessMemoryMapDemo : IDemo
             context.WriteProperty("mapped value", $"0x{mappedValue:X16}");
 
             DemoAssert.True(reads.SequenceEqual([header.Length, message.Length]), "位置式读取应返回各自请求的字节数");
-            DemoAssert.True(headerValue == 2026 && messageValue == "C# 14 random access", "不同偏移量的并发写入不应互相覆盖");
+            DemoAssert.True(headerValue == 2026 && messageValue == "C# 15 random access", "不同偏移量的并发写入不应互相覆盖");
             DemoAssert.True(mappedRead == sizeof(long) && mappedValue == 0x0102_0304_0506_0708L, "内存映射写入应能由 RandomAccess 观察到");
         }
         finally

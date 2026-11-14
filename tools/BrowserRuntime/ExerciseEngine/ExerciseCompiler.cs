@@ -48,7 +48,7 @@ public sealed class ExerciseCompiler
         }
         if (total > TotalLimit) return new(false, [new("源码总量不能超过 512 KB。", "Error", "", 0, 0)]);
 
-        var options = new CSharpParseOptions(LanguageVersion.CSharp14);
+        var options = new CSharpParseOptions(LanguageVersion.CSharp15);
         var trees = files.Select(file => CSharpSyntaxTree.ParseText(file.Text ?? "", options, file.Name))
             .Append(CSharpSyntaxTree.ParseText(checks, options, "Checks.cs"))
             .ToArray();

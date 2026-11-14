@@ -1,6 +1,6 @@
 # 推荐学习路线
 
-本文是 53 个可运行实验的快速路线图；需要逐实验的学习目标、机制解析、修改练习、综合项目和结业验收时，请使用 [《.NET 10 与 C# 14 高级特性学习指导》](advanced-dotnet-csharp-study-guide.md)。该文档同时是可转换为 PDF 的内容源。
+本文是 53 个可运行实验的快速路线图；需要逐实验的学习目标、机制解析、修改练习、综合项目和结业验收时，请使用 [《.NET 11 与 C# 15 高级特性学习指导》](advanced-dotnet-csharp-study-guide.md)。该文档同时是可转换为 PDF 的内容源。
 
 ## 1. 建立运行时直觉
 
@@ -37,7 +37,7 @@
 - 文本、数字、时间和排序都要显式决定区域性、时区或比较器，避免依赖当前机器默认值。
 - 集合选择首先由顺序、唯一性、优先级和查找语义决定；自定义集合要兑现索引、枚举和边界契约。
 - `IEnumerable<T>` 执行委托，`IQueryable<T>` 保存表达式树；外部 provider 只翻译自己支持的表达式。
-- `linq.efcore-sqlite-provider` 会同时打印表达式树形状和 SQLite SQL；`.NET 10 LeftJoin` 在这里由 EF Core 10 真正翻译，而不再只是 LINQ to Objects。
+- `linq.efcore-sqlite-provider` 会同时打印表达式树形状和 SQLite SQL；`.NET 10 LeftJoin` 在这里由 EF Core 11 真正翻译，而不再只是 LINQ to Objects。
 - `ToArrayAsync` 是服务器查询的执行/物化边界；`AsEnumerable` 是有意识地切换到客户端委托，不应用来掩盖意外的不可翻译表达式。
 - LINQ 查询通常延迟执行；需要稳定快照或避免重复副作用时，明确物化为数组/列表。
 - LINQ to XML 适合树形查询与修改；`XmlReader`/`XmlWriter` 适合大型或单遍流式数据；JSON 源生成减少运行时反射。

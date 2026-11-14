@@ -114,7 +114,7 @@ internal static class LayerArtifactExporter
 
     private static LayerArtifactSnapshot CreatePortableSnapshot(CancellationToken cancellationToken)
     {
-        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp14);
+        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp15);
         var syntaxTree = CSharpSyntaxTree.ParseText(
             CompilerAndIlDemo.SampleSource,
             parseOptions,

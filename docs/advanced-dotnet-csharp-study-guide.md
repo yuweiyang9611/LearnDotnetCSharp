@@ -1,5 +1,5 @@
 ---
-title: ".NET 10 与 C# 14 高级特性学习指导"
+title: ".NET 11 与 C# 15 高级特性学习指导"
 subtitle: "以 LearnDotnetCSharp 的 53 个可运行实验为主线"
 author: "LearnDotnetCSharp"
 date: "2026-08-28"
@@ -22,7 +22,7 @@ links-as-notes: true
 
 # 前言
 
-这不是一份“把 API 名字抄一遍”的手册，而是一份实验驱动的高级 C#/.NET 课程。它以 `.NET 10`、`C# 14` 和仓库中的 53 个可执行实验为基准，参考《C# 8.0 核心技术指南》的知识范围，将旧版本主题重新放到现代运行时、现代编译器和当前安全边界中理解。
+这不是一份“把 API 名字抄一遍”的手册，而是一份实验驱动的高级 C#/.NET 课程。它以 `.NET 11`、`C# 15` 和仓库中的 53 个可执行实验为基准，参考《C# 8.0 核心技术指南》的知识范围，将旧版本主题重新放到现代运行时、现代编译器和当前安全边界中理解。
 
 完成本指导后，你应当能够回答三类问题：
 
@@ -61,8 +61,8 @@ links-as-notes: true
 
 仓库的基线如下：
 
-- SDK：不锁定版本，安装 .NET SDK 10 或更高版本即可，由本机安装的最新 SDK 负责构建；`global.json` 只选择测试运行器；
-- 目标框架：`net10.0`，固定在项目文件中，不随 SDK 变化；实验和测试在 .NET 10 运行时上运行，只装了更新的 SDK 时需要另行安装；
+- SDK：不锁定版本，安装 .NET SDK 11 或更高版本即可，由本机安装的最新 SDK 负责构建；`global.json` 只选择测试运行器；
+- 目标框架：`net11.0`，固定在项目文件中，不随 SDK 变化；实验和测试在 .NET 11 运行时上运行，只装了更新的 SDK 时需要另行安装；
 - C#：`14.0`，同样固定在项目文件中；
 - Nullable：启用；
 - .NET analyzers：启用；
@@ -85,7 +85,7 @@ Windows x64 且已准备 Python、MSVC 时，预期 53 项均为 `Passed`；在 
 
 如果结果不同，不要直接跳过。按下面顺序定位：
 
-1. 用 `dotnet --info` 确认实际选中的 SDK 不低于 .NET 10，并且列出了 .NET 10 运行时；
+1. 用 `dotnet --info` 确认实际选中的 SDK 不低于 .NET 11，并且列出了 .NET 11 运行时；
 2. 确认当前目录位于仓库内；
 3. 查看失败实验的异常类型和消息；
 4. 单独运行失败 ID；
@@ -129,7 +129,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-all
 
 ### 2.2 正式测试、故障计划与代码 CI
 
-`tests/LearnDotnetCSharp.Tests` 使用 .NET 10 的 Microsoft.Testing.Platform，当前共 45 个正式测试。基础组验证目录数量、ID 唯一性、平台可用性、结果/退出码、输出截断和 `FaultPlan`；Capstones 组直接验证连续 checkpoint、死信幂等、源指纹拒绝、SQLite replay/conflict/single-flight/reopen、插件 v1/v2 路由和回退，以及 Python 常驻进程复用、崩溃替换、重复请求 ID 与取消清理。53 个端到端实验仍由进程隔离的 `self-test` 验证。二者不能互相替代：正式测试负责快速、精确定位状态转换，实验回归负责证明真实网络、文件、运行时和互操作边界仍能共同工作。
+`tests/LearnDotnetCSharp.Tests` 使用 .NET 11 的 Microsoft.Testing.Platform，当前共 45 个正式测试。基础组验证目录数量、ID 唯一性、平台可用性、结果/退出码、输出截断和 `FaultPlan`；Capstones 组直接验证连续 checkpoint、死信幂等、源指纹拒绝、SQLite replay/conflict/single-flight/reopen、插件 v1/v2 路由和回退，以及 Python 常驻进程复用、崩溃替换、重复请求 ID 与取消清理。53 个端到端实验仍由进程隔离的 `self-test` 验证。二者不能互相替代：正式测试负责快速、精确定位状态转换，实验回归负责证明真实网络、文件、运行时和互操作边界仍能共同工作。
 
 `FaultPlan` 用“命名故障点 + 第 N 次调用”描述可重复失败，并以原子计数保证并发调用中只触发一次。数据管线在 checkpoint 前中断，本地服务在 SQLite 已提交响应之后返回 503，最终工作流则先中断管线、再让 Python worker 按协议确定性退出。测试中的 `TaskCompletionSource` gate 与协议字段负责协调并发，不依赖随机数或用 `Sleep` 猜测时序。
 
@@ -193,7 +193,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run runtime.overview
 先区分从语言到 CPU 的不同产物和责任：
 
 ```text
-C# 14 源码 + 生成源码
+C# 15 源码 + 生成源码
    -> Roslyn 解析、绑定与 lowering
    -> PE/CLI（CIL + 元数据）+ portable PDB
    -> Loader
@@ -202,7 +202,7 @@ C# 14 源码 + 生成源码
    -> OS、ABI 与 CPU
 ```
 
-编译时使用 `net10.0` reference assemblies 完成绑定；发射结果才是 PE/CLI 产物。第 19 章拆解高级 C#、教学用低层等价写法、CIL 与元数据，第 20 章继续追踪 JIT/AOT 和 x64/Arm64 汇编。NativeAOT 是发布阶段的独立分支，不应画成普通进程加载后才发生的一步。
+编译时使用 `net11.0` reference assemblies 完成绑定；发射结果才是 PE/CLI 产物。第 19 章拆解高级 C#、教学用低层等价写法、CIL 与元数据，第 20 章继续追踪 JIT/AOT 和 x64/Arm64 汇编。NativeAOT 是发布阶段的独立分支，不应画成普通进程加载后才发生的一步。
 
 重点观察：
 
@@ -216,7 +216,7 @@ C# 14 源码 + 生成源码
 
 1. 分别在 Debug 与 Release 运行，说明哪些输出必然相同。
 2. 查找 `TargetFramework`、`LangVersion` 和选中 SDK 的来源。
-3. 写出“C# 14 功能可以在所有 .NET 10 部署模型中使用”为什么是错误命题。
+3. 写出“C# 15 功能可以在所有 .NET 11 部署模型中使用”为什么是错误命题。
 
 ### 5.2 `runtime.jit-simd-pgo`
 
@@ -492,7 +492,7 @@ IQueryable<T>   -> Expression + Provider + 翻译/执行边界
 
 源码：[EfCoreSqliteProviderDemo.cs](../src/LearnDotnetCSharp.App/Demos/Linq/EfCoreSqliteProviderDemo.cs)
 
-这是理解 `IQueryable<T>` 的关键实验。它使用进程内 SQLite，让 EF Core 10 把表达式树翻译成参数化 SQL。
+这是理解 `IQueryable<T>` 的关键实验。它使用进程内 SQLite，让 EF Core 11 把表达式树翻译成参数化 SQL。
 
 观察顺序：
 
@@ -1009,7 +1009,7 @@ Collectible PluginLoadContext
 
 源码：[IncrementalGeneratorAnalyzerDemo.cs](../src/LearnDotnetCSharp.App/Demos/Compiler/IncrementalGeneratorAnalyzerDemo.cs)
 
-实验在内存中构建一份 C# 14 Compilation，并真实运行两种 Roslyn 扩展：
+实验在内存中构建一份 C# 15 Compilation，并真实运行两种 Roslyn 扩展：
 
 ```text
 用户语法树
@@ -1283,7 +1283,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App --configuration Release -- run 
 5. 手工模拟 `add.ovf` 前后的求值栈；
 6. 沿 async Attribute 进入状态机 `MoveNext`。
 
-实验能证明当前 Roslyn/.NET 10 对这份输入生成了这些产物，不能证明所有编译器版本都必须生成相同偏移、token、局部变量或分支排列。
+实验能证明当前 Roslyn/.NET 11 对这份输入生成了这些产物，不能证明所有编译器版本都必须生成相同偏移、token、局部变量或分支排列。
 
 练习：
 
@@ -1947,8 +1947,8 @@ pdftoppm -png .\output\pdf\LearnDotnetCSharp-Study-Guide.pdf .\tmp\pdfs\study-gu
 
 本书不复制规范和 API 文档。继续学习时从 [官方与规范性延伸资料](references.md) 出发，重点阅读：
 
-- .NET 10、C# 14、泛型约束/型变与静态抽象接口成员；
-- LINQ 与 EF Core 10 查询翻译；
+- .NET 11、C# 14、泛型约束/型变与静态抽象接口成员；
+- LINQ 与 EF Core 11 查询翻译；
 - async 上下文、内存模型、Channels、Pipelines 与 HTTP 流/韧性；
 - GC、固定/原生内存、Dispose、诊断、JIT/SIMD/PGO 与 AssemblyLoadContext；
 - ECMA-335、PE/CLI 元数据、CIL 求值栈、Roslyn lowering、RyuJIT 与 NativeAOT；

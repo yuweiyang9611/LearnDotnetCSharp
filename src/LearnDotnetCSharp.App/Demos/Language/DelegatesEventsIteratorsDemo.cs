@@ -21,7 +21,7 @@ public sealed class DelegatesEventsIteratorsDemo : IDemo
         decimal discount = 0.10m;
         PriceRule capturedRule = line => line.Quantity * line.UnitPrice * (1 - discount);
         PriceRule taxRule = static line => line.Quantity * line.UnitPrice * 1.05m;
-        var line = new InvoiceLine("C# 14", 2, 50m);
+        var line = new InvoiceLine("C# 15", 2, 50m);
         var discounted = capturedRule(line);
         discount = 0.20m;
         var discountedAfterMutation = capturedRule(line);

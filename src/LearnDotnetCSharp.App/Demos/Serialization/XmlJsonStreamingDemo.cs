@@ -22,7 +22,7 @@ public sealed class XmlJsonStreamingDemo : IDemo
         CourseCatalog catalog = new(
             2,
             [
-                new("csharp", "C# 14", 8),
+                new("csharp", "C# 15", 8),
                 new("http3", "HTTP/3", 4),
             ]);
 
@@ -44,7 +44,7 @@ public sealed class XmlJsonStreamingDemo : IDemo
         context.WriteProperty("XML titles", string.Join(", ", xmlTitles));
         context.WriteLine(json);
 
-        DemoAssert.SequenceEqual(["C# 14", "HTTP/3"], xmlTitles, "异步 XmlReader 应按文档顺序读取课程标题");
+        DemoAssert.SequenceEqual(["C# 15", "HTTP/3"], xmlTitles, "异步 XmlReader 应按文档顺序读取课程标题");
         DemoAssert.True(
             jsonRoundTrip is not null &&
             jsonRoundTrip.Version == catalog.Version &&

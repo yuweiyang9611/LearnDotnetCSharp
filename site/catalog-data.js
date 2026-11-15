@@ -36,7 +36,7 @@ export const learningStages = [
     number: "02",
     label: "现代 C#",
     title: "掌握语言与类型系统",
-    description: "从 C# 14 增量语法深入到泛型、型变、模式与 Span。",
+    description: "从 C# 14 与 C# 15 增量语法深入到泛型、型变、模式与 Span。",
     categories: ["language"],
     command: "run-category language",
   },
@@ -118,6 +118,13 @@ export const experiments = [
     title: "C# 14 正式语言特性",
     summary: "动手观察 extension members、field、Span 转换与原地运算符。",
     source: "src/LearnDotnetCSharp.App/Demos/Language/CSharp14FeaturesDemo.cs",
+  },
+  {
+    id: "language.csharp15",
+    category: "language",
+    title: "C# 15 正式语言特性",
+    summary: "动手验证集合表达式参数、union、closed 层次、扩展索引器与带标签的跳转。",
+    source: "src/LearnDotnetCSharp.App/Demos/Language/CSharp15FeaturesDemo.cs",
   },
   {
     id: "language.advanced",
@@ -497,7 +504,7 @@ export const resources = [
   {
     type: "知识映射",
     title: "原 PDF 27 章到现代示例",
-    description: "把原 PDF 主题映射到当前 30 章教材与 53 个 .NET 11 / C# 15 实验。",
+    description: "把原 PDF 主题映射到当前 30 章教材与 54 个 .NET 11 / C# 15 实验。",
     href: "./topic-map/",
     action: "查看映射",
   },

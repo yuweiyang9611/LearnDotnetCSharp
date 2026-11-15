@@ -34,6 +34,7 @@ public sealed class DemoCatalogTests
         (string Id, string Category)[] requiredDemos =
         [
             ("language.csharp14", "language"),
+            ("language.csharp15", "language"),
             ("async.cancellation-stream-valuetask", "async"),
             ("concurrency.channel-pipeline", "concurrency"),
             ("networking.http2-http3", "networking"),
@@ -84,7 +85,7 @@ public sealed class DemoCatalogTests
 
 internal static class DemoCatalogTestFixture
 {
-    public const int ExpectedDemoCount = 53;
+    public const int ExpectedDemoCount = 54;
 
     private static readonly Lazy<DemoCatalog> Catalog = new(
         static () => DemoCatalog.Discover(typeof(DemoCatalog).Assembly),

@@ -54,7 +54,7 @@ test("the opening screen continues from the record and marks one stopped row", a
   await expect(link).toHaveClass(/has-record/);
   await expect(page.locator("#resume-go")).toHaveText("继续学习");
   await expect(page.locator("#resume-go")).toHaveAttribute("href", /^guide\/chapter-19\/#/);
-  await expect(page.locator("#progress-count")).toHaveText("2 / 53");
+  await expect(page.locator("#progress-count")).toHaveText("2 / 54");
   await expect(page.locator("#assessment-count")).toHaveText("1 / 30");
   await expect(page.locator("#stat-done")).toHaveText("2");
   await expect(page.locator("#stat-reading")).toHaveText("第 19 章");

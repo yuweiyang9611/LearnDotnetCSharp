@@ -1,13 +1,13 @@
 # PDF 目录与现代示例映射
 
-本表依据所提供 PDF 的目录页整理。它用于确定学习范围，不复制书中正文。书的基准是 C# 8 / 早期 .NET Core；本项目把相同主题更新到 .NET 11 / C# 15，并以 53 个可运行实验完成验证。
+本表依据所提供 PDF 的目录页整理。它用于确定学习范围，不复制书中正文。书的基准是 C# 8 / 早期 .NET Core；本项目把相同主题更新到 .NET 11 / C# 15，并以 54 个可运行实验完成验证。
 
 | PDF 章节 | 原目录主题 | 本项目中的现代落点 | 覆盖策略 |
 |---:|---|---|---|
 | 1 | C# 和 .NET Core 简介 | `runtime` / `compiler` | CLR、BCL，以及 C# → CIL/元数据 → JIT/AOT → 目标机器码的完整层次 |
 | 2 | C# 语言基础 | CLI 与所有示例 | 作为前置知识，不重复基础语法教程 |
-| 3 | 在 C# 中创建类型 | `language` | record、值/引用语义、接口、型变、泛型约束、静态抽象成员、自定义值类型及其运算符契约 |
-| 4 | C# 的高级特性 | `language` / `compiler` | C# 14、模式、委托/事件/迭代器、Attribute、Span、unsafe，以及 `using`/`foreach`/async 的 lowering 观察 |
+| 3 | 在 C# 中创建类型 | `language` | record、closed 类层次、union 联合类型、值/引用语义、接口、型变、泛型约束、静态抽象成员、自定义值类型及其运算符契约 |
+| 4 | C# 的高级特性 | `language` / `compiler` | C# 14 与 C# 15、模式、委托/事件/迭代器、Attribute、Span、unsafe，以及 `using`/`foreach`/async 的 lowering 观察 |
 | 5 | 框架概述 | `runtime` | .NET 11 运行时与程序集边界 |
 | 6 | 框架基础 | `framework` | Unicode、全球化、格式化/解析、时间/时区、数值、枚举、Guid、比较器 |
 | 7 | 集合 | `collections` / `concurrency` | 顺序/优先级/集合/字典选择、自定义集合契约与并发集合 |
@@ -36,7 +36,7 @@
 
 | 章节 | 实验 ID |
 |---:|---|
-| 4 | `language.csharp14`、`language.advanced`、`language.operators-conversions`、`language.generics-variance-constraints`、`language.attributes`、`language.delegates-events-iterators` |
+| 4 | `language.csharp14`、`language.csharp15`、`language.advanced`、`language.operators-conversions`、`language.generics-variance-constraints`、`language.attributes`、`language.delegates-events-iterators` |
 | 5 | `runtime.overview`、`runtime.jit-simd-pgo` |
 | 6 | `framework.text-globalization`、`framework.time-numerics-identity` |
 | 7 | `collections.core-custom-buffer`、`concurrency.channel-pipeline` |
@@ -62,7 +62,7 @@
 
 ## `projects` 分类综合项目入口
 
-这些入口不是新的孤立知识点，而是学习路线的收尾阶段：每个项目把多个 PDF 章节和前置实验组合到一条端到端流程中。可复用机制位于独立的 `LearnDotnetCSharp.Capstones` Core 项目，App 只负责 CLI、真实平台适配和教学断言；45 个正式测试可直接验证恢复状态，而 53 项 `self-test` 继续验证完整边界。
+这些入口不是新的孤立知识点，而是学习路线的收尾阶段：每个项目把多个 PDF 章节和前置实验组合到一条端到端流程中。可复用机制位于独立的 `LearnDotnetCSharp.Capstones` Core 项目，App 只负责 CLI、真实平台适配和教学断言；45 个正式测试可直接验证恢复状态，而 54 项 `self-test` 继续验证完整边界。
 
 | 实验 ID | 对应 PDF 章节 | 综合应用 |
 |---|---|---|
@@ -76,6 +76,7 @@
 
 - `.NET Core` 已统一为现代 `.NET`；目标框架为 `net11.0`。
 - C# 14 增加 extension members、`field`、null-conditional assignment、unbound generic `nameof`、更多 Span 转换、partial constructor/event 等语言能力。
+- C# 15 增加集合表达式参数 `with(...)`、`union` 联合类型、`closed` 类层次、扩展索引器和带标签的 `break`/`continue`；新的内存安全模型仍是预览特性，本项目不使用。
 - 异步示例以取消、超时、异步流和结构化生命周期为中心，不使用已过时的 EAP/APM 模式。
 - 网络示例使用 `HttpClient`、Kestrel、DNS、TCP/UDP、WebSocket 与 `SslStream`，HTTP/2/3 以精确版本策略验证；真实网络端点全部在进程内 loopback，流式客户端完成边界使用可控分段 `HttpContent` 验证。
 - HTTP/3 建立在 QUIC 与 TLS 1.3 上；平台缺少 QUIC/MsQuic 时明确跳过，不把 HTTP/2 回退误报为 HTTP/3 成功。

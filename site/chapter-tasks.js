@@ -148,7 +148,7 @@ export const chapterTasks = Object.freeze(
         "项目继续以 C# 15 构建且原实验断言通过。",
         "解释明确区分调用语法与 extension member 的静态调度本质。",
       ],
-      sourceAnchor: "6-c-14-正式语言特性",
+      sourceAnchor: "6-c-14-与-c-15-正式语言特性",
     },
     {
       chapter: 7,

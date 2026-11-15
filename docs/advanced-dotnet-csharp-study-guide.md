@@ -394,15 +394,16 @@ Attribute 是写入元数据的声明性信息，不是自动执行的拦截器�
 
 C# 15 随 .NET 11 SDK 发布，是 `net11.0` 项目的默认语言版本。它有六项正式特性，本实验运行其中五项：集合表达式参数 `with(...)`、联合类型 `union`、`closed` 类层次、扩展索引器，以及带标签的 `break`/`continue`。第六项“旧运行时上的非虚静态接口成员”只影响面向 .NET Framework、`netstandard2.0` 等不支持默认接口实现的运行时的库；本仓库运行在 .NET 11 上，同样的代码从 C# 8 起就能编译，所以它放在练习里单独验证。新的内存安全模型（放宽指针声明、`unsafe` 成员契约、`safe` 关键字）在 C# 15 中仍是预览特性，需要 `LangVersion=preview`，本书不把它当作正式特性讲授。
 
-判断一段语法是否属于 C# 15，最直接的办法是分别用 `-p:LangVersion=14` 和 `15` 构建同一段代码。在 .NET 11.0.100 SDK（Roslyn 5.12）上，C# 14 的报错如下，C# 15 全部通过：
+判断一段语法是否属于 C# 15，最直接的办法是分别用 `-p:LangVersion=14` 和 `15` 构建同一段代码。在 .NET 11.0.100 SDK（Roslyn 5.12）上，C# 15 全部通过，C# 14 依次对集合表达式参数、closed 类、扩展索引器和带标签的跳转报错：
 
 ```text
-集合表达式参数  error CS9327: Feature 'collection expression arguments' is not available in C# 14.0.
-closed 类       error CS9327: Feature 'closed classes' is not available in C# 14.0.
-扩展索引器      error CS9327: Feature 'extension indexers' is not available in C# 14.0.
-带标签的跳转    error CS9327: Feature 'labeled break and continue' is not available in C# 14.0.
-union 声明      C# 14 不认识 union 关键字，只报 CS1001 等语法错误
+error CS9327: Feature 'collection expression arguments' is not available in C# 14.0.
+error CS9327: Feature 'closed classes' is not available in C# 14.0.
+error CS9327: Feature 'extension indexers' is not available in C# 14.0.
+error CS9327: Feature 'labeled break and continue' is not available in C# 14.0.
 ```
+
+`union` 在 C# 14 中不是关键字，所以 union 声明得不到这条“特性不可用”的诊断，只会得到 CS1001 等语法错误。
 
 重点不是记语法，而是看清每项特性由谁实现、在哪里检查：
 

@@ -1,7 +1,7 @@
 // The labs that cannot run in the browser, with the reason the panel shows next to 需要本机.
-// The list is the browser's verdict: scripts/survey-browser-labs.mjs runs all 53 labs on the local build
-// (2026-11-06: 23 finished, these 30 did not); a lab absent here gets a 运行 button. Reasons are in the
-// reader's words, grouped by cause.
+// The list is the browser's verdict: scripts/survey-browser-labs.mjs runs all 54 labs on the local build
+// (2026-11-06: 23 of the then 53 finished, these 30 did not; language.csharp15, added 2026-11-15, finishes);
+// a lab absent here gets a 运行 button. Reasons are in the reader's words, grouped by cause.
 const sockets = "浏览器里的 .NET 没有 Socket 和回环网络，HttpClient 也只能走浏览器的 fetch。";
 const kestrel = "需要 Kestrel（Microsoft.AspNetCore）在本机监听回环端口，浏览器里没有服务器。";
 const threads = "需要真正的线程和阻塞等待，浏览器里的 .NET 运行在单线程上，Thread.Start 和 Wait 会抛 PlatformNotSupportedException。";

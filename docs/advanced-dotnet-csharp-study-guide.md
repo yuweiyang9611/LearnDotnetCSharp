@@ -1,6 +1,6 @@
 ---
 title: ".NET 11 与 C# 15 高级特性学习指导"
-subtitle: "以 LearnDotnetCSharp 的 53 个可运行实验为主线"
+subtitle: "以 LearnDotnetCSharp 的 54 个可运行实验为主线"
 author: "LearnDotnetCSharp"
 date: "2026-08-28"
 lang: "zh-CN"
@@ -22,7 +22,7 @@ links-as-notes: true
 
 # 前言
 
-这不是一份“把 API 名字抄一遍”的手册，而是一份实验驱动的高级 C#/.NET 课程。它以 `.NET 11`、`C# 15` 和仓库中的 53 个可执行实验为基准，参考《C# 8.0 核心技术指南》的知识范围，将旧版本主题重新放到现代运行时、现代编译器和当前安全边界中理解。
+这不是一份“把 API 名字抄一遍”的手册，而是一份实验驱动的高级 C#/.NET 课程。它以 `.NET 11`、`C# 15` 和仓库中的 54 个可执行实验为基准，参考《C# 8.0 核心技术指南》的知识范围，将旧版本主题重新放到现代运行时、现代编译器和当前安全边界中理解。
 
 完成本指导后，你应当能够回答三类问题：
 
@@ -81,7 +81,7 @@ dotnet test --solution .\LearnDotnetCSharp.slnx --no-build --minimum-expected-te
 dotnet run --project .\src\LearnDotnetCSharp.App -- self-test
 ```
 
-Windows x64 且已准备 Python、MSVC 时，预期 53 项均为 `Passed`；在 Linux 等尚未构建仓库 C/C++ 动态库的平台，受影响项目必须显示为 `Skipped`。两种环境的共同验收条件都是 `Failed = 0` 且 `Timeout = 0`，而不是把未执行的能力算作成功。
+Windows x64 且已准备 Python、MSVC 时，预期 54 项均为 `Passed`；在 Linux 等尚未构建仓库 C/C++ 动态库的平台，受影响项目必须显示为 `Skipped`。两种环境的共同验收条件都是 `Failed = 0` 且 `Timeout = 0`，而不是把未执行的能力算作成功。
 
 如果结果不同，不要直接跳过。按下面顺序定位：
 
@@ -129,7 +129,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-all
 
 ### 2.2 正式测试、故障计划与代码 CI
 
-`tests/LearnDotnetCSharp.Tests` 使用 .NET 11 的 Microsoft.Testing.Platform，当前共 45 个正式测试。基础组验证目录数量、ID 唯一性、平台可用性、结果/退出码、输出截断和 `FaultPlan`；Capstones 组直接验证连续 checkpoint、死信幂等、源指纹拒绝、SQLite replay/conflict/single-flight/reopen、插件 v1/v2 路由和回退，以及 Python 常驻进程复用、崩溃替换、重复请求 ID 与取消清理。53 个端到端实验仍由进程隔离的 `self-test` 验证。二者不能互相替代：正式测试负责快速、精确定位状态转换，实验回归负责证明真实网络、文件、运行时和互操作边界仍能共同工作。
+`tests/LearnDotnetCSharp.Tests` 使用 .NET 11 的 Microsoft.Testing.Platform，当前共 45 个正式测试。基础组验证目录数量、ID 唯一性、平台可用性、结果/退出码、输出截断和 `FaultPlan`；Capstones 组直接验证连续 checkpoint、死信幂等、源指纹拒绝、SQLite replay/conflict/single-flight/reopen、插件 v1/v2 路由和回退，以及 Python 常驻进程复用、崩溃替换、重复请求 ID 与取消清理。54 个端到端实验仍由进程隔离的 `self-test` 验证。二者不能互相替代：正式测试负责快速、精确定位状态转换，实验回归负责证明真实网络、文件、运行时和互操作边界仍能共同工作。
 
 `FaultPlan` 用“命名故障点 + 第 N 次调用”描述可重复失败，并以原子计数保证并发调用中只触发一次。数据管线在 checkpoint 前中断，本地服务在 SQLite 已提交响应之后返回 503，最终工作流则先中断管线、再让 Python worker 按协议确定性退出。测试中的 `TaskCompletionSource` gate 与协议字段负责协调并发，不依赖随机数或用 `Sleep` 猜测时序。
 
@@ -167,7 +167,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-all
 
 | 阶段 | 主题 | 建议时间 | 阶段产出 |
 |---|---|---:|---|
-| 1 | 运行时、C# 14 与高级语言 | 12-16 小时 | 语言/运行时边界笔记 |
+| 1 | 运行时、C# 14/15 与高级语言 | 12-16 小时 | 语言/运行时边界笔记 |
 | 2 | 框架、集合、LINQ、XML/JSON | 14-18 小时 | 查询与数据契约练习 |
 | 3 | 异步、线程、并发、并行 | 16-22 小时 | 可取消并发管线 |
 | 4 | I/O、网络、内存与诊断 | 18-24 小时 | 本地协议服务与诊断报告 |
@@ -249,7 +249,9 @@ ReadyToRun 方法 ---------> 可先执行预编译代码
 3. 用 BenchmarkDotNet 新建独立基准，对比标量、`Vector<T>` 和硬件内建函数，并检查分配、离群值与反汇编。
 4. 让数组长度不能整除 lane 数，解释尾部标量循环为何不可省略。
 
-## 6. C# 14 正式语言特性
+## 6. C# 14 与 C# 15 正式语言特性
+
+本章前六节以 C# 14 及更早的语言能力为主线，6.7 集中讲 C# 15 新增的正式特性。
 
 ### 6.1 `language.csharp14`
 
@@ -280,7 +282,7 @@ ReadyToRun 方法 ---------> 可先执行预编译代码
 概念主线：
 
 - 静态抽象接口成员让运算能力进入泛型约束，`Mean<T>` 不必依赖 `dynamic`；
-- record 层次提供值语义和模式匹配友好形状，但 C# 类层次并不是原生判别联合；
+- record 层次提供值语义和模式匹配友好形状，但普通类层次并不是原生判别联合；C# 15 的 `closed` 层次和 `union` 带来编译器检查的穷尽性，见 6.7；
 - 属性模式、关系模式、列表模式表达数据形状，不应把副作用藏进模式访问器；
 - `ref struct` 和 `Span<T>` 受逃逸分析约束，不能随意进入堆对象、闭包和异步状态机；
 - `stackalloc`/指针绕过部分安全保护，只应存在于小而可审计的边界；
@@ -385,6 +387,41 @@ Attribute 是写入元数据的声明性信息，不是自动执行的拦截器�
 1. 在循环中创建闭包并预测每个委托读取的值。
 2. 故意不退订长生命周期发布者的事件，画出可能的对象保留链。
 3. 在 Fibonacci 迭代器中加入日志，证明创建序列不等于开始执行。
+
+### 6.7 `language.csharp15`
+
+源码：[CSharp15FeaturesDemo.cs](../src/LearnDotnetCSharp.App/Demos/Language/CSharp15FeaturesDemo.cs)
+
+C# 15 随 .NET 11 SDK 发布，是 `net11.0` 项目的默认语言版本。它有六项正式特性，本实验运行其中五项：集合表达式参数 `with(...)`、联合类型 `union`、`closed` 类层次、扩展索引器，以及带标签的 `break`/`continue`。第六项“旧运行时上的非虚静态接口成员”只影响面向 .NET Framework、`netstandard2.0` 等不支持默认接口实现的运行时的库；本仓库运行在 .NET 11 上，同样的代码从 C# 8 起就能编译，所以它放在练习里单独验证。新的内存安全模型（放宽指针声明、`unsafe` 成员契约、`safe` 关键字）在 C# 15 中仍是预览特性，需要 `LangVersion=preview`，本书不把它当作正式特性讲授。
+
+判断一段语法是否属于 C# 15，最直接的办法是分别用 `-p:LangVersion=14` 和 `15` 构建同一段代码。在 .NET 11.0.100 SDK（Roslyn 5.12）上，C# 14 的报错如下，C# 15 全部通过：
+
+```text
+集合表达式参数  error CS9327: Feature 'collection expression arguments' is not available in C# 14.0.
+closed 类       error CS9327: Feature 'closed classes' is not available in C# 14.0.
+扩展索引器      error CS9327: Feature 'extension indexers' is not available in C# 14.0.
+带标签的跳转    error CS9327: Feature 'labeled break and continue' is not available in C# 14.0.
+union 声明      C# 14 不认识 union 关键字，只报 CS1001 等语法错误
+```
+
+重点不是记语法，而是看清每项特性由谁实现、在哪里检查：
+
+- `with(...)` 必须是集合表达式的第一个元素（否则报 CS9354），参数交给目标类型的构造函数；带 `[CollectionBuilder]` 的类型则把参数排在 `Create` 方法的 `ReadOnlySpan<T>` 参数之前，所以 `ImmutableHashSet<string>` 也能直接拿到比较器。参数先于元素求值，并且只求值一次。
+- 目标是 `IList<T>` 或 `ICollection<T>` 时只接受 `with()` 或 `with(capacity)`，编译器创建 `List<T>`；`IEnumerable<T>`、`IReadOnlyList<T>` 等只读接口只接受空的 `with()`（否则 CS9357）。没有可访问无参构造函数的集合类型必须写 `with(...)`。数组和 `Span<T>` 不支持参数（CS9355）；`with(...)` 也不参与重载决策，两个重载都能接受同一个集合表达式时仍报二义性错误 CS0121。
+- `union SensorReading(double, SensorFault)` 生成一个带 `[Union]`、实现 `IUnion` 的结构体：每个情况类型对应一个公共构造函数和一个隐式转换，当前内容统一存放在 `object? Value` 中，值类型情况会装箱。union 不是 record，编译器不为它生成值相等、克隆或解构。
+- 类型模式和带类型的属性模式检查的是 `Value`；`default(SensorReading)` 的内容是 `null`，所以 `Describe` 显式写了 `null` 分支。switch 覆盖全部情况类型就是穷尽的，此时不要用 `_` 或 `var` 兜底，否则以后新增情况类型时编译器不再提醒。
+- `closed` 类隐式是 `abstract`，元数据中带 `IsClosedTypeAttribute`；只有同一程序集中的直接派生类型能继承它（跨程序集派生报 CS9382），所以 switch 覆盖全部直接派生类型就是穷尽的，漏掉一个时 CS8509 会给出未覆盖的模式。这个限制不传递：直接派生类型若既不是 `sealed` 也不是 `closed`，其他程序集仍可从它派生。switch 的输入类型可空（`CheckoutPayment?`）时还需要 `null` 分支。
+- 选择 closed 还是 union：情况类型由你声明、需要共享基类成员时，用 closed 层次；要把已有的、互不相关的类型（包括 `double` 这样的值类型）组合成一个类型时，用 union。
+- 扩展索引器沿用 C# 14 的 extension block，接收者必须命名。实验给 BCL 的 `Queue<T>` 补上 `this[int]` 和 `Slice`，加上它原有的 `Count`，`^1`、`[1..3]` 和列表模式就都可用了。查找顺序是：接收者自身的索引器、由自身成员构成的隐式 Index/Range 访问、扩展索引器、由扩展成员构成的隐式访问，先适用的胜出；`string` 和数组的元素访问不会使用扩展索引器。`ElementAt` 对 `Queue<T>` 是 O(n)：写法像数组，复杂度并不像数组。
+- 标签直接写在循环或 `switch` 语句上。`break label` 结束带标签的语句，`continue label` 开始带标签循环的下一轮；不带标签的 `break` 在 `switch` 中仍只跳出 `switch`。它取代的是布尔标志和 `goto`，IDE0410 会标出可以改写的位置。
+- 旧运行时上的非虚静态接口成员：面向不支持默认接口实现的运行时，接口里带方法体的非虚 `static` 成员从 C# 15 起可以声明，并通过接口名调用（C# 14 报 CS9327 “static members in interfaces”）；实例默认实现和 `static abstract`/`static virtual` 成员仍需要运行时支持，分别报 CS8701 和 CS8919。
+
+必须完成的修改：
+
+1. 给 `SensorReading` 增加第三个情况类型（例如 `public sealed record class SensorCalibrating;`），记录 `Describe` 中的 CS8509；再把 `null` 分支换成 `_`，确认警告消失，同时也失去了对新增情况的提醒。
+2. 在测试项目 `tests/LearnDotnetCSharp.Tests` 中声明 `public sealed record class VoucherPayment : CheckoutPayment;`，记录 closed 类拒绝跨程序集派生的错误；再删掉 `DescribePayment` 中的 `TransferPayment` 分支，对照 CS8509 给出的未覆盖模式。
+3. 把 `with(capacity: Trace("with", 4))` 移到第二个元素，记录 CS9354；再用 `-p:LangVersion=14` 构建 App，逐项对照上面的错误清单。
+4. 新建一个面向 `netstandard2.0` 的类库，在接口中声明 `public static double ToMeters(double centimeters) => centimeters / 100;`，分别用 C# 14 和 C# 15 构建；再加一个实例默认实现，确认 C# 15 仍报 CS8701。
 
 # 第三部分：框架基础、集合与数据查询
 
@@ -1857,14 +1894,14 @@ SQLite idempotency key + source SHA-256
 - [ ] 能为 Python/C/C++ 边界写出协议、ABI 与所有权说明。
 - [ ] 能说明密码学示例之外仍需哪些生产安全措施。
 - [ ] 五个综合项目都至少完成一次修改，并能解释管线中断、提交后 503、插件失败回退和 Python 崩溃各自的恢复状态。
-- [ ] 能画出 `App -> Capstones -> PluginContract` 依赖边界，并说明 45 个正式测试与 53 项 `self-test` 分别证明什么。
+- [ ] 能画出 `App -> Capstones -> PluginContract` 依赖边界，并说明 45 个正式测试与 54 项 `self-test` 分别证明什么。
 
 # 附录 A：实验速查表
 
 | 分类 | 实验 ID |
 |---|---|
 | runtime | `runtime.overview`、`runtime.jit-simd-pgo`、`runtime.collectible-plugin` |
-| language | `language.csharp14`、`language.advanced`、`language.operators-conversions`、`language.generics-variance-constraints`、`language.attributes`、`language.delegates-events-iterators` |
+| language | `language.csharp14`、`language.csharp15`、`language.advanced`、`language.operators-conversions`、`language.generics-variance-constraints`、`language.attributes`、`language.delegates-events-iterators` |
 | framework | `framework.text-globalization`、`framework.time-numerics-identity` |
 | collections | `collections.core-custom-buffer` |
 | linq | `linq.query-semantics`、`linq.operators`、`linq.efcore-sqlite-provider` |
@@ -1914,7 +1951,7 @@ SQLite idempotency key + source SHA-256
 4. 把字体嵌入 PDF，渲染 YAML 元数据、目录、三级标题、列表、引用、表格、代码块和链接；
 5. 把仓库内相对链接改写为 GitHub `main` 分支链接；
 6. 写入 PDF 书签、页脚和页码；
-7. 自动验证 A4 页面、文档标题、书签、乱码，并核对源码目录与学习指导中的全部 53 个实验 ID。
+7. 自动验证 A4 页面、文档标题、书签、乱码，并核对源码目录与学习指导中的全部 54 个实验 ID。
 
 第一次运行需要联网下载固定依赖；依赖版本验证通过后，后续构建不会再次访问包索引。输出文件是：
 
@@ -1947,7 +1984,7 @@ pdftoppm -png .\output\pdf\LearnDotnetCSharp-Study-Guide.pdf .\tmp\pdfs\study-gu
 
 本书不复制规范和 API 文档。继续学习时从 [官方与规范性延伸资料](references.md) 出发，重点阅读：
 
-- .NET 11、C# 14、泛型约束/型变与静态抽象接口成员；
+- .NET 11、C# 14 与 C# 15、泛型约束/型变与静态抽象接口成员；
 - LINQ 与 EF Core 11 查询翻译；
 - async 上下文、内存模型、Channels、Pipelines 与 HTTP 流/韧性；
 - GC、固定/原生内存、Dispose、诊断、JIT/SIMD/PGO 与 AssemblyLoadContext；

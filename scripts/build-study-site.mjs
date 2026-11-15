@@ -65,8 +65,8 @@ const contentDocuments = [
     type: "学习路线",
   },
   {
-    description: "把原 PDF 的 27 章主题映射到当前 30 章教材与 53 个现代实验。",
-    expected: { headingCount: 5, listItemCount: 10, tableCount: 4 },
+    description: "把原 PDF 的 27 章主题映射到当前 30 章教材与 54 个现代实验。",
+    expected: { headingCount: 5, listItemCount: 11, tableCount: 4 },
     route: "topic-map/",
     source: "docs/pdf-topic-map.md",
     type: "主题映射",
@@ -80,7 +80,7 @@ const contentDocuments = [
   },
   {
     description: "汇集规范、Microsoft 文档以及 Roslyn 与 CoreCLR 一手实现资料。",
-    expected: { blockquoteCount: 1, headingCount: 9, listItemCount: 92, sourceLinkCount: 92 },
+    expected: { blockquoteCount: 1, headingCount: 10, listItemCount: 99, sourceLinkCount: 99 },
     route: "references/",
     source: "docs/references.md",
     type: "参考资料",
@@ -102,17 +102,17 @@ const experimentHeadingAliases = {
 
 const expectedGuideStructure = {
   blockquoteCount: 3,
-  codeBlockCount: 41,
-  headingCount: 115,
+  codeBlockCount: 42,
+  headingCount: 116,
   headingLevel1: 15,
   headingLevel2: 32,
-  headingLevel3: 68,
-  listItemCount: 448,
-  orderedListCount: 39,
-  sourceLinkCount: 79,
+  headingLevel3: 69,
+  listItemCount: 461,
+  orderedListCount: 40,
+  sourceLinkCount: 80,
   tableCount: 13,
   taskListItemCount: 15,
-  unorderedListCount: 43,
+  unorderedListCount: 44,
 };
 
 function countMatches(value, pattern) {
@@ -686,8 +686,8 @@ if (!outputDirectory.startsWith(`${repositoryRoot}\\`) && !outputDirectory.start
   throw new Error(`Refusing to build outside the repository: ${outputDirectory}`);
 }
 
-if (experiments.length !== 53) {
-  throw new Error(`Expected 53 experiments, found ${experiments.length}.`);
+if (experiments.length !== 54) {
+  throw new Error(`Expected 54 experiments, found ${experiments.length}.`);
 }
 
 const uniqueIds = new Set(experiments.map(({ id }) => id));
@@ -785,7 +785,7 @@ for (const [key, expected] of Object.entries(expectedGuideStructure)) {
   }
 }
 
-const expectedCodeLanguages = { asm: 2, bash: 1, csharp: 3, il: 2, markdown: 1, powershell: 10, text: 22 };
+const expectedCodeLanguages = { asm: 2, bash: 1, csharp: 3, il: 2, markdown: 1, powershell: 10, text: 23 };
 if (JSON.stringify(renderedGuide.codeLanguages) !== JSON.stringify(expectedCodeLanguages)) {
   throw new Error(`Online guide code-language distribution changed: ${JSON.stringify(renderedGuide.codeLanguages)}.`);
 }
@@ -855,7 +855,7 @@ if (!Array.isArray(runtimeManifest) || runtimeManifest.length < 20 || !runtimeMa
 for (const name of runtimeManifest) await access(resolve(runtimeStage, "refs", name));
 
 const assignedHeadingIds = units.flatMap(({ headings }) => headings.map(({ id }) => id));
-if (assignedHeadingIds.length !== 105 || new Set(assignedHeadingIds).size !== assignedHeadingIds.length) {
+if (assignedHeadingIds.length !== 106 || new Set(assignedHeadingIds).size !== assignedHeadingIds.length) {
   throw new Error(`Guide splitting lost or duplicated headings: assigned ${assignedHeadingIds.length}, unique ${new Set(assignedHeadingIds).size}.`);
 }
 
@@ -903,7 +903,7 @@ function renderRouteBand(stage) {
 }
 
 const bookTitle = renderedGuide.metadata.title ?? ".NET 11 与 C# 15 高级特性学习指导";
-const bookSubtitle = renderedGuide.metadata.subtitle ?? "以 53 个可运行实验为主线";
+const bookSubtitle = renderedGuide.metadata.subtitle ?? "以 54 个可运行实验为主线";
 const bookDate = renderedGuide.metadata.date ?? "持续更新";
 const renderedUnitPages = [];
 
@@ -1002,7 +1002,7 @@ const splitStructure = renderedUnitPages.reduce(
 const expectedSplitStructure = {
   blockquoteCount: expectedGuideStructure.blockquoteCount,
   codeBlockCount: expectedGuideStructure.codeBlockCount,
-  headingCount: 70,
+  headingCount: 71,
   listItemCount: expectedGuideStructure.listItemCount,
   orderedListCount: expectedGuideStructure.orderedListCount,
   sourceLinkCount: expectedGuideStructure.sourceLinkCount,

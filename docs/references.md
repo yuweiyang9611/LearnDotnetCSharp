@@ -2,6 +2,16 @@
 
 本项目的源码是机制入口；下面的标准、规范、官方文档与实现仓库用于核对正式语义、平台边界和生产建议。ECMA/C# 规范描述保证，Roslyn/CoreCLR 源码描述当前实现；阅读时不要把后者的具体代码形状升级为永久语言契约。
 
+## C# 15
+
+- [C# 15 新特性](https://learn.microsoft.com/dotnet/csharp/whats-new/csharp-15)
+- [联合类型 `union`](https://learn.microsoft.com/dotnet/csharp/language-reference/builtin-types/union)
+- [`closed` 修饰符与 closed 类层次](https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/closed)
+- [集合表达式参数 `with(...)`](https://learn.microsoft.com/dotnet/csharp/language-reference/operators/collection-expressions#collection-expression-arguments)
+- [扩展索引器](https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/extension#extension-indexers)
+- [跳转语句与带标签的 `break`/`continue`](https://learn.microsoft.com/dotnet/csharp/language-reference/statements/jump-statements)
+- [IDE0410：使用带标签的跳转语句](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/style-rules/ide0410)
+
 ## .NET 10 与 C# 14
 
 - [.NET 10 新特性概览](https://learn.microsoft.com/dotnet/core/whats-new/dotnet-10/overview)

@@ -42,9 +42,9 @@ test("catalog filters, persists progress, copies and navigates", async ({ page }
   await page.locator("#catalog-search").fill("runtime.overview");
   await expect(page.locator("#catalog-count")).toHaveText("1");
   await page.locator('[data-complete-id="runtime.overview"]').click();
-  await expect(page.locator("#progress-count")).toHaveText("1 / 53");
+  await expect(page.locator("#progress-count")).toHaveText("1 / 54");
   await page.reload();
-  await expect(page.locator("#progress-count")).toHaveText("1 / 53");
+  await expect(page.locator("#progress-count")).toHaveText("1 / 54");
   await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (text) => { window.copiedText = text; } } }));
   await page.locator('#experiment-runtime\\.overview [data-copy]').click();
   expect(await page.evaluate(() => window.copiedText)).toContain("run runtime.overview");
@@ -89,7 +89,7 @@ test("preview cancellation, merge conflicts and repeated backup roundtrip", asyn
   expect(await stored(page)).toEqual(local);
   await upload(page, incoming);
   await page.locator("[data-confirm-import]").click();
-  await expect(page.locator("#progress-count")).toHaveText("2 / 53");
+  await expect(page.locator("#progress-count")).toHaveText("2 / 54");
   let result = await stored(page);
   expect(result.assessments["chapter-01"].notes).toBe(local.assessments["chapter-01"].notes);
   expect(result.copies).toHaveLength(1);
@@ -110,7 +110,7 @@ test("old revisions and unknown records survive without counting", async ({ page
     "chapter-99": record("未来章节的笔记需要保留，不可丢弃。", "future"),
   } }));
   await page.locator("[data-confirm-import]").click();
-  await expect(page.locator("#progress-count")).toHaveText("0 / 53");
+  await expect(page.locator("#progress-count")).toHaveText("0 / 54");
   const exported = await download(page);
   expect(exported.data.copies).toHaveLength(1);
   expect(exported.data.assessments["chapter-99"]).toBeTruthy();
@@ -127,7 +127,7 @@ test("legacy storage migrates and preserves original keys", async ({ page }) => 
     localStorage.setItem("learn-dotnet-csharp-guide-last-reading-v2", JSON.stringify({ title: "第一章", url: "/LearnDotnetCSharp/guide/chapter-01/#1-环境基线" }));
   });
   await page.goto("./");
-  await expect(page.locator("#progress-count")).toHaveText("1 / 53");
+  await expect(page.locator("#progress-count")).toHaveText("1 / 54");
   expect(await page.evaluate(() => localStorage.getItem("learn-dotnet-csharp-progress-v1"))).not.toBeNull();
   await page.goto("guide/");
   await expect(page.locator("#continue-reading")).toHaveAttribute("href", /LearnDotnetCSharp\/guide\/chapter-01\//);
@@ -208,6 +208,6 @@ test("clipboard failures never show success; clearing keeps notes", async ({ pag
   await expect(page.locator("#toast")).toContainText("复制失败");
   page.once("dialog", (dialog) => dialog.accept());
   await page.locator("#reset-progress").click();
-  await expect(page.locator("#progress-count")).toHaveText("0 / 53");
+  await expect(page.locator("#progress-count")).toHaveText("0 / 54");
   expect((await stored(page)).assessments["chapter-01"]).toBeTruthy();
 });

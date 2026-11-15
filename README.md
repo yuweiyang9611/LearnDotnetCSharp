@@ -1,6 +1,6 @@
 # LearnDotnetCSharp
 
-这是一个以 **.NET 11** 和 **C# 15** 为基准、包含 53 个可运行实验的高级特性实验室。项目参考《C# 8.0 核心技术指南》的目录组织知识范围，但示例使用当前运行时和语言写法，不复刻书中的旧代码。
+这是一个以 **.NET 11** 和 **C# 15** 为基准、包含 54 个可运行实验的高级特性实验室。项目参考《C# 8.0 核心技术指南》的目录组织知识范围，但示例使用当前运行时和语言写法，不复刻书中的旧代码。
 
 > **在线学习站：** [yuweiyang9611.github.io/LearnDotnetCSharp](https://yuweiyang9611.github.io/LearnDotnetCSharp/)
 >
@@ -20,7 +20,7 @@ Linux、macOS 或 Git Bash 使用 `./scripts/enable-git-hooks.sh "YOUR_ID+YOUR_U
 
 重点覆盖：
 
-- C# 14、Attribute、委托/事件/迭代器、运算符/转换、型变、泛型约束与现代 C# 高级语言特性
+- C# 14 与 C# 15（集合表达式参数、联合类型、closed 层次、扩展索引器、带标签的跳转）、Attribute、委托/事件/迭代器、运算符/转换、型变、泛型约束与现代 C# 高级语言特性
 - 框架基础、集合、LINQ、EF Core/SQLite 查询翻译、LINQ to XML 与版本化序列化契约
 - 异步 continuation/上下文、并发内存模型、线程同步、锁自由结构和并行计算
 - 异步/随机访问/内存映射 I/O，以及 HTTP 流/重试/取消、本地 TCP、UDP、WebSocket、TLS、HTTP/1.1、HTTP/2、HTTP/3
@@ -92,7 +92,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- self-test
 .\scripts\build-study-guide-pdf.cmd
 ```
 
-首次运行会在仓库内创建 `.docs-venv` 并安装固定版本依赖；后续运行会复用已验证的环境。成品位于 `output\pdf\LearnDotnetCSharp-Study-Guide.pdf`，生成完成后还会自动检查页数、页面尺寸、标题、书签、乱码，并核对源码目录与学习指导中的全部 53 个实验 ID。该 PDF 作为可直接阅读的主线快照纳入版本控制；修改学习指导后应重新生成并同时提交 Markdown 与 PDF。推送相关文件到 `main` 时，GitHub Actions 也会自动构建并保留 30 天的 `LearnDotnetCSharp-Study-Guide` artifact；工作流支持手动触发。详细说明见[学习指导的附录 C](docs/advanced-dotnet-csharp-study-guide.md#附录-c从-markdown-生成-pdf)。
+首次运行会在仓库内创建 `.docs-venv` 并安装固定版本依赖；后续运行会复用已验证的环境。成品位于 `output\pdf\LearnDotnetCSharp-Study-Guide.pdf`，生成完成后还会自动检查页数、页面尺寸、标题、书签、乱码，并核对源码目录与学习指导中的全部 54 个实验 ID。该 PDF 作为可直接阅读的主线快照纳入版本控制；修改学习指导后应重新生成并同时提交 Markdown 与 PDF。推送相关文件到 `main` 时，GitHub Actions 也会自动构建并保留 30 天的 `LearnDotnetCSharp-Study-Guide` artifact；工作流支持手动触发。详细说明见[学习指导的附录 C](docs/advanced-dotnet-csharp-study-guide.md#附录-c从-markdown-生成-pdf)。
 
 CLI 命令：
 
@@ -132,7 +132,7 @@ npm run test:site
 
 ## 在浏览器里跑实验与五步带
 
-章节页上每个实验的源码面板带“运行”按钮：`tools/BrowserRuntime/` 是从设计模式站点移植的 Roslyn + .NET 11 WebAssembly 运行时副本（引擎扩展为一次编译多个命名文件，并等待返回 `Task<string[]>` 的入口），`npm run build:runtime` 把它发布到 `artifacts/browser-runtime/`，站点构建再复制到 `assets/runtime/`（约 47 MB，生成产物，不入库；缺少时构建会明确失败）。第一次点击“运行”会加载运行时，面板依次显示“加载运行时 / 编译 / 执行”，超时分别为 60 秒、30 秒和 5 秒。一次运行把面板里的实验文件（可改一改再跑）、它的同组文件和 `Infrastructure/` 下的文件一起编译，入口构造 Demo 并等待 `RunAsync`。不能在浏览器里跑的实验（原生互操作、文件、网络、线程、进程、Kestrel、EF Core、Roslyn 包等）列在 `site/lab-availability.js`，面板显示“需要本机”和原有的 `dotnet run` 命令；这份清单来自 `npm run survey:labs` 在本地构建上逐个运行全部 53 个实验的结果。
+章节页上每个实验的源码面板带“运行”按钮：`tools/BrowserRuntime/` 是从设计模式站点移植的 Roslyn + .NET 11 WebAssembly 运行时副本（引擎扩展为一次编译多个命名文件，并等待返回 `Task<string[]>` 的入口），`npm run build:runtime` 把它发布到 `artifacts/browser-runtime/`，站点构建再复制到 `assets/runtime/`（约 47 MB，生成产物，不入库；缺少时构建会明确失败）。第一次点击“运行”会加载运行时，面板依次显示“加载运行时 / 编译 / 执行”，超时分别为 60 秒、30 秒和 5 秒。一次运行把面板里的实验文件（可改一改再跑）、它的同组文件和 `Infrastructure/` 下的文件一起编译，入口构造 Demo 并等待 `RunAsync`。不能在浏览器里跑的实验（原生互操作、文件、网络、线程、进程、Kestrel、EF Core、Roslyn 包等）列在 `site/lab-availability.js`，面板显示“需要本机”和原有的 `dotnet run` 命令；这份清单来自 `npm run survey:labs` 在本地构建上逐个运行全部实验的结果。
 
 每个章节页顶部有一条五步带（读、看代码、跑、自测、记一笔），状态只从学习记录读出：打开过章节（或阅读位置已到达该章）、点过源码面板的标签、浏览器运行完成或复制过本机命令、本章三道自测题全对、证据记录非空。教材目录的“接着做”指向最早有“停在这里”一步的章节。记录仍是 `learn-dotnet-csharp-learning-data-v1`，版本 1 新增 `visited`、`sourceViews`、`runs`、`quizzes` 四个字段，旧记录原样可读。
 
@@ -165,7 +165,7 @@ LearnDotnetCSharp.slnx
 ├─ docs/
 │  ├─ pdf-topic-map.md                       # PDF 27 章到现代示例的映射
 │  ├─ learning-path.md                       # 推荐学习顺序和观察点
-│  ├─ advanced-dotnet-csharp-study-guide.md  # 53 个实验的详细课程、练习与 PDF 内容源
+│  ├─ advanced-dotnet-csharp-study-guide.md  # 54 个实验的详细课程、练习与 PDF 内容源
 │  ├─ interop-boundaries.md                  # Python/C/C++ 的 ABI、协议与所有权说明
 │  └─ references.md                          # 官方与规范性延伸资料
 └─ scripts/
@@ -218,6 +218,7 @@ dotnet run --project .\src\LearnDotnetCSharp.App -- run-category projects
 | `runtime.collectible-plugin` | `AssemblyLoadContext`、依赖解析、共享契约、卫星资源和可收集卸载 |
 | `diagnostics.observability` | TraceSource、ActivitySource、Meter、EventSource、StackTrace 与 Stopwatch |
 | `language.csharp14` | C# 14 extension members、`field`、空条件赋值、Span 转换、partial 成员、原地运算符 |
+| `language.csharp15` | C# 15 集合表达式参数 `with(...)`、`union` 联合类型、`closed` 类层次、扩展索引器、带标签的 `break`/`continue` |
 | `language.advanced` | 泛型数学、封闭 record 层次、模式、`ref struct`、`stackalloc`/指针、`dynamic` |
 | `language.operators-conversions` | 算术/比较运算符、隐式/显式与 checked 转换、nullable 提升、`is`/`as`/`Convert` 边界 |
 | `language.generics-variance-constraints` | `in`/`out` 型变、`notnull`/`unmanaged`/`new()`、静态抽象成员与 `allows ref struct` |
